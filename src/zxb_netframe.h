@@ -30,6 +30,7 @@ namespace ZXB {
 
 class NetFrame;
 class CallBackArg {
+public:
     enum EventType {
         T_SOCKET = 1,
         T_SIGNAL,
@@ -56,11 +57,17 @@ typedef (void)(*CallbackForLibEvent)(int, short, void*);
 class NetFrame {
 public:
     static void SocketCallback(int fd, short events, void *arg);
+    int AcceptHandler();
 
 public:
     NetFrame *CreateNetFrame();
     // Manipulators
     int SetupRecvQueues(int queue_num);
+    int SetupSendQueues(int queue_num);
+    void SetSocketOperatorFactory(SocketOperatorFactory *op_factory);
+    // setter/getter
+    MemPool* mempool();
+    void set_mempool(MemPool *mp);
 
     // Network I/O interfaces
     int AddSocketToMonitor(Socket *sk);
@@ -70,11 +77,12 @@ public:
 
     // Packet proccessing interface
     int ProcessPacket(Packet *in_pack);
-    int GetPacketFromeQueue(int which_queue, Packet *&pack);// It's thread-safe
+    int GetPacketFromQueue(int which_queue, Packet *&pack);// It's thread-safe
+    // Socket manipulateors
+    int PrepareListenSocket(std::string &my_ipstr, uint16_t my_port, Socket::SocketType type,
+                            Socket::DataFormat data_format);
     int AsyncSend(std::string &to_ipstr, uint16_t to_port, std::string &my_ipstr, uint16_t my_port,
-                              MemBlock *data, enum SocketType type);// It's thread-safe
-
-
+                  MemBlock *data, Socket::SocketType type, Socket::DataFormat data_format);
 private:
     NetFrame();
     ~NetFrame();
@@ -84,6 +92,16 @@ private:
     std::vector<std::list<Packet*> > recv_queues_;
     std::vector<pthread_mutex_t*> recv_queue_locks_;// It's dangeraout to copy a pthread_mutex_t so we use pointer
     std::vector<pthread_cond_t*> recv_queue_conds_;
+    // send queues
+    std::vector<std::list<MemBlock*> > send_queues_;
+    std::vector<pthread_mutex_t*> send_queue_locks_;// It's dangeraout to copy a pthread_mutex_t so we use pointer
+
+    // MemPool
+    MemPool *mempool_;
+    // SocketPoll
+    SocketPool *socket_pool_;
+    // SocketOperator factory
+    SocketOperatorFactory *op_factory_;
 
     // Prohibits
     NetFrame(NetFrame&);

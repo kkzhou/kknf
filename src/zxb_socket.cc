@@ -22,8 +22,55 @@
 
 namespace ZXB {
 
-Socket* Socket::FindSocket(std::string &peer_ip, uint16_t peer_port, enum SocketType type) {
+// 构造函数
+Socket::Socket(SocketOperator *op) {
 
+    op_ = op;
+    pthread_mutex_init(&send_mb_list_lock_, NULL);
+    gettimeofday(&last_use_);
+    status_ = S_NOTREADY;
+}
+// 析构函数
+// 需要释放资源，包括接受缓存、发送缓存列表
+Socket::~Socket() {
+
+    Locker locker(send_mb_list_lock_);
+    close(fd_);
+    delete op_;
+
+    // Return the recv buf MemBlock
+    recv_mb_->Return();
+    recv_mb_ = 0;
+    std::list<MemBlock*>::iterator it = send_mb_list_.begin();
+    std::list<MemBlock*>::iterator endit = send_mb_list_.end();
+
+    for (; it != endit; it++) {
+        *it->Return();
+    }
+}
+
+int Socket::PushDataToSend(MemBlock *mb)
+{
+    Locker locker(send_mb_list_lock_);
+
+    send_mb_list_.push_back(mb);
+    gettimeofday(&last_use_);
+    return 0;
+}
+
+
+SocketPool::SocketPool() {
+    pthread_mutex_init(&socket_map_lock_, NULL);
+}
+
+SocketPool::~SocketPool() {
+    SweepIdleSocket(-1);    // A trick
+    pthread_mutex_destroy(&socket_map_lock_);
+}
+
+Socket* SocketPool::FindSocket(std::string &peer_ip, uint16_t peer_port, SocketType type) {
+
+    Locker locker(socket_map_lock_);
     stringstream tmp_key;
     if (type_ == T_TCP_LISTEN || type_ == T_TCP_CLIENT || type_ == T_UDP_CLIENT) {
         // We use myip:myport as the key in map for these types of socket
@@ -38,9 +85,9 @@ Socket* Socket::FindSocket(std::string &peer_ip, uint16_t peer_port, enum Socket
     return it->second;
 }
 
-int Socket::SweepIdleSocket( int max_idle_sec) {
+int SocketPool::SweepIdleSocket( int max_idle_sec) {
 
-    // Only one thread does this thing
+    Locker locker(socket_map_lock_);
     map<string, Socket*>::iterator it = socket_map_.begin();
     map<string, Socket*>::iterator endit = socket_map_.end();
 
@@ -52,7 +99,7 @@ int Socket::SweepIdleSocket( int max_idle_sec) {
         int64_t delta = nowtime.tv_sec - (*it)->second->last_use_.tv_sec;
         if (delta > max_idle_sec) {
             Socket *tmpsk = *it->second;
-            Socket::DestroySocket(tmpsk);
+            delete tmpsk;
             socket_map_.erase(it++);
             deleted_num++;
         } else {
@@ -63,22 +110,49 @@ int Socket::SweepIdleSocket( int max_idle_sec) {
     return deleted_num;
 }
 
-Socket* Socket::CreateSocket(SocketOperator *op) {
-    return new Socket(op);
+Socket* SocketPool::CreateSocket(SocketOperator *op) {
+    Socket *newsk = new Socket(op);
+    return newsk;
 }
 
-Socket::Socket(SocketOperator *op) {
+int SocketPool::AddSocket(Socket *sk) {
 
-    op_ = op;
-    send_mb_list_lock_ = PTHREAD_MUTEX_INITIALIZER;
-    gettimeofday(&last_use_);
-    status_ = S_NOTREADY;
+    stringstream tmp_key;
+    // check sk
+    if (sk->type_ == Socket::T_TCP_SERVER) {
+        // check peer_ip/peer_port
+        if (sk->peer_ipstr_.empty() || sk->peer_port_ == 0) {
+            return -1;
+        }
+        tmp_key << sk->peer_ipstr_ << ":" << sk->peer_port_ << ":" << sk->type_;
+    } else if (sk->type_ == Socket::T_TCP_LISTEN || sk->type_ == Socket::T_TCP_CLIENT) {
+        // check my_ip/my_port
+        if (sk->my_ipstr_.empty() || sk->my_port_ == 0) {
+            return -1;
+        }
+        tmp_key << sk->my_ipstr_ << ":" << sk->my_port_ << ":" << sk->type_;
+    } else {
+        return -1;
+    }
+
+    {
+        Locker locker(socket_map_lock_);
+        if (socket_map_.find(tmp_key.str()) != socket_map_.end()) {
+            // already exist
+            return -2;
+        }
+
+        pair<map<string, Socket*>::iterator, bool>::iterator it;
+        it = socket_map_.insert(pair<string, Socket*>(tmp_key.str(), sk)));
+    }
+    return 0;
 }
 
-int Socket::DestroySocket(Socket *sk) {
 
+int SocketPool::DestroySocket(Socket *sk) {
+
+    Locker locker(socket_map_lock_);
     // First, delete myself from the socket map
-
     stringstream tmp_key;
     if (sk->type_ == T_TCP_LISTEN || sk->type_ == T_TCP_CLIENT || sk->type_ == T_UDP_CLIENT) {
         // We use myip:myport as the key in map for these types of socket
@@ -87,41 +161,8 @@ int Socket::DestroySocket(Socket *sk) {
         tmp_key << sk->peer_ipstr_ << ":" << sk->peer_port_ << ":" << sk->type_;
     }
     socket_map_.erase(tmp_key.str());
-
-    // Then, release resources of this socket
-    close(sk->fd_);
-    sk->op_ = NULL;// op_ doesnt' belong to me but I belong to op_
-
-    // Return the recv buf MemBlock
-    sk->recv_mb_->Return();
-    sk->recv_mb_ = 0;
-
-    {// Send buffer list should be locked first
-
-        Locker locker(send_pkt_list_lock_);
-        // Return the send buf MemBlock
-        std::list<MemBlock*>::iterator it = sk->send_mb_list_.begin();
-        std::list<MemBlock*>::iterator endit = sk->send_mb_list_.end();
-
-        for (; it != endit; it++) {
-            *it->Return();
-        }
-        delete sk;
-    }
-
+    delete sk;
     return 0;
-}
-
-int Socket::PushBinDataToSend(MemBlock *mb)
-{
-    Locker locker(send_pkt_list_lock_);
-
-    send_mb_list_.push_back(mb);
-    gettimeofday(&last_use_);
-    return 0;
-}
-
-Socket::~Socket() {
 }
 
 };// namespace ZXB

@@ -15,40 +15,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef ZXB_SOCKET_OPERATOR_H_
-#define ZXB_SOCKET_OPERATOR_H_
+#ifndef ZXB_BIN_SOCKET_OPERATOR_H_
+#define ZXB_BIN_SOCKET_OPERATOR_H_
+
+#include "zxb_socket_operator.h"
+
 namespace ZXB {
 
 class Socket;
 
-class SocketOperator {
+class BinSocketOperator : public SocketOperator {
 public:
-    enum SocketCmd {
-        C_CLOSE = 1,
-        C_RECONNECT,
-        C_SHUTDOWN
-    };
-public:
-    virtual int ReadHandler(Packet *&in_pack) = 0;
-    virtual int WriteHandler() = 0;
-    virtual int ErrorHandler(SocketCmd cmd) = 0;
+    virtual int ReadHandler(Packet *&in_pack);
+    virtual int WriteHandler();
+    virtual int ErrorHandler(SocketOperator::SocketCmd cmd);
 
 public:
-    SocketOperator();
-    virtual ~SocketOperator();
-    int set_socket(Socket *sk);
-    Socket* socket();
-
-    static int GetSocketError(int fd, int &error);
+    BinSocketOperator();
+    ~BinSocketOperator();
 }
 
 private:
-    Socket *socket_;
     // Prohibits
-    SocketOperator(SocketOperator&);
-    SocketOperator& operator=(SocketOperator&);
+    BinSocketOperator(BinSocketOperator&);
+    BinSocketOperator& operator=(BinSocketOperator&);
 };
 
-
+};
 
 #endif
+
+
+#endif // ZXB_BIN_SOCKET_OPERATOR_H_

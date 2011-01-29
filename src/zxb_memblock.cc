@@ -21,35 +21,33 @@ using namespace std;
 
 namespace ZXB {
 
-// Define static variables
-pthread_mutex_t MemBlock::all_lock_ = PTHREAD_MUTEX_INITIALIZER;
-vector<list<MemBlock*> > MemBlock::recycled_block_lists_;
-vector<vector<char> > MemBlock::mem_pool_;
-vector<int> MemBlock::block_get_num_;
-
-int MemBlock::free_item_pos_ = 0;
-size_t MemBlock::free_start_pos_ = 0;
-
-int MemBlock::max_block_size_ = 0;
-int MemBlock::block_size_step_ = 0;
-
 MemBlock::MemBlock ()
     :start_(0), curpos_(0),
      len_(0)
 {
 }
 
-int MemBlock::CreateMemPool (int init_size, int max_block_size, int block_size_step)
+MemPool::MemPool() {
+    pthread_mutex_t(&pool_lock_, NULL);
+    unorganized_byte_num_ = 0;
+    free_item_pos_ = ;
+    free_start_pos_ = 0;
+    max_block_size_ = 0;
+    block_size_step_ = 0;
+}
+
+int MemPool::CreateMemPool (int init_pool_size, int max_block_size, int block_size_step, MemPool *&mp)
 {
+    mp = new MemPool;
     // Do some initiates
-    max_block_size_ = max_block_size;
-    block_size_step_ = block_size_step;
+    mp->max_block_size_ = max_block_size;
+    mp->block_size_step_ = block_size_step;
     //
-    int ret = EnlargeMemPool (init_size);
+    int ret = mp->EnlargeMemPool (init_pool_size);
     return ret;
 }
 
-int MemBlock::EnlargeMemPool (int size_to_add)
+int MemPool::EnlargeMemPool (int size_to_add)
 {
     if (size_to_add <= 0) {
         return -1;
@@ -61,15 +59,21 @@ int MemBlock::EnlargeMemPool (int size_to_add)
     }
 
     vector<char> newbuf;
-    newbuf.reserv (size_added);
+    newbuf.reserve(size_added);
 
     {
-        Locker locker(&all_lock_);
-
+        Locker locker(&pool_lock_);
+        if (unorganized_byte_num_ > 0) {
+            // Other thread has done EnlargeMemPool
+            return -2;
+        }
         mem_pool_.push_back(vector<char>(0));// Copy constructor is invoked, so use a trick
         size_t num = mem_pool_.size () - 1;
         swap (newbuf, mem_pool_[num]);// The trick is 'swap'
         block_get_num_.push_back(0);
+
+        assert(unorganized_byte_num_ == 0);
+        unorganized_byte_num_ += size_added;
     }
 
     return 0;
@@ -78,7 +82,7 @@ int MemBlock::EnlargeMemPool (int size_to_add)
 // return:
 // -1: parameter invalid
 // -2: not enough space left
-int MemBlock::Get (int size)
+int MemPool::Get(int size)
 {
     if (size <= 0 || size > max_block_size) {
         return -1;
@@ -93,7 +97,7 @@ int MemBlock::Get (int size)
     int multiple  = real_size / block_size_step_;
     MemBlock *ret_mb = 0;
 
-    Locker locker(&all_lock_);
+    Locker locker(&pool_lock_);
 
     block_get_num_[multiple ]++;
 
@@ -129,6 +133,7 @@ int MemBlock::Get (int size)
                 new_block->len_ = alloc_for_which * block_size_step_;
                 new_block->curpos_ = 0;
                 free_start_pos_ += new_block->len_;
+                unorganized_byte_num_ -= new_block->len_;
                 new_list.push_back(new_block);
             }
             recycled_block_lists_[multiple ].insert(new_list.begin(), new_list.end());
@@ -141,6 +146,7 @@ int MemBlock::Get (int size)
                 new_block->len_ = left_size;
                 new_block->curpos_ = 0;
                 free_start_pos_ += new_block->len_;
+                unorganized_byte_num_ -= new_block->len_;
 
                 assert(free_start_pos_ == mem_pool_[free_item_pos_].size());
                 recycled_block_lists_[left_size / block_size_step_].push_back(new_block);
@@ -158,6 +164,7 @@ int MemBlock::Get (int size)
         ret_mb->len_ = real_size;
         ret_mb->curpos_ = 0;
         free_start_pos_ += ret_mb->len_;
+        unorganized_byte_num_ -= ret_mb->len_;
     } else {
         // We have some recycled blocks left
         ret_mb = recycled_block_lists_[multiple ].front();
@@ -167,11 +174,12 @@ int MemBlock::Get (int size)
     return reb_mb;
 }
 
-int MemBlock::Return()
+int MemPool::Return(MemBlock *mb)
 {
-    Locker locker(&all_lock_);
-    int multiple  = len_ / block_size_step_;
-    curpos_ = 0;
-    recycled_block_lists_[multiple].push_back(this);
+    Locker locker(&pool_lock_);
+    int multiple  = mb->len_ / block_size_step_;
+    mb->curpos_ = 0;
+    recycled_block_lists_[multiple].push_back(mb);
+    return 0;
 }
 };

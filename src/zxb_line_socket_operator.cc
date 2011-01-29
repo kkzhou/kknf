@@ -1,3 +1,4 @@
+
  /*
     Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
 
@@ -15,40 +16,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef ZXB_SOCKET_OPERATOR_H_
-#define ZXB_SOCKET_OPERATOR_H_
-namespace ZXB {
+#include "zxb_line_socket_operator.h"
 
-class Socket;
-
-class SocketOperator {
-public:
-    enum SocketCmd {
-        C_CLOSE = 1,
-        C_RECONNECT,
-        C_SHUTDOWN
-    };
-public:
-    virtual int ReadHandler(Packet *&in_pack) = 0;
-    virtual int WriteHandler() = 0;
-    virtual int ErrorHandler(SocketCmd cmd) = 0;
-
-public:
-    SocketOperator();
-    virtual ~SocketOperator();
-    int set_socket(Socket *sk);
-    Socket* socket();
-
-    static int GetSocketError(int fd, int &error);
+LineSocketOperator::LineSocketOperator() : socket_(0) {
 }
 
-private:
-    Socket *socket_;
-    // Prohibits
-    SocketOperator(SocketOperator&);
-    SocketOperator& operator=(SocketOperator&);
-};
+LineSocketOperator::~LineSocketOperator() {
+}
 
+int LineSocketOperator::ReadHandler(Packet *&in_pack) {
 
+}
+int LineSocketOperator::WriteHandler() {
 
-#endif
+}
+int LineSocketOperator::ErrorHandler(SocketOperator::SocketCmd cmd) {
+
+}

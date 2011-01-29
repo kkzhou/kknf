@@ -23,49 +23,48 @@
 namespace ZXB {
 
 class MemBlock {
-
-public:
-    MemBlock ();
-    // Allocator and Deallocator
-    static int Get (int size, MemBlock *mb);    // Must be thread-safe
-    int Return ();    // Must be thread-safe
-
 public:
     void *start_;
-    int curpos_;
+    int used_;
     int len_;
 
-// For maintaining
-public:
-    static int PrintStatus ();// Must be thread-safe
-    static int EnlargeMemPool (int size_to_add);// Must be thread-safe
-    static int CreateMemPool (int init_size, int max_block_size, int block_size_step);// Must be thread-safe
-
 private:
-    static pthread_mutex_t all_lock_;
-
-    // MemBlock size is 128*n, so there are n-sized vector
-    // to maintain the recycled MemBlocks
-
-    static std::vector<std::list<MemBlock*> > recycled_block_lists_;
-
-    static std::vector<std::vector<char> > mem_pool_;
-    static int free_item_pos_;
-    static size_t free_start_pos_;  // The memory not organized in MemBlock is at
-                                    // 'mem_pool_[free_item_pos_].data() + free_start_pos_'
-
-    // For statistics
-    static std::vector<uint64_t> block_get_num_;
-
-    // Configurable parameters(can't be changed after initiated)
-    static int max_block_size_;
-    static int block_size_step_;
-private:
-    // Prohibits
+    MemBlock ();
     ~MemBlock();
+    // Prohibits
     MemBlock (MemBlock &);
     MemBlock& operator= (MemBlock &);
 };
 
+class MemPool {
+// For maintaining
+public:
+    int Get(int size, MemBlock *&mb);
+    int Return(MemBlock *mb);
+    int PrintStatus();
+    int EnlargeMemPool(int size_to_add);
+    static int CreateMemPool(int init_pool_size, int max_block_size, int block_size_step, MemPool *&mp);
+
+private:
+    MemPool();
+    ~MemPool();
+    pthread_mutex_t pool_lock_;
+    // MemBlock size is 1024*n, so there are n-sized vector
+    // to maintain the recycled MemBlocks
+    std::vector<std::list<MemBlock*> > recycled_block_lists_;
+    std::vector<std::vector<char> > mem_pool_;
+
+    int unorganized_byte_num_;
+    int free_item_pos_;
+    size_t free_start_pos_;  // The memory not organized in MemBlock is at
+                                    // 'mem_pool_[free_item_pos_].data() + free_start_pos_'
+
+    // For statistics
+    std::vector<uint64_t> block_get_num_;
+
+    // Configurable parameters(can't be changed after initiated)
+    int max_block_size_;
+    int block_size_step_;
+};
 };
 #endif
