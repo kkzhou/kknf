@@ -1,5 +1,5 @@
  /*
-    Copyright (C) <2011>  <ZHOU Xiaobo>
+    Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -30,7 +30,12 @@ public:
         C_SHUTDOWN
     };
 public:
-    virtual int ReadHandler(Packet *&in_pack);
+    int ReadHandler(Packet *&in_pack);
+    virtual int BinReadHandler(Packet *&in_pack);
+    virtual int HttpReadHandler(Packet *&in_pack);
+    virtual int LineReadHandler(Packet *&in_pack);
+    virtual int OtherReadHandler(Packet *&in_pack);
+
     virtual int WriteHandler();
     virtual int AcceptHandler();
     virtual int AcceptHandler();
@@ -50,7 +55,7 @@ public:
     // When processing a request usually spawns several requests to the
     // server(s) behind this server.
     static int AsyncSend(std::string &to_ipstr, uint16_t to_port,
-                              std::string &my_ipstr, uint16_t my_port,
+                              std::string &my_ipstr, uint16_t my_port, int &seq,
                               MemBlock *data, enum SocketType type, SocketOperator *&sk_used);
 
     // Actually only UDP use AyncRecv just like TCP's listen

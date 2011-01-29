@@ -1,5 +1,5 @@
  /*
-    Copyright (C) <2011>  <ZHOU Xiaobo>
+    Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,10 +20,13 @@
 
 class Packet {
 public:
-    Packet(struct timeval recv_time,
+    Packet(struct timeval &recv_time,
            std::string &peer_ipstr, uint16_t peer_port,
            std::string &my_ipstr, uint16_t my_port,
+           int seq, int len, MemBlock *data,
            Socket *from_socket);
+    ~Packet();
+
 public:
     struct timeval recv_time_;
     std::string peer_ipstr_;
@@ -32,6 +35,7 @@ public:
     uint16_t my_port_;
     MemBlock *data_;
     int seq_;
+    int len_;
 private:
     Socket *from_socket_;
     // Prohibits

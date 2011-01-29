@@ -1,5 +1,5 @@
  /*
-    Copyright (C) <2011>  <ZHOU Xiaobo>
+    Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -63,7 +63,7 @@ public:
     static int DestroySocket();
     static Socket* CreateSocket(SocketOperator *op);
     static int SweepIdleSocket(int max_idle_sec);
-    int PushDataToSend(MemBlock *mb);
+    int PushDataToSend(MemBlock *mb, int &seq);
 
 private:
     Socket (SocketOperator *op);
@@ -90,8 +90,8 @@ private:
 
     // object variables
     // Buffer to receive data before packetized
-    MemBlock *recv_mb_;
-    std::list<MemBlock*> send_mb_list_;// The data(organized in MemBlock) to send
+    Packet *recv_pkt_;
+    std::list<Packet*> send_pkt_list_;// The data(organized in Packet) to send
 };
 
 };// namespace ZXB

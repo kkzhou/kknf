@@ -1,5 +1,5 @@
  /*
-    Copyright (C) <2011>  <ZHOU Xiaobo>
+    Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -133,7 +133,7 @@ int SocketOperator::GetSocketError(int fd, int &error)
 }
 
 int SocketOperator::AsyncSend(std::string &to_ipstr, uint16_t to_port,
-                              std::string &my_ipstr, uint16_t my_port,
+                              std::string &my_ipstr, uint16_t my_port, int &seq,
                               MemBlock *data, enum SocketType type,
                               SocketOperator *&sk_used) {
 
@@ -196,7 +196,7 @@ int SocketOperator::AsyncSend(std::string &to_ipstr, uint16_t to_port,
         }
     }
     // Push data to send
-    sk->PushDataToSend(data);
+    sk->PushDataToSend(data, seq);
     sk->status_ = Socket::S_CONNECTING;
     sk_used = sk;
     return 0;
@@ -208,14 +208,26 @@ int SocketOperator::AsyncRecv(std::string &my_ipstr, uint16_t my_port,
 }
 
 int SocketOperator::ReadHandler(Packet *&in_pack) {
+    int ret = 0;
     if (socket_->data_format_ == Socket::DF_BIN) {
         // Bin packet is: length(4bytes)+sequence(4bytes)+data
+        ret = BinReadHandler(in_pack);
+    } else if (socket_->data_format_ == Socket::DF_HTTP) {
+        // Http packet
+        ret = HttpReadHandler(in_pack);
+    } else if (socket_->data_format_ == Socket::DF_LINE) {
+        // Line packet
+        ret = LineReadHandler(in_pack);
+    } else {
+        ret = OtherReadHandler(in_pack);
+    }
+    return ret;
+}
 
-        uint32_t len = htonl(*(reinterpret_cast<uint32_t*>(socket_->recv_mb_->start_))));
-        uint32_t seq = htonl(*(reinterpret_cast<uint32_t*>(socket_->recv_mb_->start_) + 1)));
+int SocketOperator::BinReadHandler(Packet *&in_pack) {
+
+    if (socket_->recv_pkt_) {
+
     }
 }
-    virtual int WriteHandler();
-    virtual int AcceptHandler();
-    virtual int AcceptHandler();
-    virtual int ErrorHandler(enum SocketCmd cmd);
+

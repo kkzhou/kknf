@@ -1,5 +1,5 @@
  /*
-    Copyright (C) <2011>  <ZHOU Xiaobo>
+    Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -277,15 +277,14 @@ int NetFrame::GetPacketFromeQueue(int which_queue, Packet *&pack) {
 }
 
 int NetFrame::AsyncSend(std::string &to_ipstr, uint16_t to_port, std::string &my_ipstr, uint16_t my_port,
-                        MemBlock *data, enum SocketType type, int &socket_fd_used) {
+                        MemBlock *data, enum SocketType type, int &seq) {
 
     int send_result = 0;
     Socket *sk_used = NULL;
-    send_result = SocketOperator::AsyncSend(to_ipstr, to_port, my_ipstr, my_port, data, type, sk_used);
+    send_result = SocketOperator::AsyncSend(to_ipstr, to_port, my_ipstr, my_port, data, type, seq);
     if (send_result < 0) {
         return -2;
     }
-    socket_fd_used = sk_used->fd_;
     return 0;
 
 }

@@ -1,5 +1,5 @@
  /*
-    Copyright (C) <2011>  <ZHOU Xiaobo>
+    Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -93,17 +93,20 @@ int Socket::DestroySocket(Socket *sk) {
     sk->op_ = NULL;// op_ doesnt' belong to me but I belong to op_
 
     // Return the recv buf MemBlock
-    sk->recv_mb_->Return();
+    sk->recv_pkt_->data_->Return();
+    delete sk->recv_pkt_;
+    sk->recv_pkt_ = 0;
 
     {// Send buffer list should be locked first
 
-        Locker locker(send_mb_list_lock_);
+        Locker locker(send_pkt_list_lock_);
         // Return the send buf MemBlock
-        std::list<MemBlock*>::iterator it = sk->send_mb_list_.begin();
-        std::list<MemBlock*>::iterator endit = sk->send_mb_list_.end();
+        std::list<Packet*>::iterator it = sk->send_pkt_list_.begin();
+        std::list<Packet*>::iterator endit = sk->send_pkt_list_.end();
 
         for (; it != endit; it++) {
-            *it->Return();
+            *it->data_->Return();
+            delete *it;
         }
         delete sk;
     }
@@ -111,10 +114,22 @@ int Socket::DestroySocket(Socket *sk) {
     return 0;
 }
 
-int Socket::PushDataToSend(MemBlock *mb)
+int Socket::PushBinDataToSend(MemBlock *mb, int &seq)
 {
-    Locker locker(send_mb_list_lock_);
-    send_mb_list_.push_back(mb);
+    static int server_instance_uniq_seq = 0;
+
+    Locker locker(send_pkt_list_lock_);
+    if (seq == 0) {
+        // seq==0 means not specified, so create one here
+        seq = ++server_instance_uniq_seq;
+    }
+    struct timeval tmp_time = {0};
+    Packet *new_pkt = new Packet(tmp_time, peer_ipstr_, peer_port_,
+                                 my_ipstr_, my_port_,
+                                 seq, mb->curpos_ + 8/*including 'len' field and 'seq' field*/,
+                                 this);
+
+    send_pkt_list_.push_back(new_pkt);
     gettimeofday(&last_use_);
     return 0;
 }
