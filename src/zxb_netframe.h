@@ -72,7 +72,7 @@ public:
     int ProcessPacket(Packet *in_pack);
     int GetPacketFromeQueue(int which_queue, Packet *&pack);// It's thread-safe
     int AsyncSend(std::string &to_ipstr, uint16_t to_port, std::string &my_ipstr, uint16_t my_port,
-                              MemBlock *data, enum SocketType type, int &seq);// It's thread-safe
+                              MemBlock *data, enum SocketType type);// It's thread-safe
 
 
 private:

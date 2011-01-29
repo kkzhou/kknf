@@ -133,7 +133,7 @@ int SocketOperator::GetSocketError(int fd, int &error)
 }
 
 int SocketOperator::AsyncSend(std::string &to_ipstr, uint16_t to_port,
-                              std::string &my_ipstr, uint16_t my_port, int &seq,
+                              std::string &my_ipstr, uint16_t my_port,
                               MemBlock *data, enum SocketType type,
                               SocketOperator *&sk_used) {
 
@@ -196,7 +196,7 @@ int SocketOperator::AsyncSend(std::string &to_ipstr, uint16_t to_port,
         }
     }
     // Push data to send
-    sk->PushDataToSend(data, seq);
+    sk->PushDataToSend(data);
     sk->status_ = Socket::S_CONNECTING;
     sk_used = sk;
     return 0;

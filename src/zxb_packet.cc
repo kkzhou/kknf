@@ -20,15 +20,13 @@
 Packet::Packet(struct timeval recv_time,
                std::string &peer_ipstr, uint16_t peer_port,
                std::string &my_ipstr, uint16_t my_port,
-               int seq, MemBlock *data,
-               Socket *from_socket) {
+               MemBlock *data, Socket *from_socket) {
 
     recv_time_ = recv_time;
     peer_ipstr_ = peer_ipstr;
     peer_port_ = peer_port;
     my_ipstr_ = my_ipstr;
     my_port_ = my_port;
-    seq_ = seq;
     from_socket_ = from_socket;
 }
 

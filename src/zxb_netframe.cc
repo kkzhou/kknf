@@ -277,11 +277,11 @@ int NetFrame::GetPacketFromeQueue(int which_queue, Packet *&pack) {
 }
 
 int NetFrame::AsyncSend(std::string &to_ipstr, uint16_t to_port, std::string &my_ipstr, uint16_t my_port,
-                        MemBlock *data, enum SocketType type, int &seq) {
+                        MemBlock *data, enum SocketType type) {
 
     int send_result = 0;
     Socket *sk_used = NULL;
-    send_result = SocketOperator::AsyncSend(to_ipstr, to_port, my_ipstr, my_port, data, type, seq);
+    send_result = SocketOperator::AsyncSend(to_ipstr, to_port, my_ipstr, my_port, data, type, sk_used);
     if (send_result < 0) {
         return -2;
     }

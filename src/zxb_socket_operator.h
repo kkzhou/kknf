@@ -55,7 +55,7 @@ public:
     // When processing a request usually spawns several requests to the
     // server(s) behind this server.
     static int AsyncSend(std::string &to_ipstr, uint16_t to_port,
-                              std::string &my_ipstr, uint16_t my_port, int &seq,
+                              std::string &my_ipstr, uint16_t my_port,
                               MemBlock *data, enum SocketType type, SocketOperator *&sk_used);
 
     // Actually only UDP use AyncRecv just like TCP's listen

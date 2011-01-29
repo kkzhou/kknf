@@ -23,8 +23,7 @@ public:
     Packet(struct timeval &recv_time,
            std::string &peer_ipstr, uint16_t peer_port,
            std::string &my_ipstr, uint16_t my_port,
-           int seq, int len, MemBlock *data,
-           Socket *from_socket);
+           MemBlock *data, Socket *from_socket);
     ~Packet();
 
 public:
@@ -34,8 +33,6 @@ public:
     std::string my_ipstr_;
     uint16_t my_port_;
     MemBlock *data_;
-    int seq_;
-    int len_;
 private:
     Socket *from_socket_;
     // Prohibits

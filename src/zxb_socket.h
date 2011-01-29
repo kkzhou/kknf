@@ -63,7 +63,7 @@ public:
     static int DestroySocket();
     static Socket* CreateSocket(SocketOperator *op);
     static int SweepIdleSocket(int max_idle_sec);
-    int PushDataToSend(MemBlock *mb, int &seq);
+    int PushDataToSend(MemBlock *mb);
 
 private:
     Socket (SocketOperator *op);
@@ -90,8 +90,8 @@ private:
 
     // object variables
     // Buffer to receive data before packetized
-    Packet *recv_pkt_;
-    std::list<Packet*> send_pkt_list_;// The data(organized in Packet) to send
+    MemBlock *recv_mb_;
+    std::list<MemBlock*> send_mb_list_;// The data(organized in MemBlock) to send
 };
 
 };// namespace ZXB
