@@ -38,6 +38,8 @@
 		<Unit filename="..\src\zxb_bin_socket_operator.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
+		<Unit filename="..\src\zxb_client.cc" />
+		<Unit filename="..\src\zxb_client.h" />
 		<Unit filename="..\src\zxb_line_socket_operator.cc" />
 		<Unit filename="..\src\zxb_line_socket_operator.h" />
 		<Unit filename="..\src\zxb_memblock.cc" />
@@ -46,7 +48,8 @@
 		<Unit filename="..\src\zxb_netframe.h" />
 		<Unit filename="..\src\zxb_packet.cc" />
 		<Unit filename="..\src\zxb_packet.h" />
-		<Unit filename="..\src\zxb_server_test.cc" />
+		<Unit filename="..\src\zxb_server.cc" />
+		<Unit filename="..\src\zxb_server.h" />
 		<Unit filename="..\src\zxb_socket.cc" />
 		<Unit filename="..\src\zxb_socket.h" />
 		<Unit filename="..\src\zxb_socket_operator.cc" />

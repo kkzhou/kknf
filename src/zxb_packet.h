@@ -17,24 +17,28 @@
 
 #ifndef _ZXB_PACKET_H_
 #define _ZXB_PACKET_H_
+#include "zxb_socket.h"
 
 class Packet {
 public:
-    Packet(struct timeval &recv_time,
+    Packet(struct timeval &create_time,
            std::string &peer_ipstr, uint16_t peer_port,
            std::string &my_ipstr, uint16_t my_port,
-           MemBlock *data, Socket *from_socket);
+           Socket::SocketType type, Socket::DataFormat df,
+           MemBlock *data);
     ~Packet();
 
 public:
-    struct timeval recv_time_;
+    struct timeval create_time_;
     std::string peer_ipstr_;
     uint16_t peer_port_;
     std::string my_ipstr_;
     uint16_t my_port_;
+    Socket::SocketType sk_type_;
+    Socket::DataFormat data_format_;
     MemBlock *data_;
+
 private:
-    Socket *from_socket_;
     // Prohibits
     Packet();
     Packet(Packet&);

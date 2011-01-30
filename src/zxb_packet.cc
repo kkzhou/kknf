@@ -17,17 +17,20 @@
 
 #include "zxb_packet.h"
 
-Packet::Packet(struct timeval recv_time,
+Packet::Packet(struct timeval create_time,
                std::string &peer_ipstr, uint16_t peer_port,
                std::string &my_ipstr, uint16_t my_port,
-               MemBlock *data, Socket *from_socket) {
+               Socket::SocketType type, Socket::DataFormat df,
+               MemBlock *data) {
 
-    recv_time_ = recv_time;
+    create_time_ = create_time;
     peer_ipstr_ = peer_ipstr;
     peer_port_ = peer_port;
     my_ipstr_ = my_ipstr;
     my_port_ = my_port;
-    from_socket_ = from_socket;
+    data_format_ = fd;
+    type_ = type;
+    data_ = data;
 }
 
 ~Packet() {

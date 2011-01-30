@@ -29,32 +29,47 @@
 namespace ZXB {
 
 class NetFrame;
+
+// libevent的Callback函数的参数基类
 class CallBackArg {
-public:
-    enum EventType {
-        T_SOCKET = 1,
-        T_SIGNAL,
-        T_TIMER
-    };
 public:
     int type_;
     NetFrame *nf_;
 };
 
+// 套接口的回调函数所使用的参数
 class SocketCallBackArg : public CallBackArg {
 public:
     Socket *sk_;
 };
 
+// 定时器回调函数所使用的参数
 class TimerCallBackArg : public CallBackArg {
 public:
     int timer_id_;
     struct timeval trig_time_;
 };
 
+// 发送队列通知信号的回调函数所使用的参数
+class SendQueuesNotifySignalCallBackArg : public CallBackArg {
+public:
+    int which_queue_;
+};
+
+// libevent回调函数的原型
 typedef (void)(*CallbackForLibEvent)(int, short, void*);
 
 class NetFrame {
+public:
+    enum EventType {
+        T_SOCKET = 1,
+        T_SIGNAL,
+        T_TIMER
+    };
+    enum SignalNo {
+        SN_SEND_QUEUE_NOTIFY = 101,
+        SN_RELOAD_CONFIG = 102
+    };
 public:
     static void SocketCallback(int fd, short events, void *arg);
     int AcceptHandler();
@@ -69,20 +84,26 @@ public:
     MemPool* mempool();
     void set_mempool(MemPool *mp);
 
-    // Network I/O interfaces
-    int AddSocketToMonitor(Socket *sk);
-    int AddTimerToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int timeout_usec, int timer_id);
-    int AddSignalToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int signo);
+    // 这个信号的handler是用于业务线程通知libevent，有数据要发送。
+    static void SendQueuesNoitfyHandler(int signo, short events, void *arg);
+
+    // 向系统中添加事件和处理函数
+    int AddSocketToMonitor(Socket *sk);// 添加一个套接口
+    int AddTimerToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int timeout_usec, int timer_id);// 添加一个定时器
+    int AddSignalToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int signo);// 添加一个信号
     int Run ();// Loop
 
     // Packet proccessing interface
     int ProcessPacket(Packet *in_pack);
-    int GetPacketFromQueue(int which_queue, Packet *&pack);// It's thread-safe
+    int GetPacketFromRecvQueue(int which_queue, Packet *&pack);
     // Socket manipulateors
     int PrepareListenSocket(std::string &my_ipstr, uint16_t my_port, Socket::SocketType type,
                             Socket::DataFormat data_format);
-    int AsyncSend(std::string &to_ipstr, uint16_t to_port, std::string &my_ipstr, uint16_t my_port,
-                  MemBlock *data, Socket::SocketType type, Socket::DataFormat data_format);
+
+    int AsyncSend(std::string &to_ipstr, uint16_t to_port,
+                  std::string &my_ipstr, uint16_t my_port,
+                  MemBlock *data, Socket::SocketType type,
+                  Socket::DataFormat data_format, int which_queue);
 private:
     NetFrame();
     ~NetFrame();
@@ -93,7 +114,7 @@ private:
     std::vector<pthread_mutex_t*> recv_queue_locks_;// It's dangeraout to copy a pthread_mutex_t so we use pointer
     std::vector<pthread_cond_t*> recv_queue_conds_;
     // send queues
-    std::vector<std::list<MemBlock*> > send_queues_;
+    std::vector<std::list<Packet*> > send_queues_;
     std::vector<pthread_mutex_t*> send_queue_locks_;// It's dangeraout to copy a pthread_mutex_t so we use pointer
 
     // MemPool
