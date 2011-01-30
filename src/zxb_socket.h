@@ -58,12 +58,13 @@ public:
         EV_READ = 1,
         EV_WRITE = 2,
         EV_ERROR = 4
+        EV_PERSIST = 8
     };
     // 数据基本格式，即如何确定数据包的边界
     enum DataFormat {// Determines how to packetize data
         DF_BIN = 1,
-        DF_HTTP,
-        DF_LINE
+        DF_HTTP = 2,
+        DF_LINE = 3
     };
 
 public:

@@ -33,7 +33,6 @@ public:
 public:
     LineSocketOperator();
     ~LineSocketOperator();
-}
 
 private:
     Socket *socket_;

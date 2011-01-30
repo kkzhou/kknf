@@ -21,6 +21,8 @@ using namespace std;
 
 namespace ZXB {
 
+MemPool *MemPool::inst_ = 0;
+
 MemBlock::MemBlock ()
     :start_(0), curpos_(0),
      len_(0)
@@ -38,6 +40,10 @@ MemPool::MemPool() {
 
 int MemPool::CreateMemPool (int init_pool_size, int max_block_size, int block_size_step, MemPool *&mp)
 {
+    if (inst_) {
+        mp = inst_;
+        return -1;
+    }
     mp = new MemPool;
     // Do some initiates
     mp->max_block_size_ = max_block_size;
@@ -45,6 +51,10 @@ int MemPool::CreateMemPool (int init_pool_size, int max_block_size, int block_si
     //
     int ret = mp->EnlargeMemPool (init_pool_size);
     return ret;
+}
+
+MemPool* MemPool::GetMemPool() {
+    return inst_;
 }
 
 int MemPool::EnlargeMemPool (int size_to_add)
@@ -82,7 +92,7 @@ int MemPool::EnlargeMemPool (int size_to_add)
 // return:
 // -1: parameter invalid
 // -2: not enough space left
-int MemPool::Get(int size)
+int MemPool::Get(int size, MemBlock *&mb)
 {
     if (size <= 0 || size > max_block_size) {
         return -1;
@@ -170,8 +180,8 @@ int MemPool::Get(int size)
         ret_mb = recycled_block_lists_[multiple ].front();
         recycled_block_lists_[multiple ].pop_front();
     }
-
-    return reb_mb;
+    mb = reb_mb;
+    return 0;
 }
 
 int MemPool::Return(MemBlock *mb)

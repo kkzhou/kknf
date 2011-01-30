@@ -51,6 +51,7 @@ public:
     int EnlargeMemPool(int size_to_add);    // 扩张整个内存池大小
     // 创建一个内存池，包装构造函数
     static int CreateMemPool(int init_pool_size, int max_block_size, int block_size_step, MemPool *&mp);
+    static MemPool* GetMemPool();
 
 private:
     MemPool();
@@ -74,6 +75,7 @@ private:
     int max_block_size_;    // MemBlock的最大字节数
     int block_size_step_;   // MemBlock的递增步长，例如1024字节，则MemBlock的大小必是1024的倍数，且小于
                             // max_block_size_
+    static MemPool *inst_;
 };
 };
 #endif
