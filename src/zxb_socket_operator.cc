@@ -44,15 +44,7 @@ Socket* SocketOperator::socket() {
 }
 
 
-int SocketOperator::GetSocketError(int fd, int &error)
-{
-    error = 0;
-    socklen_t optlen = sizeof(error);
-    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &optlen) < 0)
-        return -2;
 
-    return 0;
-}
 
 
 

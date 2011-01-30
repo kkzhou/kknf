@@ -53,6 +53,7 @@
 		<Unit filename="..\src\zxb_socket_operator.h" />
 		<Unit filename="..\src\zxb_socket_operator_factory.cc" />
 		<Unit filename="..\src\zxb_socket_operator_factory.h" />
+		<Unit filename="..\src\zxb_utils.cc" />
 		<Unit filename="..\src\zxb_utils.h" />
 		<Extensions>
 			<code_completion />

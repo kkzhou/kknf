@@ -58,6 +58,16 @@ int Socket::PushDataToSend(MemBlock *mb)
     return 0;
 }
 
+int Socket::GetSocketError(int fd, int &error)
+{
+    error = 0;
+    socklen_t optlen = sizeof(error);
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &optlen) < 0)
+        return -2;
+
+    return 0;
+}
+
 
 SocketPool::SocketPool() {
     pthread_mutex_init(&socket_map_lock_, NULL);

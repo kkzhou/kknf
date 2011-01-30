@@ -68,6 +68,7 @@ public:
 
 public:
     int PushDataToSend(MemBlock *mb);
+    static int GetSocketError(int fd, int &error);
 
 public:
     int fd_;// The corresponding file descriptor

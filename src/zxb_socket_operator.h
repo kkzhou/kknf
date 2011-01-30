@@ -38,8 +38,6 @@ public:
     virtual ~SocketOperator();
     int set_socket(Socket *sk);
     Socket* socket();
-
-    static int GetSocketError(int fd, int &error);
 }
 
 private:
