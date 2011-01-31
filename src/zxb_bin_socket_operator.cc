@@ -24,7 +24,7 @@ BinSocketOperator::BinSocketOperator() : socket_(0) {
 BinSocketOperator::~BinSocketOperator() {
 }
 
-// 从套接口里读数据，如果已经成一个包（packet）则放到接收队列中。
+// 从套接口里读数据，如果已经成一个包（packet）则通过out参数返回
 // return value:
 // 0: 成功，但是还未读完一个数据包（packet）
 // <0: 失败，需要调用ErrorHandler
@@ -43,7 +43,7 @@ int BinSocketOperator::ReadHandler(Packet *&in_pack) {
     if (mb->used_ < sizeof(uint32_t)) {
         int read_num = read(fd, mb->start_ + mb->used_, sizeof(uint32_t) - mb->used_);
         if (read_num <= 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0) {
                 // 表明该套接口没有数据可读，应该来说不会达到这里，
                 // 因为ReadHandler函数是在该套接口可读时才调用的。
                 return 0;
@@ -76,7 +76,7 @@ int BinSocketOperator::ReadHandler(Packet *&in_pack) {
     }
     read_num = read(fd, mb->start_ + mb->used_,  len - sizeof(uint32_t));
     if (read_num <= 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0) {
             // 表明该套接口没有数据可读，应该来说不会达到这里，
             // 因为ReadHandler函数是在该套接口可读时才调用的。
             return 0;
@@ -84,9 +84,10 @@ int BinSocketOperator::ReadHandler(Packet *&in_pack) {
         // 否则，说明套接口出现错误
         return -2;
     }
+
     mb->used_ += read_num;
     if (read_num == len - sizeof(uint32_t)) {
-        // 已经读完一个数据包了，放到接收队列
+        // 已经读完一个数据包了
         socket()->recv_mb_ = 0;
         struct timeval nowtime;
         gettimeofday(&nowtime);
@@ -101,7 +102,47 @@ int BinSocketOperator::ReadHandler(Packet *&in_pack) {
 
 int BinSocketOperator::WriteHandler() {
 
-}
-int BinSocketOperator::ErrorHandler(SocketOperator::SocketCmd cmd) {
+    int fd = socket()->fd_;
 
+    list<MemBlock*>::iterator it = socket()->send_mb_list_.begin();
+    list<MemBlock*>::iterator endit = socket()->send_mb_list_.end();
+#define MAX_IOVEC_NUM 1000
+    struct iovec vec[MAX_IOVEC_NUM];
+    int cnt = 0;
+    for (; it != endit; it++) {
+        vec[cnt].iov_base = *it->start_;
+        vec[cnt].iov_len = *it->used_;
+        cnt++;
+        if (cnt == MAX_IOVEC_NUM - 1) {
+            break;
+        }
+    }
+
+    int write_num = writev(fd, vec, cnt);
+    if (write_num <= 0) {
+
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0) {
+            // 表明该套接口不可写，应该来说不会达到这里，
+            return 0;
+        }
+        // 否则，说明套接口出现错误
+        return -2;
+    }
+
+    int tmp_num = write_num;
+    for (int i = 0; i <= cnt; i++) {
+        if (tmp_num >= vec[i].iov_len) {
+            // 这个io块已经发送出去了
+            MemBlock *tmpmb = socket()->send_mb_list_.front();
+            socket()->send_mb_list_.pop_front();
+            MemPool::GetMemPool()->Return(tmpmb);
+            tmp_num -= vec[i].len;
+        } else {
+            // 这个块没有发送完
+            socket()->font_mb_cur_pos_ = tmp_num;
+            break;
+        }
+    }
+    return 0;
 }
+

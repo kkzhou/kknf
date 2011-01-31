@@ -28,7 +28,6 @@ class BinSocketOperator : public SocketOperator {
 public:
     virtual int ReadHandler(Packet *&in_pack);
     virtual int WriteHandler();
-    virtual int ErrorHandler(SocketOperator::SocketCmd cmd);
 
 public:
     BinSocketOperator();

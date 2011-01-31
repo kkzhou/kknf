@@ -30,6 +30,4 @@ int LineSocketOperator::ReadHandler(Packet *&in_pack) {
 int LineSocketOperator::WriteHandler() {
 
 }
-int LineSocketOperator::ErrorHandler(SocketOperator::SocketCmd cmd) {
 
-}

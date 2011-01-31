@@ -29,12 +29,12 @@ Socket::Socket(SocketOperator *op) {
     pthread_mutex_init(&send_mb_list_lock_, NULL);
     gettimeofday(&last_use_);
     status_ = S_NOTREADY;
+    font_mb_cur_pos_ = 0;
 }
 // 析构函数
 // 需要释放资源，包括接受缓存、发送缓存列表
 Socket::~Socket() {
 
-    Locker locker(send_mb_list_lock_);
     close(fd_);
     delete op_;
 
@@ -51,8 +51,6 @@ Socket::~Socket() {
 
 int Socket::PushDataToSend(MemBlock *mb)
 {
-    Locker locker(send_mb_list_lock_);
-
     send_mb_list_.push_back(mb);
     gettimeofday(&last_use_);
     return 0;
@@ -69,6 +67,8 @@ int Socket::GetSocketError(int fd, int &error)
 }
 
 
+SocketPool *SocketPool::socket_pool_ = 0;
+
 SocketPool::SocketPool() {
     pthread_mutex_init(&socket_map_lock_, NULL);
 }
@@ -76,6 +76,18 @@ SocketPool::SocketPool() {
 SocketPool::~SocketPool() {
     SweepIdleSocket(-1);    // A trick
     pthread_mutex_destroy(&socket_map_lock_);
+}
+
+SocketPool* SocketPool::GetSocketPool() {
+    if (socket_pool_) {
+        return socket_pool_;
+    }
+    socket_pool_ = new SocketPool;
+    return socket_pool_;
+}
+
+void SocketPool::DestroySocketPool() {
+    delete socket_pool_;
 }
 
 Socket* SocketPool::FindSocket(std::string &peer_ip, uint16_t peer_port, SocketType type) {

@@ -19,6 +19,7 @@
 #include <sys/socket.h>
 
 #include "zxb_socket_operator.h"
+#include "zxb_socket.h"
 
 SocketOperator::SocketOperator() :socket_(0) {
 }
@@ -43,6 +44,50 @@ Socket* SocketOperator::socket() {
     return socket_;
 }
 
+int SocketOperator::ErrorHandler(SocketCmd cmd) {
+
+    if (cmd = C_RECONNECT) {
+        // prepare socket
+        if (socket_->fd_ = socket(PF_INET, SOCK_STREAM, 0) < 0) {
+            perror("socket() error: ");
+            return -2;
+        }
+
+        // Set nonblocking
+        int val = fcntl(socket_->fd_ ->fd_, F_GETFL, 0);
+        if (val == -1) {
+            perror("Get socket flags error: ");
+            return -2;
+        }
+
+        if (fcntl(socket_->fd_, F_SETFL, val | O_NONBLOCK | O_NDELAY) == -1) {
+            perror("Set socket flags error: ");
+            return -2;
+        }
+        // prepare address
+        struct sockaddr_in to_addr;
+        to_addr.sin_family = AF_INET;
+        to_addr.sin_port = htons(socket_->peer_port_);
+        if (inet_aton(socket_->peer_ipstr_.c_str(), &to_addr.sin_addr) == 0) {
+            return -2
+        }
+        // connect
+        if (connect(socket_->fd_, (struct sockaddr*)&to_addr, sizeof(struct sockaddr)) == -1) {
+            if (errno != EINPROGRESS) {
+                perror("Connect error: ");
+                return -2
+            }
+        }
+
+        socket_->status_ = Socket::S_CONNECTING;
+    } else if (cmd == C_CLOSE) {
+        return 0;
+    } else if (cmd == C_SHUTDOWN) {
+    } else {
+        return -1;
+    }
+    return 1;
+}
 
 
 

@@ -21,7 +21,7 @@ using namespace std;
 
 namespace ZXB {
 
-MemPool *MemPool::inst_ = 0;
+MemPool *MemPool::mem_pool_ = 0;
 
 MemBlock::MemBlock ()
     :start_(0), curpos_(0),
@@ -40,11 +40,11 @@ MemPool::MemPool() {
 
 int MemPool::CreateMemPool (int init_pool_size, int max_block_size, int block_size_step, MemPool *&mp)
 {
-    if (inst_) {
-        mp = inst_;
+    if (mem_pool_) {
+        mp = mem_pool_;
         return -1;
     }
-    mp = new MemPool;
+    mem_pool_ = mp = new MemPool;
     // Do some initiates
     mp->max_block_size_ = max_block_size;
     mp->block_size_step_ = block_size_step;
@@ -54,7 +54,7 @@ int MemPool::CreateMemPool (int init_pool_size, int max_block_size, int block_si
 }
 
 MemPool* MemPool::GetMemPool() {
-    return inst_;
+    return mem_pool_;
 }
 
 int MemPool::EnlargeMemPool (int size_to_add)

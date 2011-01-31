@@ -31,7 +31,7 @@ public:
 public:
     virtual int ReadHandler(Packet *&in_pack) = 0;
     virtual int WriteHandler() = 0;
-    virtual int ErrorHandler(SocketCmd cmd) = 0;
+    virtual int ErrorHandler(SocketCmd cmd);
 
 public:
     SocketOperator();

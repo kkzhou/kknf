@@ -50,12 +50,6 @@ public:
     struct timeval trig_time_;
 };
 
-// 发送队列通知信号的回调函数所使用的参数
-class SendQueuesNotifySignalCallBackArg : public CallBackArg {
-public:
-    int which_queue_;
-};
-
 // libevent回调函数的原型
 typedef (void)(*CallbackForLibEvent)(int, short, void*);
 
@@ -75,7 +69,8 @@ public:
     int AcceptHandler();
 
 public:
-    NetFrame *CreateNetFrame();
+    NetFrame();
+    ~NetFrame();
     // Manipulators
     int SetupRecvQueues(int queue_num);
     int SetupSendQueues(int queue_num);
@@ -105,8 +100,6 @@ public:
                   MemBlock *data, Socket::SocketType type,
                   Socket::DataFormat data_format, int which_queue);
 private:
-    NetFrame();
-    ~NetFrame();
     // libevent
     struct event_base *ev_base_;
     // receive queues
@@ -116,11 +109,6 @@ private:
     // send queues
     std::vector<std::list<Packet*> > send_queues_;
     std::vector<pthread_mutex_t*> send_queue_locks_;// It's dangeraout to copy a pthread_mutex_t so we use pointer
-
-    // MemPool
-    MemPool *mempool_;
-    // SocketPoll
-    SocketPool *socket_pool_;
     // SocketOperator factory
     SocketOperatorFactory *op_factory_;
 

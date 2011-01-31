@@ -85,9 +85,9 @@ public:
     int retry_times_;
     SocketOperator *op_;
 private:
-    pthread_mutex_t send_mb_list_lock_;
     MemBlock *recv_mb_; // Buffer to receive data before packetized
     std::list<MemBlock*> send_mb_list_;// The data(organized in MemBlock) to send
+    int font_mb_cur_pos_;   // 队列最前面的MemBlcok已发送的字节数
     Socket(SocketOperator *op);
     ~Socket();
 };
@@ -96,14 +96,17 @@ private:
 // 套接口池类，用于管理套接口，包括查找、创建、删除和清除空闲套接口等操作。
 class SocketPool {
 public:
-    SocketPool();
-    ~SocketPool();
+    static SocketPool* GetSocketPool();
+    static void DestroySocketPool();
     Socket* FindSocket(std::string &peer_ip, uint16_t peer_port, SocketType type);
     int AddSocket(Socket *sk);
     int DestroySocket();
     Socket* CreateSocket(SocketOperator *op);
     int SweepIdleSocket(int max_idle_sec);
 private:
+    SocketPool();
+    ~SocketPool();
+    static SocketPool *socket_pool_;
     // 会出现竞争状态，因此要加锁
     std::map<std::string, Socket*> socket_map_;// Use string(IP:PORT:TYPE) as key
     pthread_mutex_t socket_map_lock_;

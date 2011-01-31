@@ -133,6 +133,12 @@ int NetFrame::AddTimerToMonitor(CallBackForLibEvent cb,
 }
 
 int NetFrame::Run() {
+    // 添加几个预置的handler，例如处理发送队列通知信号的handler
+    CallBackArg *cb_arg = new CallBackArg;
+    cb_arg->nf_ = this;
+    cb_arg->type_ = EV_SIGNAL;
+    AddSignalToMonitor(SendQueuesNoitfyHandler, cb_arg, SN_SEND_QUEUE_NOTIFY);
+
     event_base_dispatch(ev_base_);
     return 0;
 }
@@ -166,7 +172,8 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
 
     if (read_result < 0) {
         // If error happens in reading the only thing we should do is closing it
-        sk->op_->ErrorHandler(SocketOperator::C_CLOSE);
+        SocketOperator::ErrorHandler(sk, SocketOperator::C_CLOSE);
+        SocketPool::GetSocketPool()->DestroySocket(sk);
         return;
     } else if (read_result == 1) {
         // A complete packet has been read
@@ -188,11 +195,17 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
     if (write_result < 0) {
         if (sk->type_ == Socket::T_TCP_SERVER)
             // If error happens in writing and I am a server, just close it
-            sk->op_->ErrorHandler(SocketOperator::C_CLOSE);
+            SocketOperator::ErrorHandler(sk, SocketOperator::C_CLOSE);
+            SocketPool::GetSocketPool()->DestroySocket(sk);
             return;
         } else {
             // I am client, so reconnect
-            sk->op_->ErrorHandler(SocketOperator::C_RECONNECT);
+            if (SocketOperator::ErrorHandler(sk, SocketOperator::C_RECONNECT) == 1 ) {
+                AddSocketToMonitor(sk);
+            } else {
+                SocketPool::GetSocketPool()->DestroySocket(sk);
+            }
+
             return;
         }
     }
@@ -204,13 +217,18 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
         // check error
         int error = 0;
         if (SocketOperator::GetSocketError(sk->fd_, error) < 0 || error != 0) {
-            sk->op_->ErrorHandler(SocketOperator::C_CLOSE);
+            SocketOperator::ErrorHandler(sk, SocketOperator::C_CLOSE);
+            SocketPool::GetSocketPool()->DestroySocket(sk);
             return;
         }
         // try to write
         write_result = sk->op_->WriteHandler();
         if (write_result < 0) {
-            sk->op_->ErrorHandler(SocketOperator::C_RECONNECT);
+            if (SocketOperator::ErrorHandler(sk, SocketOperator::C_RECONNECT) == 1 ) {
+                AddSocketToMonitor(sk);
+            } else {
+                SocketPool::GetSocketPool()->DestroySocket(sk);
+            }
             return;
         }
     }
@@ -344,13 +362,13 @@ int NetFrame::PrepareListenSocket(std::string &my_ipstr,
         return -1;
     }
 
-    Socket *sk = socket_pool_->FindSocket(my_ipstr, my_port, type);
+    Socket *sk = SocketPool::GetSocketPool()->FindSocket(my_ipstr, my_port, type);
     if (sk) {
         return -2;
     }
 
     SocketOperator *op = op_factory_->CreateSocketOperator(type, data_format);
-    sk = socket_pool_->CreateSocket(op);
+    sk = SocketPool::GetSocketPool()->CreateSocket(op);
     sk->my_ipstr_ = my_ipstr;
     sk->my_port_ = my_port;
     sk->type_ = type;
@@ -359,19 +377,19 @@ int NetFrame::PrepareListenSocket(std::string &my_ipstr,
     // prepare socket
     if (sk->fd_ = socket(PF_INET, SOCK_STREAM, 0) < 0) {
         perror("socket() error: ");
-        socket_pool_->DestroySocket(sk);
+        SocketPool::GetSocketPool()->DestroySocket(sk);
         return -3;
     }
     // Set nonblocking
     int val = fcntl(sk->fd_, F_GETFL, 0);
     if (val == -1) {
         perror("Get socket flags error: ");
-        socket_pool_->DestroySocket(sk);
+        SocketPool::GetSocketPool()->DestroySocket(sk);
         return -3;
     }
     if (fcntl(sk->fd_, F_SETFL, val | O_NONBLOCK | O_NDELAY) == -1) {
         perror("Set socket flags error: ");
-        socket_pool_->DestroySocket(sk);
+        SocketPool::GetSocketPool()->DestroySocket(sk);
         return -3;
     }
     // Bind address
@@ -379,12 +397,12 @@ int NetFrame::PrepareListenSocket(std::string &my_ipstr,
     //listen_addr.sin_family = AF_INET;
     listen_addr.sin_port = htons(sk->my_port);
     if (inet_aton(sk->my_ipstr_.c_str(), &listen_addr.sin_addr) ==0) {
-        socket_pool_->DestroySocket(sk);
+        SocketPool::GetSocketPool()->DestroySocket(sk);
         return -3;
     }
     socket_len addr_len = sizeof(struct sockaddr_in);
     if (bind(sk->fd_, (struct sockaddr*)listen_addr, addr_Len) == -1) {
-        socket_pool_->DestroySocket(sk);
+        SocketPool::GetSocketPool()->DestroySocket(sk);
         return -3;
     }
     // Set address reusable
@@ -392,7 +410,7 @@ int NetFrame::PrepareListenSocket(std::string &my_ipstr,
     size_t optlen = sizeof(optval);
     if (setsockopt(sk->fd_, SOL_SOCKET, SO_REUSEADDR, &optval, optlen) < 0) {
         perror("Set address reusable error:");
-        socket_pool_->DestroySocket(sk);
+        SocketPool::GetSocketPool()->DestroySocket(sk);
         return -3;
     }
     // Listen
@@ -404,14 +422,14 @@ int NetFrame::PrepareListenSocket(std::string &my_ipstr,
     if (accept(sk->fd_, NULL, 0) == -1) {
         if (errno != EAGAIN || errno != EWOULDBLOCK) {
             perror("Async accept error: ");
-            socket_pool_->DestroySocket(sk);
+            SocketPool::GetSocketPool()->DestroySocket(sk);
             return -3;
         }
     }
 
     // 添加一个libevent的侦听事件
     if (AddSocketToMonitor(sk) < 0) {
-        socket_pool_->DestroySocket(sk);
+        SocketPool::GetSocketPool()->DestroySocket(sk);
         return -3;
     }
 
@@ -423,18 +441,18 @@ void NetFrame::SendQueuesNoitfyHandler(int signo, short events, void *arg) {
     if (signo != SN_SEND_QUEUES_NOTIFY) {
         return;
     }
-    SendQueuesNotifySignalCallBackArg *cb_arg =
-        reinterpret_cast<SendQueuesNotifySignalCallBackArg*>(arg);
+    CallBackArg *cb_arg = reinterpret_cast<CallBackArg*>(arg);
 
     // 把发送队列的所有MemBlock交给Socket对象
-    {
-        Locker locker(send_queue_locks_[cb_arg->which_queue_]);
-        while (send_queues_[cb_arg->which_queue_].size() > 0) {
+    for (int i = 0; i < send_queues_.size(); i++) {
 
-            Packet *pkt = send_queues_[cb_arg->which_queue_].front();
-            send_queues_[cb_arg->which_queue_].pop_front();
+        Locker locker(send_queue_locks_[i]);
+        while (send_queues_[i].size() > 0) {
 
-            Socket *sk = socket_pool_->FindSocket(pkt->my_ipstr_, pkt->my_port_, pkt->sk_type_);
+            Packet *pkt = send_queues_[i].front();
+            send_queues_[i].pop_front();
+
+            Socket *sk = SocketPool::GetSocketPool()->FindSocket(pkt->my_ipstr_, pkt->my_port_, pkt->sk_type_);
             if (sk) {
                 // The socket alreay exists, just send to it
                 sk->PushDataToSend(pkt->data_);
@@ -443,7 +461,7 @@ void NetFrame::SendQueuesNoitfyHandler(int signo, short events, void *arg) {
             // 如果不存在这个套接口，则要先创建，并且添加到libevent的侦听事件中。
             // Create a new one which should act as CLINET
             SocketOperator *new_op = op_factory_->CreateSocketOperator(pkt->sk_type_, pkt->data_format_);
-            sk = socket_pool_->CreateSocket(new_op);
+            sk = SocketPool::GetSocketPool()->CreateSocket(new_op);
             sk->my_ipstr_ = pkt->my_ipstr_;
             sk->my_port_ = pkt->my_port_;
             sk->type_ = pkt->sk_type_;
@@ -454,7 +472,7 @@ void NetFrame::SendQueuesNoitfyHandler(int signo, short events, void *arg) {
             // prepare socket
             if (sk->fd_ = socket(PF_INET, SOCK_STREAM, 0) < 0) {
                 perror("socket() error: ");
-                socket_pool_->DestroySocket(sk);
+                SocketPool::GetSocketPool()->DestroySocket(sk);
                 delete pkt;
                 continue;
             }
@@ -463,14 +481,14 @@ void NetFrame::SendQueuesNoitfyHandler(int signo, short events, void *arg) {
             int val = fcntl(sk->fd_, F_GETFL, 0);
             if (val == -1) {
                 perror("Get socket flags error: ");
-                socket_pool_->DestroySocket(sk);
+                SocketPool::GetSocketPool()->DestroySocket(sk);
                 delete pkt;
                 continue;
             }
 
             if (fcntl(sk->fd_, F_SETFL, val | O_NONBLOCK | O_NDELAY) == -1) {
                 perror("Set socket flags error: ");
-                socket_pool_->DestroySocket(sk);
+                SocketPool::GetSocketPool()->DestroySocket(sk);
                 delete pkt;
                 continue;
             }
@@ -480,7 +498,7 @@ void NetFrame::SendQueuesNoitfyHandler(int signo, short events, void *arg) {
             to_addr.sin_family = AF_INET;
             to_addr.sin_port = htons(to_port);
             if (inet_aton(to_ipstr.c_str(), &to_addr.sin_addr) == 0) {
-                socket_pool_->DestroySocket(sk);
+                SocketPool::GetSocketPool()->DestroySocket(sk);
                 delete pkt;
                 continue;
             }
@@ -488,7 +506,7 @@ void NetFrame::SendQueuesNoitfyHandler(int signo, short events, void *arg) {
             if (connect(sk->fd_, (struct sockaddr*)&to_addr, sizeof(struct sockaddr)) == -1) {
                 if (errno != EINPROGRESS) {
                     perror("Connect error: ");
-                    socket_pool_->DestroySocket(sk);
+                    SocketPool::GetSocketPool()->DestroySocket(sk);
                     delete pkt;
                     continue;
                 }
@@ -497,13 +515,13 @@ void NetFrame::SendQueuesNoitfyHandler(int signo, short events, void *arg) {
             sk->status_ = Socket::S_CONNECTING;
             // 添加到一个libevent的侦听事件
             if (AddSocketToMonitor(sk) < 0) {
-                socket_pool_->DestroySocket(sk);
+                SocketPool::GetSocketPool()->DestroySocket(sk);
                 delete pkt;
                 continue;
             }
             // 成功创建新的套接口，并把数据交给它了。
         }// while
-    }
+    } // for
 
 }
 
