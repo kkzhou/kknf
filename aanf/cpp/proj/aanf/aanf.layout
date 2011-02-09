@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_layout_file>
+	<ActiveTarget name="Debug" />
+	<File name="..\..\src\zxb_bin_socket_operator.h" open="1" top="0" tabpos="1">
+		<Cursor position="843" topLine="0" />
+	</File>
+	<File name="..\..\src\zxb_client.cc" open="1" top="0" tabpos="6">
+		<Cursor position="721" topLine="0" />
+	</File>
+	<File name="..\..\src\zxb_client.h" open="1" top="0" tabpos="4">
+		<Cursor position="721" topLine="0" />
+	</File>
+	<File name="..\..\src\zxb_netframe.cc" open="1" top="0" tabpos="8">
+		<Cursor position="12553" topLine="494" />
+	</File>
+	<File name="..\..\src\zxb_netframe.h" open="1" top="0" tabpos="7">
+		<Cursor position="3636" topLine="62" />
+	</File>
+	<File name="..\..\src\zxb_packet.h" open="1" top="0" tabpos="3">
+		<Cursor position="1065" topLine="15" />
+	</File>
+	<File name="..\..\src\zxb_server.cc" open="1" top="1" tabpos="5">
+		<Cursor position="873" topLine="0" />
+	</File>
+	<File name="..\..\src\zxb_server.h" open="1" top="0" tabpos="2">
+		<Cursor position="1660" topLine="19" />
+	</File>
+	<File name="..\..\src\zxb_socket.cc" open="1" top="0" tabpos="11">
+		<Cursor position="0" topLine="0" />
+	</File>
+	<File name="..\..\src\zxb_socket.h" open="1" top="0" tabpos="9">
+		<Cursor position="2775" topLine="83" />
+	</File>
+	<File name="..\..\src\zxb_socket_operator.h" open="1" top="0" tabpos="10">
+		<Cursor position="1058" topLine="18" />
+	</File>
+</CodeBlocks_layout_file>

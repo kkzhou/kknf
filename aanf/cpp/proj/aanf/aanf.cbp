@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="aanf" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin\Debug\aanf" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj\Debug\" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="..\..\src\zxb_bin_socket_operator.cc" />
+		<Unit filename="..\..\src\zxb_bin_socket_operator.h" />
+		<Unit filename="..\..\src\zxb_client.cc" />
+		<Unit filename="..\..\src\zxb_client.h" />
+		<Unit filename="..\..\src\zxb_line_socket_operator.cc" />
+		<Unit filename="..\..\src\zxb_line_socket_operator.h" />
+		<Unit filename="..\..\src\zxb_memblock.cc" />
+		<Unit filename="..\..\src\zxb_memblock.h" />
+		<Unit filename="..\..\src\zxb_netframe.cc" />
+		<Unit filename="..\..\src\zxb_netframe.h" />
+		<Unit filename="..\..\src\zxb_packet.cc" />
+		<Unit filename="..\..\src\zxb_packet.h" />
+		<Unit filename="..\..\src\zxb_server.cc" />
+		<Unit filename="..\..\src\zxb_server.h" />
+		<Unit filename="..\..\src\zxb_socket.cc" />
+		<Unit filename="..\..\src\zxb_socket.h" />
+		<Unit filename="..\..\src\zxb_socket_operator.cc" />
+		<Unit filename="..\..\src\zxb_socket_operator.h" />
+		<Unit filename="..\..\src\zxb_socket_operator_factory.cc" />
+		<Unit filename="..\..\src\zxb_socket_operator_factory.h" />
+		<Unit filename="..\..\src\zxb_utils.cc" />
+		<Unit filename="..\..\src\zxb_utils.h" />
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
