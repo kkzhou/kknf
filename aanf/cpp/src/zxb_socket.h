@@ -19,6 +19,9 @@
 #define _ZXB_SOCKET_H_
 
 #include <netinet/in.h>
+#include <string>
+#include <list>
+#include <map>
 
 namespace ZXB {
 

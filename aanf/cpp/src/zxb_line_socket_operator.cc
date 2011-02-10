@@ -18,6 +18,8 @@
 
 #include "zxb_line_socket_operator.h"
 
+namespace ZXB{
+
 LineSocketOperator::LineSocketOperator() : socket_(0) {
 }
 
@@ -31,3 +33,4 @@ int LineSocketOperator::WriteHandler() {
 
 }
 
+}; // namespace ZXB

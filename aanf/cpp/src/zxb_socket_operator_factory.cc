@@ -17,6 +17,8 @@
 
 #include "zxb_socket_operator_factory.h"
 
+namespace ZXB{
+
 SocketOperator*
 SocketOperatorFactory::CreateSocketOperator(Socket::SocketType type,
                                             Socket::DataFormat data_format) {
@@ -48,3 +50,5 @@ SocketOperatorFactory::CreateSocketOperator(Socket::SocketType type,
 
     return op;
 }
+
+}; // namespace ZXB

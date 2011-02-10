@@ -14,8 +14,12 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
+
+namespace ZXB{
+
 class SocketOperatorFactory {
 public:
     virtual SocketOperator* CreateSocketOperator(Socket::SocketType type, Socket::DataFormat data_format);
 };
-};
+
+}; // namespace ZXB

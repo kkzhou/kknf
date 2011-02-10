@@ -17,6 +17,7 @@
 
 #include <pthread.h>
 #include <stdio.h>
+#include <string>
 
 namespace ZXB {
 
@@ -56,6 +57,7 @@ enum LogLevel {
                 } \
             } while (0)
 #endif
+
 // 全局的日志级别，通过控制它的值，可以控制哪些日志打印，哪些不打印。
 extern uint32_t g_log_level;
 uint32_t SetLogLevel(uint32_t new_loevel);

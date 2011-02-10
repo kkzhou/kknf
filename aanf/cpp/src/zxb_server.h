@@ -18,6 +18,8 @@
 
 #include "zxb_netframe.h"
 
+namespace ZXB{
+
 class Server {
 public:
     // Server类是一个单体
@@ -36,6 +38,9 @@ public:
     // 初始化能把数据上报到远端服务器的的reporter
     int InitReporter(std::string &to_ipstr, uint16_t to_port,
                    std::string &my_ipstr, uint16_t my_port);
+
+    // 启动Server
+    int Run();
 private:
     Server(Netframe *netframe);
     ~Server();
@@ -44,9 +49,12 @@ private:
     std::vector<uint16_t> my_listen_port_;
 
     // 当我主动去连接其他服务器时，使用的ip和端口，一般来说用any就行了
-    std::vector<std::string> my_connect_ipstr_;
-    std::vector<uint16_t> my_connect_port_;
+    std::string my_connect_ipstr_;
+    uint16_t my_connect_port_;
 
     // 核心类NetFrame的实例
     NetFrame *netframe_;
 };
+
+};// nameapce ZXB
+

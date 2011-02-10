@@ -19,6 +19,7 @@
 #define _ZXB_PACKET_H_
 #include "zxb_socket.h"
 
+namespace ZXB{
 class Packet {
 public:
     Packet(struct timeval &create_time,
@@ -45,4 +46,6 @@ private:
     Packet& operator=(Packet&);
 
 };
+
+};// namespace ZXB
 #endif

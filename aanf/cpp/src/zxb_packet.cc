@@ -17,6 +17,8 @@
 
 #include "zxb_packet.h"
 
+namespace ZXB{
+
 Packet::Packet(struct timeval create_time,
                std::string &peer_ipstr, uint16_t peer_port,
                std::string &my_ipstr, uint16_t my_port,
@@ -35,3 +37,5 @@ Packet::Packet(struct timeval create_time,
 
 ~Packet() {
 }
+
+};// namespace ZXB

@@ -1,4 +1,5 @@
 #include "zxb_utils.h"
+#include <sys/time.h>
 
  /*
     Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
@@ -18,6 +19,7 @@
 */
 
 #include <pthread.h>
+#include <string>
 
 namespace ZXB {
 

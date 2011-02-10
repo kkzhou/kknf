@@ -19,6 +19,9 @@
 #define _ZXB_MEMBLOCK_H_
 
 #include <pthread.h>
+#include <string>
+#include <vector>
+#include <list>
 
 namespace ZXB {
 

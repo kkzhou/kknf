@@ -513,7 +513,7 @@ void NetFrame::SendQueuesNoitfyHandler(int signo, short events, void *arg) {
             }
 
             sk->status_ = Socket::S_CONNECTING;
-            // 添加到一个libevent的侦听事件
+            // 添加到一个libevent的事件
             if (AddSocketToMonitor(sk) < 0) {
                 SocketPool::GetSocketPool()->DestroySocket(sk);
                 delete pkt;
@@ -525,4 +525,4 @@ void NetFrame::SendQueuesNoitfyHandler(int signo, short events, void *arg) {
 
 }
 
-};
+}; // namespace ZXB

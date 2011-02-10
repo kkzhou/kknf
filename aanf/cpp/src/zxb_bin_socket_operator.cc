@@ -18,6 +18,8 @@
 #include "zxb_bin_socket_operator.h"
 #include "zxb_memblock.h"
 
+namespace ZXB{
+
 BinSocketOperator::BinSocketOperator() : socket_(0) {
 }
 
@@ -146,3 +148,4 @@ int BinSocketOperator::WriteHandler() {
     return 0;
 }
 
+};// namespace ZXB

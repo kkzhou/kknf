@@ -86,7 +86,7 @@ public:
     int AddSocketToMonitor(Socket *sk);// 添加一个套接口
     int AddTimerToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int timeout_usec, int timer_id);// 添加一个定时器
     int AddSignalToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int signo);// 添加一个信号
-    int Run ();// Loop
+    int Run();// Loop
 
     // Packet proccessing interface
     int ProcessPacket(Packet *in_pack);

@@ -21,6 +21,8 @@
 #include "zxb_socket_operator.h"
 #include "zxb_socket.h"
 
+namespace ZXB{
+
 SocketOperator::SocketOperator() :socket_(0) {
 }
 
@@ -89,7 +91,7 @@ int SocketOperator::ErrorHandler(SocketCmd cmd) {
     return 1;
 }
 
-
+}; // namespace ZXB
 
 
 

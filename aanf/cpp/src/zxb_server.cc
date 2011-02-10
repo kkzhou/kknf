@@ -18,6 +18,8 @@
 
 #include "zxb_server.h"
 
+namespace ZXB{
+
 Server* GetServerInstance() {
     static Server *inst = 0;
     if (inst) {
@@ -26,7 +28,7 @@ Server* GetServerInstance() {
 
     NetFrame netframe = new NetFrmae();
     inst = new Server(netframe);
-    inst
     return inst;
 }
 
+}; // namespace ZXB
