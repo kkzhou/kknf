@@ -44,13 +44,15 @@ public:
 private:
     Server(Netframe *netframe);
     ~Server();
-    // 我用于侦听的ip和端口
+    // 我用于侦听的ip和端口们
     std::vector<std::string> my_listen_ipstr_;
     std::vector<uint16_t> my_listen_port_;
 
     // 当我主动去连接其他服务器时，使用的ip和端口，一般来说用any就行了
     std::string my_connect_ipstr_;
     uint16_t my_connect_port_;
+
+    int worker_num_;    // worker线程的数目
 
     // 核心类NetFrame的实例
     NetFrame *netframe_;

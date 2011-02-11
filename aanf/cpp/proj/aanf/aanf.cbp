@@ -19,6 +19,7 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="..\..\src\example.cfg" />
 		<Unit filename="..\..\src\zxb_bin_socket_operator.cc" />
 		<Unit filename="..\..\src\zxb_bin_socket_operator.h" />
 		<Unit filename="..\..\src\zxb_client.cc" />
