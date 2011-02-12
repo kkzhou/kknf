@@ -37,7 +37,6 @@ int BinTcpSocket::PrepareListenSocket(std::string &listen_ip, uint16_t listen_po
     // prepare socket
     if (fd_ = socket(PF_INET, SOCK_STREAM, 0) < 0) {
         perror("socket() error: ");
-        socket_pool_->DestroySocket(sk);
         return -3;
     }
     // Set nonblocking
@@ -83,5 +82,59 @@ int BinTcpSocket::PrepareListenSocket(std::string &listen_ip, uint16_t listen_po
 
     return 0;
 
+}
+
+
+int BinTcpSocket::PrepareClientSocket(std::string &server_ip, uint16_t server_port,
+                                      Socket::SocketType type,
+                                      Socket::DataFormat data_format) {
+
+    // Check parameters
+    if (server_ip.empty() || type != Socket::T_TCP_CLIENT) {
+        return -1;
+    }
+
+    peer_ipstr_ = server_ip;
+    peer_port_ = server_port;
+    type_ = type;
+    data_format_ = data_format;
+    event_concern_ = Socket::EV_READ | Socket::EV_ERROR;
+
+    // prepare socket
+    if (fd_ = socket(PF_INET, SOCK_STREAM, 0) < 0) {
+        perror("socket() error: ");
+        return -3;
+    }
+    // Set nonblocking
+    int val = fcntl(fd_, F_GETFL, 0);
+    if (val == -1) {
+        perror("Get socket flags error: ");
+        return -3;
+    }
+    if (fcntl(fd_, F_SETFL, val | O_NONBLOCK | O_NDELAY) == -1) {
+        perror("Set socket flags error: ");
+        return -3;
+    }
+
+    struct sockaddr_in server_addr;
+    //server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(server_port_);
+    if (inet_aton(peer_ipstr_.c_str(), &server_addr.sin_addr) ==0) {
+        return -3;
+    }
+    socket_len addr_len = sizeof(struct sockaddr_in);
+
+    // Asynchronously connect
+    if (connect(fd_, (struct sockaddr*)&server_addr, addr_len) == -1) {
+        if (errno != EAGAIN || errno != EWOULDBLOCK) {
+            perror("Async connect error: ");
+            return -3;
+        }
+    }
+
+    // Get my_ip of this socket
+
+
+    return 0;
 }
 }; // namespace AANF

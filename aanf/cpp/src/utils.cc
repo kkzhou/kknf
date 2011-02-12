@@ -105,6 +105,7 @@ time_t TimeUtil::StringToTime(std::string &time_str) {
     if (ret == EOF || ret != 6) {
         return -1;
     }
+
     local_time.tm_year -= 1900;
     local_time.tm_mon -= 1;
     local_time.tm_isdst = 0;
