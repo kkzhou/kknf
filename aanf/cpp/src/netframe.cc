@@ -15,33 +15,47 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#include "zxb_netframe.h"
+#include "netframe.h"
 
-namespace ZXB {
+namespace AANF {
 
-NetFrame* NetFrame::CreateNetFrame() {
 
-    NetFrame *nf = 0;
-    if (nf)
-        return nf;
+NetFrame::NetFrame(int send_queue_num, int recv_queue_num) {
 
-    nf = new NetFrame;
-    return nf;
+    if (recv_queue_num <= 0 || send_queue_num) {
+        return -1;
+    }
+
+    for (int i = 0; i < recv_queue_num; i++) {
+
+        recv_queues_.push_back(list<Packet*>(0));
+
+        pthread_mutex_t *new_mutex = new pthread_mutex_t;
+        pthread_mutex_init(new_mutex, NULL);
+        recv_queue_locks_.push_back(new_mutex);
+
+        pthread_cond_t *new_cond = new pthread_cond_t;
+        pthread_cond_init(new_cond, NULL);
+        recv_queue_conds_.push_back(new_cond);
+    }
+
+    for (int i = 0; i < send_queue_num; i++) {
+
+        send_queues_.push_back(list<MemBlock*>(0));
+
+        pthread_mutex_t *new_mutex = new pthread_mutex_t;
+        pthread_mutex_init(new_mutex, NULL);
+        send_queue_locks_.push_back(new_mutex);
+    }
+
+    socket_pool_ = new SocketPool;
 }
-NetFrame::NetFrame(){
-}
+
 NetFrame::~NetFrame(){
+    // 系统终止，需要释放所有资源
 }
-MemPool* NetFrame::mempool() {
-    return mempool_;
-}
-void NetFrame::set_mempool(MemPool *mp) {
-    mempool_ = mp;
-}
-void NetFrame::SetSocketOperatorFactory(SocketOperatorFactory *op_factory) {
 
-    op_factory_ = op_factory;
-}
+
 int NetFrame::AddSocketToMonitor(Socket *sk) {
 
     if (!sk) {
@@ -137,7 +151,7 @@ int NetFrame::Run() {
     CallBackArg *cb_arg = new CallBackArg;
     cb_arg->nf_ = this;
     cb_arg->type_ = EV_SIGNAL;
-    AddSignalToMonitor(SendQueuesNoitfyHandler, cb_arg, SN_SEND_QUEUE_NOTIFY);
+    AddSignalToMonitor(SendQueuesHandler, cb_arg, SN_SEND_QUEUE_NOTIFY);
 
     event_base_dispatch(ev_base_);
     return 0;
@@ -167,43 +181,42 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
     int process_result = 0;
     if ((sk->status_ == Socket::S_ESTABLISHED) && (events_concern | EV_READ) && (events | EV_READ))) {
         Packet *pack_read = NULL;
-        read_result = sk->op_->ReadHandler(pack_read);
+        read_result = sk->ReadHandler(pack_read);
     }
 
     if (read_result < 0) {
         // If error happens in reading the only thing we should do is closing it
-        SocketOperator::ErrorHandler(sk, SocketOperator::C_CLOSE);
-        SocketPool::GetSocketPool()->DestroySocket(sk);
+        socket_pool_->DestroySocket(sk);
         return;
     } else if (read_result == 1) {
         // A complete packet has been read
         // process it
-        process_result = cb_arg->nf_->ProcessPacket(pack_read);
+        process_result = cb_arg->nf_->PushPacketToRecvQueue(pack_read);
         if (process_result == -1) {
-            // receive queue(s) are full
+            // receive queue(s) is full
             return;
         }
     } else {
     }
+
     // write
     int write_result = 0;
     if ((sk->status_ == Socket::S_ESTABLISHED) && (events_concern | EV_WRITE) && (events | EV_WRITE)) {
         // data transmiting
-        write_result = sk->op_->WriteHandler();
+        write_result = sk->WriteHandler();
     }
 
     if (write_result < 0) {
         if (sk->type_ == Socket::T_TCP_SERVER)
             // If error happens in writing and I am a server, just close it
-            SocketOperator::ErrorHandler(sk, SocketOperator::C_CLOSE);
-            SocketPool::GetSocketPool()->DestroySocket(sk);
+            socket_pool_->DestroySocket(sk);
             return;
         } else {
             // I am client, so reconnect
-            if (SocketOperator::ErrorHandler(sk, SocketOperator::C_RECONNECT) == 1 ) {
+            if (sk->Reconnect() == 0) {
                 AddSocketToMonitor(sk);
             } else {
-                SocketPool::GetSocketPool()->DestroySocket(sk);
+                socket_pool_->DestroySocket(sk);
             }
 
             return;
@@ -216,75 +229,33 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
         // non-blocking connect
         // check error
         int error = 0;
-        if (SocketOperator::GetSocketError(sk->fd_, error) < 0 || error != 0) {
-            SocketOperator::ErrorHandler(sk, SocketOperator::C_CLOSE);
-            SocketPool::GetSocketPool()->DestroySocket(sk);
+        if (sk->GetSocketError(error) < 0 || error != 0) {
+            socket_pool_->DestroySocket(sk);
             return;
         }
         // try to write
-        write_result = sk->op_->WriteHandler();
+        write_result = sk->WriteHandler();
         if (write_result < 0) {
-            if (SocketOperator::ErrorHandler(sk, SocketOperator::C_RECONNECT) == 1 ) {
+            if (sk->Reconnect() == 0 ) {
                 AddSocketToMonitor(sk);
             } else {
-                SocketPool::GetSocketPool()->DestroySocket(sk);
+                socket_pool_->DestroySocket(sk);
             }
             return;
         }
     }
 
     // accept
-    int accept_result = 0;
     if ((sk->status_ == Socket::S_LISTEN) && (events_concern | EV_READ) && (events | EV_READ)) {
 
-        accept_result = AcceptHandler();
-        if (accept_result < 0) {
-            // What can we do?
-            return;
-        }
+        int newfd = accept(fd, NULL, NULL);
+        Socket *newsk = socket_pool_->CreateServerSocket(newfd, sk->type_, sk->data_format_);
+        AddSocketToMonitor(newsk);
+        return;
     }
 }
 
-int NetFrame::SetupRecvQueues(int queue_num) {
-
-    if (queue_num <= 0) {
-        return -1;
-    }
-
-    for (int i=0; i < queue_num; i++) {
-
-        recv_queues_.push_back(list<Packet*>(0));
-
-        pthread_mutex_t *new_mutex = new pthread_mutex_t;
-        pthread_mutex_init(new_mutex, NULL);
-        recv_queue_locks_.push_back(new_mutex);
-
-        pthread_cond_t *new_cond = new pthread_cond_t;
-        pthread_cond_init(new_cond, NULL);
-        recv_queue_conds_.push_back(new_cond);
-    }
-    return 0;
-}
-
-int NetFrame::SetupSendQueues(int queue_num) {
-
-    if (queue_num <= 0) {
-        return -1;
-    }
-
-    for (int i=0; i < queue_num; i++) {
-
-        send_queues_.push_back(list<MemBlock*>(0));
-
-        pthread_mutex_t *new_mutex = new pthread_mutex_t;
-        pthread_mutex_init(new_mutex, NULL);
-        send_queue_locks_.push_back(new_mutex);
-    }
-    return 0;
-}
-
-
-int NetFrame::ProcessPacket(Packet *in_pack) {
+int NetFrame::PushPacketToRecvQueue(Packet *in_pack) {
 
     if (!in_pack) {
         return -1;
@@ -306,6 +277,7 @@ int NetFrame::ProcessPacket(Packet *in_pack) {
             cv.Signal();
         }
     }
+
     return 0;
 }
 
@@ -348,95 +320,7 @@ int NetFrame::AsyncSend(std::string &to_ipstr, uint16_t to_port,
     return 0;
 }
 
-
-// return:
-// -1: parameters invalid
-// -2: socket exists
-int NetFrame::PrepareListenSocket(std::string &my_ipstr,
-                                  uint16_t my_port,
-                                  Socket::SocketType type,
-                                  Socket::DataFormat data_format) {
-
-    // Check parameters
-    if (my_ipstr.empty() || type != Socket::T_TCP_LISTEN) {
-        return -1;
-    }
-
-    Socket *sk = SocketPool::GetSocketPool()->FindSocket(my_ipstr, my_port, type);
-    if (sk) {
-        return -2;
-    }
-
-    SocketOperator *op = op_factory_->CreateSocketOperator(type, data_format);
-    sk = SocketPool::GetSocketPool()->CreateSocket(op);
-    sk->my_ipstr_ = my_ipstr;
-    sk->my_port_ = my_port;
-    sk->type_ = type;
-    sk->event_concern_ = Socket::EV_READ | Socket::EV_ERROR;
-
-    // prepare socket
-    if (sk->fd_ = socket(PF_INET, SOCK_STREAM, 0) < 0) {
-        perror("socket() error: ");
-        SocketPool::GetSocketPool()->DestroySocket(sk);
-        return -3;
-    }
-    // Set nonblocking
-    int val = fcntl(sk->fd_, F_GETFL, 0);
-    if (val == -1) {
-        perror("Get socket flags error: ");
-        SocketPool::GetSocketPool()->DestroySocket(sk);
-        return -3;
-    }
-    if (fcntl(sk->fd_, F_SETFL, val | O_NONBLOCK | O_NDELAY) == -1) {
-        perror("Set socket flags error: ");
-        SocketPool::GetSocketPool()->DestroySocket(sk);
-        return -3;
-    }
-    // Bind address
-    struct sockaddr_in listen_addr;
-    //listen_addr.sin_family = AF_INET;
-    listen_addr.sin_port = htons(sk->my_port);
-    if (inet_aton(sk->my_ipstr_.c_str(), &listen_addr.sin_addr) ==0) {
-        SocketPool::GetSocketPool()->DestroySocket(sk);
-        return -3;
-    }
-    socket_len addr_len = sizeof(struct sockaddr_in);
-    if (bind(sk->fd_, (struct sockaddr*)listen_addr, addr_Len) == -1) {
-        SocketPool::GetSocketPool()->DestroySocket(sk);
-        return -3;
-    }
-    // Set address reusable
-    int optval = 0;
-    size_t optlen = sizeof(optval);
-    if (setsockopt(sk->fd_, SOL_SOCKET, SO_REUSEADDR, &optval, optlen) < 0) {
-        perror("Set address reusable error:");
-        SocketPool::GetSocketPool()->DestroySocket(sk);
-        return -3;
-    }
-    // Listen
-    if (listen(sk->fd_, 1024) == -1) {
-        perror("Listen socket error: ");
-        return -3;
-    }
-    // Asynchronously accept
-    if (accept(sk->fd_, NULL, 0) == -1) {
-        if (errno != EAGAIN || errno != EWOULDBLOCK) {
-            perror("Async accept error: ");
-            SocketPool::GetSocketPool()->DestroySocket(sk);
-            return -3;
-        }
-    }
-
-    // 添加一个libevent的侦听事件
-    if (AddSocketToMonitor(sk) < 0) {
-        SocketPool::GetSocketPool()->DestroySocket(sk);
-        return -3;
-    }
-
-    return 0;
-}
-
-void NetFrame::SendQueuesNoitfyHandler(int signo, short events, void *arg) {
+void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
 
     if (signo != SN_SEND_QUEUES_NOTIFY) {
         return;
@@ -525,4 +409,4 @@ void NetFrame::SendQueuesNoitfyHandler(int signo, short events, void *arg) {
 
 }
 
-}; // namespace ZXB
+}; // namespace AANF

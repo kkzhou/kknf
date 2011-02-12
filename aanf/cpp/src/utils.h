@@ -15,11 +15,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
+#ifndef _UTILS_H_
+#define _UTILS_H_
+
 #include <pthread.h>
 #include <stdio.h>
 #include <string>
 
-namespace ZXB {
+namespace AANF {
 
 // 一个简单的Logger，用宏来控制log级别，并预定义了格式，即
 // "级别” “时间” “函数” “文件” “代码行” “自定义内容”
@@ -111,3 +114,4 @@ private:
 };// class TimeUtil
 
 }; // namespace ZXB
+#endif

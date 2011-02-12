@@ -15,18 +15,32 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef _ZXB_PACKET_H_
-#define _ZXB_PACKET_H_
-#include "zxb_socket.h"
+#ifndef _PACKET_H_
+#define _PACKET_H_
 
-namespace ZXB{
+#include "socket.h"
+#include "memblock.h"
+
+namespace AANF {
+
+class MemBlock;
+
 class Packet {
 public:
     Packet(struct timeval &create_time,
            std::string &peer_ipstr, uint16_t peer_port,
            std::string &my_ipstr, uint16_t my_port,
            Socket::SocketType type, Socket::DataFormat df,
-           MemBlock *data);
+           MemBlock *data) {
+                create_time_ = create_time;
+                peer_ipstr_ = peer_ipstr;
+                peer_port_ = peer_port;
+                my_ipstr_ = my_ipstr;
+                my_port_ = my_port;
+                data_format_ = fd;
+                type_ = type;
+                data_ = data;
+           };
     ~Packet();
 
 public:
@@ -47,5 +61,5 @@ private:
 
 };
 
-};// namespace ZXB
+};// namespace AANF
 #endif

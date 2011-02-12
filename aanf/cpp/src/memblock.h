@@ -15,15 +15,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef _ZXB_MEMBLOCK_H_
-#define _ZXB_MEMBLOCK_H_
+#ifndef _MEMBLOCK_H_
+#define _MEMBLOCK_H_
 
 #include <pthread.h>
 #include <string>
 #include <vector>
 #include <list>
 
-namespace ZXB {
+namespace AANF {
 
 // MemBlock和MemPool两个类实现了一个简单的内存池。
 // MemPool是管理者，MemBlock是容器。
@@ -80,5 +80,5 @@ private:
                             // max_block_size_
     static MemPool *inst_;
 };
-};
+}; // namespace AANF
 #endif

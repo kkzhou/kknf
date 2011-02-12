@@ -15,9 +15,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#include "zxb_packet.h"
+#include "packet.h"
+#include "memblock.h"
 
-namespace ZXB{
+namespace AANF {
 
 Packet::Packet(struct timeval create_time,
                std::string &peer_ipstr, uint16_t peer_port,

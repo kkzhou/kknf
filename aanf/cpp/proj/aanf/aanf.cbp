@@ -19,6 +19,8 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="..\..\src\bin_tcp_socket.cc" />
+		<Unit filename="..\..\src\bin_tcp_socket.h" />
 		<Unit filename="..\..\src\client.cc" />
 		<Unit filename="..\..\src\client.h" />
 		<Unit filename="..\..\src\example.cfg" />
@@ -26,12 +28,13 @@
 		<Unit filename="..\..\src\memblock.h" />
 		<Unit filename="..\..\src\netframe.cc" />
 		<Unit filename="..\..\src\netframe.h" />
-		<Unit filename="..\..\src\packet.cc" />
 		<Unit filename="..\..\src\packet.h" />
 		<Unit filename="..\..\src\server.cc" />
 		<Unit filename="..\..\src\server.h" />
 		<Unit filename="..\..\src\socket.cc" />
 		<Unit filename="..\..\src\socket.h" />
+		<Unit filename="..\..\src\socket_pool.cc" />
+		<Unit filename="..\..\src\socket_pool.h" />
 		<Unit filename="..\..\src\utils.cc" />
 		<Unit filename="..\..\src\utils.h" />
 		<Extensions>

@@ -1,6 +1,3 @@
-#include "zxb_utils.h"
-#include <sys/time.h>
-
  /*
     Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
 
@@ -20,8 +17,10 @@
 
 #include <pthread.h>
 #include <string>
+#include "utils.h"
+#include <sys/time.h>
 
-namespace ZXB {
+namespace AANF {
 
 
 Locker::Locker(pthread_mutex_t *mutex) {

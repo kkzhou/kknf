@@ -15,27 +15,22 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef _ZXB_SOCKET_H_
-#define _ZXB_SOCKET_H_
+#ifndef _SOCKET_H_
+#define _SOCKET_H_
 
 #include <netinet/in.h>
 #include <string>
 #include <list>
 #include <map>
 
-namespace ZXB {
+namespace AANF {
 
 class MemBlock;
-class SocketOperator;
-class SocketPool;
 
-// All about a socket
 // 这个类是描述一个套接口的所有信息，但是不包含操作套接口的函数，例如socket/connect/accept等。
 // 也就是说，这个类只是用来存储信息的。
 class Socket {
 
-friend SocketOperator;
-friend SocketPool;
 public:
     // 套接口类型，按功能区分（我们并不试图创造一个万能的网络库，因此只针对常用场景来实现），
     enum SocketType {
@@ -71,49 +66,49 @@ public:
     };
 
 public:
+    virtual int PrepareListenSocket(std::string &listen_ip, uint16_t listen_port,
+                           Socket::SocketType type,
+                           Socket::DataFormat data_format) = 0;
+    virtual int PrepareClientSocket(std::string &server_ip, uint16_t server_port,
+                           Socket::SocketType type,
+                           Socket::DataFormat data_format) = 0;
+    virtual int PrepareServerSocket(int fd, Socket::SocketType type,
+                           Socket::DataFormat data_format) = 0;
+    virtual int ReadHandler() = 0;
+    virtual int WriteHandler() = 0;
+    virtual int AcceptHandler() = 0;
+    virtual int Reconnect() = 0;
+
     int PushDataToSend(MemBlock *mb);
-    static int GetSocketError(int fd, int &error);
+    int GetSocketError(int &error);
+    uint16_t event_concern();
+    void set_event_concern(uint16_t events);
+    uint16_t add_event_to_concern(Event ev);
+    uint16_t del_event_to_concern(Event ev);
 
 public:
-    int fd_;// The corresponding file descriptor
+    int fd_;
     SocketType type_;
     SocketStatus status_;
     DataFormat data_format_;
+
     std::string my_ipstr_;
     uint16_t my_port_;
     std::string peer_ipstr_;
     uint16_t peer_port_;
+
     uint16_t event_concern_;
+
     struct timeval last_use_;
     int retry_times_;
-    SocketOperator *op_;
+
 private:
     MemBlock *recv_mb_; // Buffer to receive data before packetized
     std::list<MemBlock*> send_mb_list_;// The data(organized in MemBlock) to send
     int font_mb_cur_pos_;   // 队列最前面的MemBlcok已发送的字节数
-    Socket(SocketOperator *op);
+    Socket();
     ~Socket();
 };
 
-// Socket factory
-// 套接口池类，用于管理套接口，包括查找、创建、删除和清除空闲套接口等操作。
-class SocketPool {
-public:
-    static SocketPool* GetSocketPool();
-    static void DestroySocketPool();
-    Socket* FindSocket(std::string &peer_ip, uint16_t peer_port, SocketType type);
-    int AddSocket(Socket *sk);
-    int DestroySocket();
-    Socket* CreateSocket(SocketOperator *op);
-    int SweepIdleSocket(int max_idle_sec);
-private:
-    SocketPool();
-    ~SocketPool();
-    static SocketPool *socket_pool_;
-    // 会出现竞争状态，因此要加锁
-    std::map<std::string, Socket*> socket_map_;// Use string(IP:PORT:TYPE) as key
-    pthread_mutex_t socket_map_lock_;
-};
-
-};// namespace ZXB
+};// namespace AANF
 #endif

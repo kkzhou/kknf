@@ -15,18 +15,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef _ZXB_NETFRAME_H_
-#define _ZXB_NETFRAME_H_
+#ifndef _NETFRAME_H_
+#define _NETFRAME_H_
 
 #include <sys/socket.h>
 #include <string>
 #include <event.h>
 
-#include "zxb_socket.h"
-#include "zxb_socket_operator.h"
-#include "zxb_memblock.h"
+#include "socket.h"
+#include "memblock.h"
 
-namespace ZXB {
+namespace AANF {
 
 class NetFrame;
 
@@ -49,7 +48,7 @@ typedef (void)(*CallbackForLibEvent)(int, short, void*);
 
 class NetFrame {
 public:
-    enum EventType {
+    enum FDType {
         T_SOCKET = 1,
         T_SIGNAL,
         T_TIMER
@@ -60,34 +59,27 @@ public:
     };
 public:
     static void SocketCallback(int fd, short events, void *arg);
-    int AcceptHandler();
 
 public:
-    NetFrame();
+    NetFrame(int send_queue_num, int recv_queue_num);
     ~NetFrame();
-    // Manipulators
-    int SetupRecvQueues(int queue_num);
-    int SetupSendQueues(int queue_num);
-    void SetSocketOperatorFactory(SocketOperatorFactory *op_factory);
-    // setter/getter
-    MemPool* mempool();
-    void set_mempool(MemPool *mp);
+    SocketPool* socket_pool() {
+        return socket_pool_;
+    };
 
     // 这个信号的handler是用于业务线程通知libevent，有数据要发送。
-    static void SendQueuesNoitfyHandler(int signo, short events, void *arg);
+    static void SendQueuesHandler(int signo, short events, void *arg);
 
     // 向系统中添加事件和处理函数
     int AddSocketToMonitor(Socket *sk);// 添加一个套接口
     int AddTimerToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int timeout_usec, int timer_id);// 添加一个定时器
     int AddSignalToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int signo);// 添加一个信号
+
     int Run();// Loop
 
     // Packet proccessing interface
-    int ProcessPacket(Packet *in_pack);
+    int PushPacketToRecvQueue(Packet *in_pack);
     int GetPacketFromRecvQueue(int which_queue, Packet *&pack);
-    // Socket manipulateors
-    int PrepareListenSocket(std::string &my_ipstr, uint16_t my_port, Socket::SocketType type,
-                            Socket::DataFormat data_format);
 
     int AsyncSend(std::string &to_ipstr, uint16_t to_port,
                   std::string &my_ipstr, uint16_t my_port,
@@ -96,21 +88,23 @@ public:
 private:
     // libevent
     struct event_base *ev_base_;
+
+    // socket pool
+    SocketPool *socket_pool_;
+
     // receive queues
     std::vector<std::list<Packet*> > recv_queues_;
-    std::vector<pthread_mutex_t*> recv_queue_locks_;// It's dangeraout to copy a pthread_mutex_t so we use pointer
+    std::vector<pthread_mutex_t*> recv_queue_locks_;// It's dangerous to copy a pthread_mutex_t so we use pointer
     std::vector<pthread_cond_t*> recv_queue_conds_;
     // send queues
     std::vector<std::list<Packet*> > send_queues_;
-    std::vector<pthread_mutex_t*> send_queue_locks_;// It's dangeraout to copy a pthread_mutex_t so we use pointer
-    // SocketOperator factory
-    SocketOperatorFactory *op_factory_;
+    std::vector<pthread_mutex_t*> send_queue_locks_;// It's dangerous to copy a pthread_mutex_t so we use pointer
 
     // Prohibits
     NetFrame(NetFrame&);
     NetFrame& operator=(NetFrame&);
 };
 
-};
+}; // namespace AANF
 
 #endif

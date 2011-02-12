@@ -16,9 +16,9 @@
 */
 
 
-#include "zxb_netframe.h"
+#include "netframe.h"
 
-namespace ZXB{
+namespace AANF {
 
 class Server {
 public:
@@ -72,5 +72,5 @@ private:
     NetFrame *netframe_;
 };
 
-};// nameapce ZXB
+};// nameapce AANF
 
