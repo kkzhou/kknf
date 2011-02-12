@@ -54,12 +54,25 @@ int Server::LoadConfig(bool first_time, std::string &config_file) {
 
     my_connect_ipstr_ = st["my_connect_ip"];
     my_connect_port_ = st["my_connect_port"];
-    report_server_ip = st["report_server_ip"];
-    report_server_port = st["report_server_port"];
-    report_interval = st["report_interval"];
-    config_server_ip = st["config_server_ip"];
-    config_server_port = st["config_server_port"];
-    config_check_interval = st["config_check_interval"];
+    report_server_ip_ = st["report_server_ip"];
+    report_server_port_ = st["report_server_port"];
+    report_interval_ = st["report_interval"];
+    config_server_ip_ = st["config_server_ip"];
+    config_server_port_ = st["config_server_port"];
+    config_check_interval_ = st["config_check_interval"];
+
+}
+
+void Server::LoadConfigSignalHandler(int signo, short events, CallBackArg *arg) ｛
+
+        SignalCallBackArg *cb_arg = reinterpret_cast<SignalCallBackArg*>(arg);
+        Server *srv = cb_arg->server_;
+        int ret = srv->LoadConfig(false, srv->config_file_);
+
+｝
+
+int Server::InitLogger(std::string &to_ipstr, uint16_t to_port,
+                       std::string &my_ipstr, uint16_t my_port) {
 
 }
 }; // namespace ZXB

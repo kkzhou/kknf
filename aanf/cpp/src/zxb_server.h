@@ -22,13 +22,18 @@ namespace ZXB{
 
 class Server {
 public:
+    class SignalCallBackArg : public CallBackArg {
+    public:
+        Server *server_;
+    };
+public:
     // Server类是一个单体
     static Server* GetServerInstance();
 
     // 加载/重新加载配置文件，因为不是所有配置项都是可重新加载的，因此要区分。
     int LoadConfig(bool first_time, std::string &config_file);
     // 通过发送信号来触发配置文件的重新加载
-    static void LoadConfigSignalHandler(int signo, short events, CallBackArg *arg);
+    static void LoadConfigSignalHandler(int signo, short events, void *arg);
     bool IsConfigFileChanged();
 
     // 初始化能写到远程日志服务器的logger，这个logger可写到远端，也可写在本地
@@ -54,6 +59,15 @@ private:
 
     int worker_num_;    // worker线程的数目
 
+    std::string config_file_;
+    std::string log_server_ip_;
+    uint16_t log_server_port_;
+    std::string report_server_ip_;
+    uint16_t report_server_port_;
+    int report_interval_;
+    std::string config_server_ip_;
+    uint16_t config_server_port_;
+    int config_check_interval_;
     // 核心类NetFrame的实例
     NetFrame *netframe_;
 };

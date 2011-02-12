@@ -30,25 +30,19 @@ namespace ZXB {
 
 class NetFrame;
 
-// libevent的Callback函数的参数基类
+// libevent的Callback函数的参数
+// 套接口的回调函数所使用的参数
 class CallBackArg {
 public:
     int type_;
-    NetFrame *nf_;
 };
 
-// 套接口的回调函数所使用的参数
 class SocketCallBackArg : public CallBackArg {
 public:
     Socket *sk_;
+    NetFrame *netframe_;
 };
 
-// 定时器回调函数所使用的参数
-class TimerCallBackArg : public CallBackArg {
-public:
-    int timer_id_;
-    struct timeval trig_time_;
-};
 
 // libevent回调函数的原型
 typedef (void)(*CallbackForLibEvent)(int, short, void*);
