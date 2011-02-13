@@ -48,8 +48,8 @@ private:
 class MemPool {
 // For maintaining
 public:
-    int Get(int size, MemBlock *&mb);   // 获取一个MemBlock
-    int Return(MemBlock *mb);   // 归还一个MemBlock
+    int GetMemBlock(int size, MemBlock *&mb);   // 获取一个MemBlock
+    int ReturnMemBlock(MemBlock *mb);   // 归还一个MemBlock
     int PrintStatus();  //　打印当前MemPool的状态
     int EnlargeMemPool(int size_to_add);    // 扩张整个内存池大小
     // 创建一个内存池，包装构造函数

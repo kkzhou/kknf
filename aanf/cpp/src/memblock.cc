@@ -92,7 +92,7 @@ int MemPool::EnlargeMemPool (int size_to_add)
 // return:
 // -1: parameter invalid
 // -2: not enough space left
-int MemPool::Get(int size, MemBlock *&mb)
+int MemPool::GetMemBlock(int size, MemBlock *&mb)
 {
     if (size <= 0 || size > max_block_size) {
         return -1;
@@ -184,7 +184,7 @@ int MemPool::Get(int size, MemBlock *&mb)
     return 0;
 }
 
-int MemPool::Return(MemBlock *mb)
+int MemPool::ReturnMemBlock(MemBlock *mb)
 {
     Locker locker(&pool_lock_);
     int multiple  = mb->len_ / block_size_step_;

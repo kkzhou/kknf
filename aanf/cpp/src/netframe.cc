@@ -180,8 +180,7 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
     int read_result = 0;
     int process_result = 0;
     if ((sk->status_ == Socket::S_ESTABLISHED) && (events_concern | EV_READ) && (events | EV_READ))) {
-        Packet *pack_read = NULL;
-        read_result = sk->ReadHandler(pack_read);
+        read_result = sk->ReadHandler();
     }
 
     if (read_result < 0) {
@@ -191,7 +190,13 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
     } else if (read_result == 1) {
         // A complete packet has been read
         // process it
-        process_result = cb_arg->nf_->PushPacketToRecvQueue(pack_read);
+        struct timeval nowtime;
+        gettimeofday(&nowtime);
+        Packet *pkt_read = new Packet(nowtime, sk->peer_ipstr_, sk->peer_port_,
+                                     sk->my_ipstr_, sk->my_port_,
+                                     sk->type_, sk->data_format_, sk->recv_mb_);
+        sk->recv_mb_ = 0;
+        process_result = cb_arg->nf_->PushPacketToRecvQueue(pkt_read);
         if (process_result == -1) {
             // receive queue(s) is full
             return;

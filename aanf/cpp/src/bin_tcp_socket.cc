@@ -17,124 +17,120 @@
 
 #include "bin_tcp_socket.h"
 
+
+#define MAX_IOVEC_NUM 1000
+
 namespace AANF {
 
-int BinTcpSocket::PrepareListenSocket(std::string &listen_ip, uint16_t listen_port,
-                                      Socket::SocketType type,
-                                      Socket::DataFormat data_format) {
 
-    // Check parameters
-    if (listen_ip.empty() || type != Socket::T_TCP_LISTEN) {
-        return -1;
-    }
+// 实际完成对套接口读操作的函数。
+// 返回值：
+// 0: 还未读完一个包
+// <0: 出现错误，应该关闭套接口或者重新连接
+// 1: 读完一个包
+int BinTcpSocket::ReadHandler() {
 
-    my_ipstr_ = listen_ip;
-    my_port_ = listen_port;
-    type_ = type;
-    data_format_ = data_format;
-    event_concern_ = Socket::EV_READ | Socket::EV_ERROR;
-
-    // prepare socket
-    if (fd_ = socket(PF_INET, SOCK_STREAM, 0) < 0) {
-        perror("socket() error: ");
-        return -3;
-    }
-    // Set nonblocking
-    int val = fcntl(fd_, F_GETFL, 0);
-    if (val == -1) {
-        perror("Get socket flags error: ");
-        return -3;
-    }
-    if (fcntl(fd_, F_SETFL, val | O_NONBLOCK | O_NDELAY) == -1) {
-        perror("Set socket flags error: ");
-        return -3;
-    }
-    // Bind address
-    struct sockaddr_in listen_addr;
-    //listen_addr.sin_family = AF_INET;
-    listen_addr.sin_port = htons(my_port_);
-    if (inet_aton(my_ipstr_.c_str(), &listen_addr.sin_addr) ==0) {
-        return -3;
-    }
-    socket_len addr_len = sizeof(struct sockaddr_in);
-    if (bind(fd_, (struct sockaddr*)listen_addr, addr_len) == -1) {
-        return -3;
-    }
-    // Set address reusable
-    int optval = 0;
-    size_t optlen = sizeof(optval);
-    if (setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &optval, optlen) < 0) {
-        perror("Set address reusable error:");
-        return -3;
-    }
-    // Listen
-    if (listen(fd_, 1024) == -1) {
-        perror("Listen socket error: ");
-        return -3;
-    }
-    // Asynchronously accept
-    if (accept(fd_, NULL, 0) == -1) {
-        if (errno != EAGAIN || errno != EWOULDBLOCK) {
-            perror("Async accept error: ");
-            return -3;
+    int read_num = 0；
+    // 开始接收
+    if (len_field_read_ < sizeof(uint32_t)) {
+        // 长度域还没有读完
+        char *tmpptr = reinterpret_cast<char*>(&len_field_);
+        read_num = read(fd_, tmpptr + len_field_read_, sizeof(uint32_t) - len_field_read_);
+        if (read_num <= 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0) {
+                // 表明该套接口没有数据可读，应该来说不会达到这里，
+                // 因为ReadHandler函数是在该套接口可读时才调用的。
+                return 0;
+            }
+            // 否则，说明套接口出现错误
+            return -2;
+        }
+        len_field_read_ += read_num;
+        if (len_field_read_ < sizeof(uint32_t)) {
+            // 表明还未把len域读出来，不必继续读了，等下一次可读时再继续
+            return 0;
+        } else {
+            assert(len_field_read_ == sizeof(uint32_t));
+            assert(recv_mb_ == 0);  // 在长度域还未读完之前，这个指针是空的
+            int real_len = ntohl(len_field_);
+            recv_mb_ = MemPool::GetMemPool()->GetMemBlock(real_len);
+            memcpy(recv_mb_->start_, &len_field_, sizeof(uint32_t));
+            recv_mb_->used_ += sizeof(uint32_t);
         }
     }
 
-    return 0;
+    // 长度域已经读完，开始读数据
+    uint32_t len = htonl(*reinterpret_cast<uint32_t*>(recv_mb_->start_));
+    assert(len <= recv_mb_->len_);
 
+    read_num = read(fd_, recv_mb_->start_ + recv_mb_->used_,  len - recv_mb_->used_);
+    if (read_num <= 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0) {
+            // 表明该套接口没有数据可读，应该来说不会达到这里，
+            // 因为ReadHandler函数是在该套接口可读时才调用的。
+            return 0;
+        }
+        // 否则，说明套接口出现错误
+        return -2;
+    }
+
+    recv_mb_->used_ += read_num;
+    if (recv_mb_->used_ == len) {
+        // 已经读完一个数据包了
+        return 1;
+    }
+    return 0;
 }
 
+// 实际实现对套接口的写操作的函数。
+// 返回值：
+// 0: 未把队列中的所有数据写完
+// 1: 已把队列中的数据写完，应该把该套接口从epoll中去除
+// <0: 出现错误，应该关闭或者重连
+int BinSocketOperator::WriteHandler() {
 
-int BinTcpSocket::PrepareClientSocket(std::string &server_ip, uint16_t server_port,
-                                      Socket::SocketType type,
-                                      Socket::DataFormat data_format) {
+    list<MemBlock*>::iterator it = send_mb_list_.begin();
+    list<MemBlock*>::iterator endit = send_mb_list_.end();
 
-    // Check parameters
-    if (server_ip.empty() || type != Socket::T_TCP_CLIENT) {
-        return -1;
-    }
-
-    peer_ipstr_ = server_ip;
-    peer_port_ = server_port;
-    type_ = type;
-    data_format_ = data_format;
-    event_concern_ = Socket::EV_READ | Socket::EV_ERROR;
-
-    // prepare socket
-    if (fd_ = socket(PF_INET, SOCK_STREAM, 0) < 0) {
-        perror("socket() error: ");
-        return -3;
-    }
-    // Set nonblocking
-    int val = fcntl(fd_, F_GETFL, 0);
-    if (val == -1) {
-        perror("Get socket flags error: ");
-        return -3;
-    }
-    if (fcntl(fd_, F_SETFL, val | O_NONBLOCK | O_NDELAY) == -1) {
-        perror("Set socket flags error: ");
-        return -3;
-    }
-
-    struct sockaddr_in server_addr;
-    //server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(server_port_);
-    if (inet_aton(peer_ipstr_.c_str(), &server_addr.sin_addr) ==0) {
-        return -3;
-    }
-    socket_len addr_len = sizeof(struct sockaddr_in);
-
-    // Asynchronously connect
-    if (connect(fd_, (struct sockaddr*)&server_addr, addr_len) == -1) {
-        if (errno != EAGAIN || errno != EWOULDBLOCK) {
-            perror("Async connect error: ");
-            return -3;
+    struct iovec vec[MAX_IOVEC_NUM];
+    int cnt = 0;
+    for (; it != endit; it++) {
+        vec[cnt].iov_base = *it->start_;
+        vec[cnt].iov_len = *it->used_;
+        cnt++;
+        if (cnt == MAX_IOVEC_NUM - 1) {
+            break;
         }
     }
 
-    // Get my_ip of this socket
+    int write_num = writev(fd_, vec, cnt);
+    if (write_num <= 0) {
 
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0) {
+            // 表明该套接口不可写，应该来说不会达到这里，
+            return 0;
+        }
+        // 否则，说明套接口出现错误
+        return -2;
+    }
 
+    int tmp_num = write_num;
+    for (int i = 0; i <= cnt; i++) {
+        if (tmp_num >= vec[i].iov_len) {
+            // 这个io块已经发送出去了
+            MemBlock *tmpmb = send_mb_list_.front();
+            send_mb_list_.pop_front();
+            MemPool::GetMemPool()->ReturnMemBlock(tmpmb);
+            tmp_num -= vec[i].len;
+        } else {
+            // 这个块没有发送完
+            font_mb_cur_pos_ = tmp_num;
+            break;
+        }
+    }
+    if (send_mb_list_.size() ==0 ) {
+        return 1;
+    }
     return 0;
 }
 }; // namespace AANF

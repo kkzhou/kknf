@@ -35,6 +35,8 @@
 		<Unit filename="..\..\src\socket.h" />
 		<Unit filename="..\..\src\socket_pool.cc" />
 		<Unit filename="..\..\src\socket_pool.h" />
+		<Unit filename="..\..\src\tcp_socket.cc" />
+		<Unit filename="..\..\src\tcp_socket.h" />
 		<Unit filename="..\..\src\utils.cc" />
 		<Unit filename="..\..\src\utils.h" />
 		<Extensions>

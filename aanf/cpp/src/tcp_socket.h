@@ -14,19 +14,23 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
-#ifndef _BIN_TCP_SOCKET_H_
-#define _BIN_TCP_SOCKET_H_
+#ifndef _TCP_SOCKET_H_
+#define _TCP_SOCKET_H_
 
-#include "tcp_socket.h"
-
+#include "socket.h"
 namespace AANF {
-class BinTcpSocket : public TcpSocket {
+class TcpSocket : public Socket {
 public:
-    virtual int ReadHandler();
-    virtual int WriteHandler();
-private:
-    uint32_t len_field_; // BinTcpSocket采用LV格式，前4字节是长度域，此变量用于存储从套接口读出来的len域
-    int len_field_read_;     // 长度域已读出几个字节。UGLY design
+    virtual int PrepareListenSocket(std::string &listen_ip, uint16_t listen_port,
+                           Socket::SocketType type,
+                           Socket::DataFormat data_format);
+    virtual int PrepareClientSocket(std::string &server_ip, uint16_t server_port,
+                           Socket::SocketType type,
+                           Socket::DataFormat data_format);
+    virtual int PrepareServerSocket(int fd, Socket::SocketType type,
+                           Socket::DataFormat data_format);
+    virtual int AcceptHandler();
+    virtual int Reconnect();
 };
 
 }; // namespace AANF
