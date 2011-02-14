@@ -76,7 +76,6 @@ public:
                            Socket::DataFormat data_format) = 0;
     virtual int ReadHandler() = 0;
     virtual int WriteHandler() = 0;
-    virtual int AcceptHandler() = 0;
     virtual int Reconnect() = 0;
 
     int PushDataToSend(MemBlock *mb);

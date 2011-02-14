@@ -196,4 +196,27 @@ int TcpSocket::PrepareServerSocket(int fd, Socket::SocketType type,
     return 0;
 
 }
+
+int TcpSocket::Reconnect() {
+
+    if (type_ != Socket::T_TCP_CLIENT) {
+        return -1;
+    }
+    struct sockaddr_in server_addr;
+    //server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(server_port_);
+    if (inet_aton(peer_ipstr_.c_str(), &server_addr.sin_addr) == 0) {
+        return -3;
+    }
+    socket_len addr_len = sizeof(struct sockaddr_in);
+
+    // Asynchronously connect
+    if (connect(fd_, (struct sockaddr*)&server_addr, addr_len) == -1) {
+        if (errno != EAGAIN || errno != EWOULDBLOCK) {
+            perror("Async connect error: ");
+            return -3;
+        }
+    }
+    return 0;
+}
 }; // namespace AANF

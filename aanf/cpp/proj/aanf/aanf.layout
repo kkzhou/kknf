@@ -2,7 +2,7 @@
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
 	<File name="..\..\src\bin_tcp_socket.cc" open="1" top="0" tabpos="9">
-		<Cursor position="3317" topLine="0" />
+		<Cursor position="3317" topLine="99" />
 	</File>
 	<File name="..\..\src\bin_tcp_socket.h" open="1" top="0" tabpos="12">
 		<Cursor position="927" topLine="0" />
@@ -20,7 +20,7 @@
 		<Cursor position="2252" topLine="39" />
 	</File>
 	<File name="..\..\src\netframe.cc" open="1" top="0" tabpos="2">
-		<Cursor position="5599" topLine="185" />
+		<Cursor position="7456" topLine="221" />
 	</File>
 	<File name="..\..\src\netframe.h" open="1" top="0" tabpos="7">
 		<Cursor position="1765" topLine="58" />
@@ -32,25 +32,25 @@
 		<Cursor position="2540" topLine="0" />
 	</File>
 	<File name="..\..\src\socket.cc" open="1" top="0" tabpos="5">
-		<Cursor position="762" topLine="61" />
+		<Cursor position="762" topLine="57" />
 	</File>
 	<File name="..\..\src\socket.h" open="1" top="0" tabpos="4">
-		<Cursor position="3360" topLine="11" />
+		<Cursor position="3215" topLine="56" />
 	</File>
 	<File name="..\..\src\socket_pool.cc" open="0" top="0" tabpos="0">
 		<Cursor position="4532" topLine="175" />
 	</File>
 	<File name="..\..\src\socket_pool.h" open="1" top="0" tabpos="8">
-		<Cursor position="929" topLine="12" />
+		<Cursor position="1690" topLine="12" />
 	</File>
-	<File name="..\..\src\tcp_socket.cc" open="0" top="0" tabpos="0">
-		<Cursor position="4448" topLine="79" />
+	<File name="..\..\src\tcp_socket.cc" open="1" top="0" tabpos="15">
+		<Cursor position="5794" topLine="185" />
 	</File>
 	<File name="..\..\src\tcp_socket.h" open="1" top="1" tabpos="13">
-		<Cursor position="1424" topLine="2" />
+		<Cursor position="1391" topLine="0" />
 	</File>
 	<File name="..\..\src\utils.cc" open="1" top="0" tabpos="11">
-		<Cursor position="2648" topLine="87" />
+		<Cursor position="2648" topLine="84" />
 	</File>
 	<File name="..\..\src\utils.h" open="1" top="0" tabpos="3">
 		<Cursor position="390" topLine="27" />

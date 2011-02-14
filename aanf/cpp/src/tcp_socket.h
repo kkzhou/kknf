@@ -29,7 +29,6 @@ public:
                            Socket::DataFormat data_format);
     virtual int PrepareServerSocket(int fd, Socket::SocketType type,
                            Socket::DataFormat data_format);
-    virtual int AcceptHandler();
     virtual int Reconnect();
 };
 
