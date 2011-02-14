@@ -68,14 +68,26 @@ public:
 public:
     virtual int PrepareListenSocket(std::string &listen_ip, uint16_t listen_port,
                            Socket::SocketType type,
-                           Socket::DataFormat data_format) = 0;
+                           DataFormat data_format) = 0;
     virtual int PrepareClientSocket(std::string &server_ip, uint16_t server_port,
                            Socket::SocketType type,
                            Socket::DataFormat data_format) = 0;
     virtual int PrepareServerSocket(int fd, Socket::SocketType type,
-                           Socket::DataFormat data_format) = 0;
+                           DataFormat data_format) = 0;
+
+    // 读数据
+    // 返回值：
+    // 0: 还未读完一个数据包（我们用LV结构定义数据包，L是uint32_t类型）
+    // 1: 已经读完一个数据包
+    // <0: 出现错误
     virtual int ReadHandler() = 0;
+    // 写数据
+    // 返回值：
+    // 0: 还未把缓存中的数据写完
+    // 1: 已经写完缓存中的数据
+    // <0: 出现错误
     virtual int WriteHandler() = 0;
+
     virtual int Reconnect() = 0;
 
     int PushDataToSend(MemBlock *mb);

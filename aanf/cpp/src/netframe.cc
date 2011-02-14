@@ -74,7 +74,7 @@ int NetFrame::AddSocketToMonitor(Socket *sk) {
     }
 
     SocketCallBackArg *arg = new SocketCallBackArg;
-    arg->type_ = CallBackArg::T_SOCKET;
+    arg->type_ = NetFrame::T_SOCKET;
     arg->sk_ = sk;
     arg->nf_ = this;
     event_set(&ev, sk->fd_, events, NetFrame::SocketCallback, arg);
@@ -90,6 +90,7 @@ int NetFrame::AddSocketToMonitor(Socket *sk) {
     return 0;
 }
 
+
 int NetFrame::AddSignalToMonitor(CallBackForLibEvent cb,
                                  CallBackArg *cb_arg, int signo) {
 
@@ -99,10 +100,8 @@ int NetFrame::AddSignalToMonitor(CallBackForLibEvent cb,
     struct event ev;
     short events = EV_PERSIST;
 
-    CallBackArg *arg = new CallBackArg;
-    arg->type_ = CallBackArg::T_SIGNAL;
-    arg->nf_ = this;
-    event_set(&ev, signo, events, cb, arg);
+    cb_arg->type_ = NetFrame::T_SIGNAL;
+    event_set(&ev, signo, events, cb, cb_arg);
 
     if (-1 == event_base_set(ev_base_, &ev)) {
         return -2;
@@ -125,15 +124,13 @@ int NetFrame::AddTimerToMonitor(CallBackForLibEvent cb,
     struct event ev;
     short events = EV_PERSIST;
 
-    TimerCallBackArg *arg = new TimerCallBackArg;
-    arg->type_ = CallBackArg::T_TIMER;
-    arg->timer_id_ = time_id;
-    arg->nf_ = this;
-    gettimeofday(&arg->trig_time_);
-    arg->trig_time_.tv_usec += timeout_usec % 1000000;
-    arg->trig_time_.tv_sec += timeout_usec / 1000000 + arg->trig_time_.tv_usec / 1000000;
-    arg->trig_time_.tv_usec %= 1000000;
-    event_set(&ev, signo, events, cb, arg);
+    cb_arg->type_ = CallBackArg::T_TIMER;
+    cb_arg->timer_id_ = time_id;
+    gettimeofday(&cb_arg->trig_time_);
+    cb_arg->trig_time_.tv_usec += timeout_usec % 1000000;
+    cb_arg->trig_time_.tv_sec += timeout_usec / 1000000 + cb_arg->trig_time_.tv_usec / 1000000;
+    cb_arg->trig_time_.tv_usec %= 1000000;
+    event_set(&ev, signo, events, cb, cb_arg);
 
     if (-1 == event_base_set(ev_base_, &ev)) {
         return -2;
@@ -149,8 +146,6 @@ int NetFrame::AddTimerToMonitor(CallBackForLibEvent cb,
 int NetFrame::Run() {
     // 添加几个预置的handler，例如处理发送队列通知信号的handler
     CallBackArg *cb_arg = new CallBackArg;
-    cb_arg->nf_ = this;
-    cb_arg->type_ = EV_SIGNAL;
     AddSignalToMonitor(SendQueuesHandler, cb_arg, SN_SEND_QUEUE_NOTIFY);
 
     event_base_dispatch(ev_base_);
@@ -159,12 +154,12 @@ int NetFrame::Run() {
 
 void NetFrame::SocketCallback(int fd, short events, void *arg) {
 
-    CallBackArg cb_arg1 = reinterpret_cast<CallBackArg*>(arg);
-    if (cb_arg1->type_ != CallBackArg::T_SOCKET) {
+    SocketCallBackArg cb_arg = reinterpret_cast<SocketCallBackArg*>(arg);
+    if (cb_arg->type_ != NetFrame::T_SOCKET) {
         // It's not a socket event
         return;
     }
-    SocketCallBackArg cb_arg = reinterpret_cast<SocketCallBackArg*>(arg);
+
     Socket *sk = cb_arg->sk_;
     // Handle the socket
 
@@ -212,7 +207,7 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
     }
 
     if (write_result < 0) {
-        if (sk->type_ == Socket::T_TCP_SERVER)
+        if (sk->type_ == Socket::T_TCP_SERVER) {
             // If error happens in writing and I am a server, just close it
             socket_pool_->DestroySocket(sk);
             return;
@@ -226,6 +221,10 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
 
             return;
         }
+    } else if (write_result == 1) {
+        // 缓存的数据已经写完，把套接口的写事件从epoll中删除
+        sk->event_concern ^= (~Socket::EV_WRITE);
+        AddSocketToMonitor(sk);
     }
 
     // connect
@@ -256,8 +255,9 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
         int newfd = accept(fd, NULL, NULL);
         Socket *newsk = socket_pool_->CreateServerSocket(newfd, sk->type_, sk->data_format_);
         AddSocketToMonitor(newsk);
-        return;
+
     }
+    return;
 }
 
 int NetFrame::PushPacketToRecvQueue(Packet *in_pack) {

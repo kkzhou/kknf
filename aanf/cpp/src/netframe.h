@@ -33,7 +33,7 @@ class NetFrame;
 // 套接口的回调函数所使用的参数
 class CallBackArg {
 public:
-    int type_;
+    NetFrame::FDType type_;
 };
 
 class SocketCallBackArg : public CallBackArg {
@@ -57,6 +57,7 @@ public:
         SN_SEND_QUEUE_NOTIFY = 101,
         SN_RELOAD_CONFIG = 102
     };
+
 public:
     static void SocketCallback(int fd, short events, void *arg);
 
@@ -71,7 +72,7 @@ public:
     static void SendQueuesHandler(int signo, short events, void *arg);
 
     // 向系统中添加事件和处理函数
-    int AddSocketToMonitor(Socket *sk);// 添加一个套接口
+    int AddSocketToMonitor(Socket *sk);// 添加一个套接口给epoll监听
     int AddTimerToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int timeout_usec, int timer_id);// 添加一个定时器
     int AddSignalToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int signo);// 添加一个信号
 
@@ -86,6 +87,7 @@ public:
                   MemBlock *data, Socket::SocketType type,
                   Socket::DataFormat data_format, int which_queue);
 private:
+
     // libevent
     struct event_base *ev_base_;
 

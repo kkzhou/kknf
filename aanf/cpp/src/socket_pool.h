@@ -29,18 +29,18 @@ public:
     SocketPool();
     ~SocketPool();
 
-    Socket* FindSocket(std::string &peer_ip, uint16_t peer_port, SocketType type);
+    Socket* FindSocket(std::string &peer_ip, uint16_t peer_port, Socket::SocketType type);
     int DestroySocket(Socket *sk);
     Socket* CreateListenSocket(std::string &listen_ip, uint16_t listen_port,
-                               SocketType type,
+                               Socket::SocketType type,
                                DataFormat data_format);
 
     Socket* CreateClientSocket(std::string &server_ip, uint16_t server_port,
-                               SocketType type,
+                               Socket::SocketType type,
                                DataFormat data_format);
 
     Socket* CreateServerSocket(int fd,
-                               SocketType type,
+                               Socket::SocketType type,
                                DataFormat data_format);
 
     int SweepIdleSocket(int max_idle_sec);
