@@ -68,7 +68,7 @@ public:
     // 返回值：
     // 0: 成功
     // <0: 失败
-    int ProcessAdminCmdPacket(Packet &input_pkt) = 0;
+    int ProcessAdminCmdPacket(Packet &input_pkt);
     int RegisterAdminCmd(std::string &cmd, AdminCmdFunc func);
     // 实际处理业务逻辑的接口
     // 返回值：

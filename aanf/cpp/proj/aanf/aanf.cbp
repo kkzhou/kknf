@@ -21,8 +21,6 @@
 		</Compiler>
 		<Unit filename="..\..\src\bin_tcp_socket.cc" />
 		<Unit filename="..\..\src\bin_tcp_socket.h" />
-		<Unit filename="..\..\src\client.cc" />
-		<Unit filename="..\..\src\client.h" />
 		<Unit filename="..\..\src\example.cfg" />
 		<Unit filename="..\..\src\line_tcp_socket.cc" />
 		<Unit filename="..\..\src\line_tcp_socket.h" />
