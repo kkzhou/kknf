@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
+	<File name="..\..\Makefile" open="1" top="0" tabpos="18">
+		<Cursor position="823" topLine="10" />
+	</File>
+	<File name="..\..\src\bin_tcp_socket.cc" open="1" top="0" tabpos="19">
+		<Cursor position="0" topLine="0" />
+	</File>
 	<File name="..\..\src\bin_tcp_socket.h" open="1" top="0" tabpos="6">
 		<Cursor position="0" topLine="0" />
 	</File>
@@ -8,28 +14,34 @@
 		<Cursor position="217" topLine="0" />
 	</File>
 	<File name="..\..\src\line_tcp_socket.cc" open="1" top="0" tabpos="8">
-		<Cursor position="1" topLine="0" />
+		<Cursor position="1392" topLine="18" />
 	</File>
 	<File name="..\..\src\line_tcp_socket.h" open="1" top="0" tabpos="7">
-		<Cursor position="0" topLine="0" />
+		<Cursor position="981" topLine="0" />
+	</File>
+	<File name="..\..\src\netframe.cc" open="1" top="0" tabpos="21">
+		<Cursor position="5117" topLine="173" />
 	</File>
 	<File name="..\..\src\packet.h" open="1" top="0" tabpos="3">
 		<Cursor position="1182" topLine="32" />
 	</File>
 	<File name="..\..\src\server.cc" open="1" top="0" tabpos="1">
-		<Cursor position="5297" topLine="102" />
+		<Cursor position="6985" topLine="196" />
 	</File>
-	<File name="..\..\src\server.h" open="1" top="0" tabpos="4">
-		<Cursor position="2467" topLine="94" />
+	<File name="..\..\src\server.h" open="1" top="1" tabpos="4">
+		<Cursor position="2586" topLine="58" />
+	</File>
+	<File name="..\..\src\socket.cc" open="1" top="0" tabpos="20">
+		<Cursor position="610" topLine="30" />
 	</File>
 	<File name="..\..\src\socket.h" open="1" top="0" tabpos="5">
-		<Cursor position="4020" topLine="44" />
+		<Cursor position="2642" topLine="59" />
 	</File>
 	<File name="..\..\src\socket_pool.h" open="1" top="0" tabpos="11">
 		<Cursor position="0" topLine="0" />
 	</File>
 	<File name="..\..\src\tcp_socket.h" open="1" top="0" tabpos="10">
-		<Cursor position="0" topLine="0" />
+		<Cursor position="837" topLine="3" />
 	</File>
 	<File name="..\..\src\test_bb_1.cc" open="1" top="0" tabpos="15">
 		<Cursor position="0" topLine="0" />
@@ -46,7 +58,7 @@
 	<File name="..\..\src\test_server.cc" open="1" top="0" tabpos="13">
 		<Cursor position="1" topLine="0" />
 	</File>
-	<File name="..\..\src\utils.cc" open="1" top="1" tabpos="17">
+	<File name="..\..\src\utils.cc" open="1" top="0" tabpos="17">
 		<Cursor position="0" topLine="0" />
 	</File>
 	<File name="..\..\src\utils.h" open="1" top="0" tabpos="9">

@@ -66,6 +66,8 @@ public:
     };
 
 public:
+    Socket();
+    virtual ~Socket();
     virtual int PrepareListenSocket(std::string &listen_ip, uint16_t listen_port,
                            Socket::SocketType type,
                            DataFormat data_format) = 0;
@@ -117,8 +119,6 @@ private:
     MemBlock *recv_mb_; // Buffer to receive data before packetized
     std::list<MemBlock*> send_mb_list_;// The data(organized in MemBlock) to send
     int font_mb_cur_pos_;   // 队列最前面的MemBlcok已发送的字节数
-    Socket();
-    ~Socket();
 };
 
 };// namespace AANF

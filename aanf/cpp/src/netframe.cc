@@ -187,6 +187,7 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
         // process it
         struct timeval nowtime;
         gettimeofday(&nowtime);
+
         Packet *pkt_read = new Packet(nowtime, sk->peer_ipstr_, sk->peer_port_,
                                      sk->my_ipstr_, sk->my_port_,
                                      sk->type_, sk->data_format_, sk->recv_mb_);
@@ -196,6 +197,7 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
             // receive queue(s) is full
             return;
         }
+
     } else {
     }
 

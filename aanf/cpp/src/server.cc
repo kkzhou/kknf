@@ -197,31 +197,50 @@ int Server::ProcessAdminCmdPacket(Packet &input_pkt) {
     if (input_pkt->data_format_ != Socket::DF_LINE) {
         return -1;
     }
-    string cmd_options_line(input_pkt->data_->start_, input_pkt->data_->start_ + input_pkt->data_->used_);
-    size_t pos = cmd_options_line.find_first_fo(" \n\r\t");
+    string cmd_options_lines(input_pkt->data_->start_, input_pkt->data_->start_ + input_pkt->data_->used_);
 
-    string cmd, options;
-    // extract 'cmd'
-    if (pos != string::npos) {
-        cmd = cmd_options_line.substr(0, pos);
-    }
+    size_t pos1, pos2;
+    pos1 = pos2 = 0;
+    while ((pos2 = cmd_options_lines.find_first_of(" \n", pos1)) != string::npos)  {
+        string cmd_options_line = cmd_options_lines.substr(pos1, pos2);
 
-    // extract 'options'
-    pos = cmd_options_line.find_first_not_of(" \r\n\t", pos);
-
-    if (pos != string::npos) {
-        options = cmd_options_line.substr(pos);
-    } else {
-        options = "";
-    }
-
-    map<string, AdminCmdFunc>::iterator it = admin_cmd_map_.find(cmd);
-    if (it != admin_cmd_map_.end()) {
-        int ret = it->second(cmd, options);
-        if (ret < 0) {
-            return -2;
+        string cmd, options;
+        // extract 'cmd'
+        size_t pos = cmd_options_line.find_first_of(" \t");
+        if (pos != string::npos) {
+            cmd = cmd_options_line.substr(0, pos);
         }
-    }
+
+        // extract 'options'
+        pos = cmd_options_line.find_first_not_of("  \t", pos);
+
+        if (pos != string::npos) {
+            options = cmd_options_line.substr(pos);
+        } else {
+            options = "";
+        }
+
+        map<string, AdminCmdFunc>::iterator it = admin_cmd_map_.find(cmd);
+        if (it != admin_cmd_map_.end()) {
+            int ret = it->second(cmd, options); // 调用注册的admin函数
+            if (ret < 0) {
+                return -2;
+            }
+        }
+
+        // 更新游标pos1/pos2
+        if (pos2 +1 == cmd_options_lines.length()) {
+            // 是最后一行了
+            break;
+        } else {
+            // 否则
+            pos1 = pos2 = pos2 + 1;
+        }
+    } // while
+
+
+
+
     return 0;
 }
 
