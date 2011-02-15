@@ -116,10 +116,20 @@ void Server::WorkderThreadProc(WorkerThreadProcArg *arg) {
         if (ret < 0) {
             break;
         }
+        // 先处理命令通道
 
-        ret = server->ProcessPacket(pkt);
-        if (ret < 0) {
-            //
+        if (server->my_admin_ip_ == pkt->my_ipstr_ && server->my_admin_port_ == pkt->my_port_) {
+            // 这是一个命令通道的数据
+            ret = server->ProcessAdminPacket(pkt);
+            if (ret < 0) {
+                //
+            }
+        } else {
+            // 这是普通数据包
+            ret = server->ProcessPacket(pkt);
+            if (ret < 0) {
+                //
+            }
         }
     } // while
 }
@@ -164,6 +174,53 @@ int Server::Run() {
     // 等待线程结束
     for (int i = 0; i < worker_num_; i++) {
         pthread_join(tid[i], NULL);
+    }
+    return 0;
+}
+
+int Server::RegisterAdminCommand(std::string &cmd, AdminCmdFunc func) {
+
+    if (!func) {
+        return -1;
+    }
+    pair<map<string, AdminCmdFunc>::iterator, bool> ret =
+        admin_cmd_map_.insert(pair<string, AdminCmdFunc>(cmd, func));
+    if (ret.second) {
+        return -2;
+    }
+    admin_cmd_map_[cmd] = func;
+    return 0;
+}
+
+int Server::ProcessAdminCmdPacket(Packet &input_pkt) {
+
+    if (input_pkt->data_format_ != Socket::DF_LINE) {
+        return -1;
+    }
+    string cmd_options_line(input_pkt->data_->start_, input_pkt->data_->start_ + input_pkt->data_->used_);
+    size_t pos = cmd_options_line.find_first_fo(" \n\r\t");
+
+    string cmd, options;
+    // extract 'cmd'
+    if (pos != string::npos) {
+        cmd = cmd_options_line.substr(0, pos);
+    }
+
+    // extract 'options'
+    pos = cmd_options_line.find_first_not_of(" \r\n\t", pos);
+
+    if (pos != string::npos) {
+        options = cmd_options_line.substr(pos);
+    } else {
+        options = "";
+    }
+
+    map<string, AdminCmdFunc>::iterator it = admin_cmd_map_.find(cmd);
+    if (it != admin_cmd_map_.end()) {
+        int ret = it->second(cmd, options);
+        if (ret < 0) {
+            return -2;
+        }
     }
     return 0;
 }

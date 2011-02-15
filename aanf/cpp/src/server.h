@@ -39,6 +39,7 @@ public:
         Socket::SocketType type_;
         Socket::DataFormat data_format_;
     };
+    typedef (int)(*AdminCmdFunc)(std::string&);
 public:
     // Server类是一个单体
     static Server* GetServerInstance();
@@ -63,6 +64,12 @@ public:
     // 启动Server
     int Run();
 
+    // 处理命令通道数据包的接口
+    // 返回值：
+    // 0: 成功
+    // <0: 失败
+    int ProcessAdminCmdPacket(Packet &input_pkt) = 0;
+    int RegisterAdminCmd(std::string &cmd, AdminCmdFunc func);
     // 实际处理业务逻辑的接口
     // 返回值：
     // 0: 成功
@@ -80,6 +87,8 @@ private:
     ~Server();
     // 我用于侦听的ip和端口们
     std::map<std::string, ListenSocketInfo> listen_socket_map_;
+    string my_admin_ip_;    // 这两个变量是包含在上面的map里的，这里
+    uint16_t my_admin_port_;// 重复存储是为了避免每次都查找map
 
     // 当我主动去连接其他服务器时，使用的ip和端口，一般来说用any就行了
     std::string my_connect_ipstr_;
@@ -112,6 +121,10 @@ private:
 
     // 线程控制参数
     bool cancel_;
+
+    // 命令<->函数 映射map
+    std::map<std::string, AdminCmdFunc> admin_cmd_map_;
+
     // 核心类NetFrame的实例
     NetFrame *netframe_;
 };

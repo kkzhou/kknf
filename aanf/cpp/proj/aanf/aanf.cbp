@@ -24,6 +24,8 @@
 		<Unit filename="..\..\src\client.cc" />
 		<Unit filename="..\..\src\client.h" />
 		<Unit filename="..\..\src\example.cfg" />
+		<Unit filename="..\..\src\line_tcp_socket.cc" />
+		<Unit filename="..\..\src\line_tcp_socket.h" />
 		<Unit filename="..\..\src\memblock.cc" />
 		<Unit filename="..\..\src\memblock.h" />
 		<Unit filename="..\..\src\netframe.cc" />
@@ -37,6 +39,11 @@
 		<Unit filename="..\..\src\socket_pool.h" />
 		<Unit filename="..\..\src\tcp_socket.cc" />
 		<Unit filename="..\..\src\tcp_socket.h" />
+		<Unit filename="..\..\src\test_bb_1.cc" />
+		<Unit filename="..\..\src\test_bb_2.cc" />
+		<Unit filename="..\..\src\test_bf.cc" />
+		<Unit filename="..\..\src\test_client.cc" />
+		<Unit filename="..\..\src\test_server.cc" />
 		<Unit filename="..\..\src\utils.cc" />
 		<Unit filename="..\..\src\utils.h" />
 		<Extensions>
