@@ -23,7 +23,6 @@ namespace AANF {
 class BinTcpSocket : public TcpSocket {
 public:
     virtual int ReadHandler();
-    virtual int WriteHandler();
 private:
     uint32_t len_field_; // BinTcpSocket采用LV格式，前4字节是长度域，此变量用于存储从套接口读出来的len域
     int len_field_read_;     // 长度域已读出几个字节。UGLY design

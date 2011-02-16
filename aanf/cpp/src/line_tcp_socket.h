@@ -23,7 +23,6 @@ namespace AANF {
 class LineTcpSocket : public TcpSocket {
 public:
     virtual int ReadHandler();
-    virtual int WriteHandler();
     virtual ~LineTcpSocket();
     LineTcpSocket();
 private:
