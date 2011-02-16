@@ -89,13 +89,13 @@ int Server::LoadConfig(bool first_time, std::string &config_file) {
 
 }
 
-void Server::LoadConfigSignalHandler(int signo, short events, CallBackArg *arg) ｛
+void Server::LoadConfigSignalHandler(int signo, short events, CallBackArg *arg) {
 
         SignalCallBackArg *cb_arg = reinterpret_cast<SignalCallBackArg*>(arg);
         Server *srv = cb_arg->server_;
         int ret = srv->LoadConfig(false, srv->config_file_);
 
-｝
+}
 
 int Server::InitRemoteLogger(std::string &to_ipstr, uint16_t to_port,
                        std::string &my_ipstr, uint16_t my_port) {
