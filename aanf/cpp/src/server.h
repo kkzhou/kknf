@@ -45,21 +45,39 @@ public:
     static Server* GetServerInstance();
 
     // 加载/重新加载配置文件，因为不是所有配置项都是可重新加载的，因此要区分。
+    // 返回值：
+    // 0: 成功
+    // -1: 参数错误
+    // <-1: 其他错误
     int LoadConfig(bool first_time, std::string &config_file);
     // 通过发送信号来触发配置文件的重新加载
     static void LoadConfigSignalHandler(int signo, short events, void *arg);
+
+    // 检查配置文件是否发生变化，只是检查本地配置文件，
+    // 至于如何从远程拉取配置文件，是另外的进程的任务。
     bool IsConfigFileChanged();
 
     // 初始化能写到远程日志服务器的logger，这个logger可写到远端，也可写在本地，如果
     // 不进行初始化，则默认写在本地
-    int InitRemoteLogger(std::string &to_ipstr, uint16_t to_port,
-                   std::string &my_ipstr, uint16_t my_port,
-                   uint32_t logid);
+    // 返回值:
+    // 0: 成功
+    // -1: 参数错误
+    // <-1: 其他错误
+    int InitRemoteLogger();
 
     // 初始化能把数据上报到远端服务器的的reporter
-    int InitReporter(std::string &to_ipstr, uint16_t to_port,
-                   std::string &my_ipstr, uint16_t my_port,
-                   uint32_t reportid);
+    // 0: 成功
+    // -1: 参数错误
+    // <-1: 其他错误
+    int InitReporter();
+    // 初始化定期更新配置文件的服务，需要用独立线程去实现。
+    // 0: 成功
+    // -1: 参数错误
+    // <-1: 其他错误
+    int InitConfigUpdater();
+
+    // 初始化所有侦听套接口
+    int InitListenSocket();
 
     // 启动Server
     int Run();
@@ -111,6 +129,7 @@ private:
     Socket::SocketType report_server_type_;
     Socket::DataFormat report_server_data_format_;
     bool report_server_ready_;
+    uint32_t report_id_;
 
     // 远程日志服务器
     std::string config_server_ip_;
@@ -119,6 +138,7 @@ private:
     Socket::DataFormat log_server_data_format_;
     int config_check_interval_;
     bool log_server_ready_;
+    uint32_t log_id_;
 
     // 线程控制参数
     bool cancel_;

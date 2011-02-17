@@ -36,6 +36,8 @@
 		<Unit filename="..\..\src\socket.h" />
 		<Unit filename="..\..\src\socket_pool.cc" />
 		<Unit filename="..\..\src\socket_pool.h" />
+		<Unit filename="..\..\src\sync_sender_receiver.cc" />
+		<Unit filename="..\..\src\sync_sender_receiver.h" />
 		<Unit filename="..\..\src\tcp_socket.cc" />
 		<Unit filename="..\..\src\tcp_socket.h" />
 		<Unit filename="..\..\src\test_bb_1.cc" />

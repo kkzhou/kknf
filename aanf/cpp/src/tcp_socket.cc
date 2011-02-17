@@ -118,7 +118,7 @@ int TcpSocket::PrepareClientSocket(std::string &server_ip, uint16_t server_port,
 
     struct sockaddr_in server_addr;
     //server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(server_port_);
+    server_addr.sin_port = htons(peer_port_);
     if (inet_aton(peer_ipstr_.c_str(), &server_addr.sin_addr) ==0) {
         return -3;
     }

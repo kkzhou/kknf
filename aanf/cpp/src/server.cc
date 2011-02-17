@@ -44,21 +44,6 @@ int Server::LoadConfig(bool first_time, std::string &config_file) {
             return -1;
         }
 
-        Setting st = cfg.lookup("server");
-
-        my_connect_ipstr_ = st["my_connect_ip"];
-        my_connect_port_ = st["my_connect_port"];
-        report_server_ip_ = st["report_server_ip"];
-        report_server_port_ = st["report_server_port"];
-        report_interval_ = st["report_interval"];
-        config_server_ip_ = st["config_server_ip"];
-        config_server_port_ = st["config_server_port"];
-        config_check_interval_ = st["config_check_interval"];
-        worker_num_ = st["worker_num_"];
-        send_queue_num_ = st["send_queue_num"];
-
-        Setting st2 = cfg.lookup("server.listen_socket");
-        int tmp1 = st.getLength();
 
         map<string, Socket::SocketType> tmpmap1, tmpmap2;
         tmpmap1["tcp"] = Socket::T_TCP_LISTEN;
@@ -66,6 +51,35 @@ int Server::LoadConfig(bool first_time, std::string &config_file) {
         tmpmap2["bin"] = Socket::DF_BIN;
         tmpmap2["line"] = Socket::DF_LINE;
         tmpmap2["http"] = Socket::DF_HTTP;
+
+        Setting st = cfg.lookup("server");
+
+        my_connect_ipstr_ = st["my_connect_ip"];
+        my_connect_port_ = st["my_connect_port"];
+        // report
+        report_server_ip_ = st["report_server_ip"];
+        report_server_port_ = st["report_server_port"];
+        report_interval_ = st["report_interval"];
+        report_server_type_ = tmpmap1[st["report_server_type"]]; // 要先检查一下是否存在
+        report_server_data_format_ = tmpmap2[st["report_server_data_format"]];
+        // config
+        config_server_ip_ = st["config_server_ip"];
+        config_server_port_ = st["config_server_port"];
+        config_check_interval_ = st["config_check_interval"];
+        config_server_type_ = tmpmap1[st["config_server_type"]]; // 要先检查一下是否存在
+        config_server_data_format_ = tmpmap2[st["config_server_data_format"]];
+        // logger
+        log_server_ip_ = st["log_server_ip"];
+        log_server_port_ = st["log_server_port"];
+        log_server_type_ = tmpmap1[st["log_server_type"]]; // 要先检查一下是否存在
+        log_server_data_format_ = tmpmap2[st["log_server_data_format"]];
+
+        worker_num_ = st["worker_num_"];
+        send_queue_num_ = st["send_queue_num"];
+
+        Setting st2 = cfg.lookup("server.listen_socket");
+        int tmp1 = st.getLength();
+
 
         for (int i = 0; i < tmp1; i++) {
             string name = st[i]("name");
@@ -78,9 +92,30 @@ int Server::LoadConfig(bool first_time, std::string &config_file) {
 
             listen_socket_map_.insert(name, tmpinfo);
         }
+        // 进行初始化工作
         // 初始化NetFrame
+        int ret = 0;
         netframe_ = new NetFrame(send_queue_num_, worker_num_);
-
+        // 初始化远程日志服务
+        ret = InitRemoteLogger();
+        if (ret < 0) {
+            return -2
+        }
+        // 初始化远程数据上报服务
+        ret = InitReporter();
+        if (ret < 0) {
+            return -2
+        }
+        // 初始化配置服务
+        ret = InitConfigUpdater();
+        if (ret < 0) {
+            return -2
+        }
+        // 初始化侦听套接口
+        ret = InitListenSocket();
+        if (ret < 0) {
+            return -2
+        }
     } else {
         // 是动态更新配置文件
     }
@@ -97,11 +132,29 @@ void Server::LoadConfigSignalHandler(int signo, short events, CallBackArg *arg) 
 
 }
 
-int Server::InitRemoteLogger(std::string &to_ipstr, uint16_t to_port,
-                       std::string &my_ipstr, uint16_t my_port) {
+int Server::InitRemoteLogger() {
 
 }
 
+int Server::InitReporter() {
+}
+
+int Server::InitListenSocket() {
+
+    map<string, ListenSocketInfo>::iterator it, endit;
+    it = listen_socket_map_.begin();
+    endit = listen_socket_map_.end();
+
+    int ret = 0;
+    for (; it != endit; it++) {
+        ret = netframe_->socket_pool()->CreateListenSocket(it->second.ip_,
+                                                           it->second.port_, it->second.type_, it->second.data_format_);
+        if (ret < 0) {
+            return -1;
+        }
+    }
+    return 0;
+}
 
 void Server::WorkderThreadProc(WorkerThreadProcArg *arg) {
 

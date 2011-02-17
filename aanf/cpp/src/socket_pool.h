@@ -33,7 +33,7 @@ public:
     int DestroySocket(Socket *sk);
     Socket* CreateListenSocket(std::string &listen_ip, uint16_t listen_port,
                                Socket::SocketType type,
-                               DataFormat data_format);
+                               Socket::DataFormat data_format);
 
     Socket* CreateClientSocket(std::string &server_ip, uint16_t server_port,
                                Socket::SocketType type,
