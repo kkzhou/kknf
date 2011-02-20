@@ -22,7 +22,6 @@
 		<Unit filename="..\..\Makefile" />
 		<Unit filename="..\..\src\bin_tcp_socket.cc" />
 		<Unit filename="..\..\src\bin_tcp_socket.h" />
-		<Unit filename="..\..\src\example.cfg" />
 		<Unit filename="..\..\src\line_tcp_socket.cc" />
 		<Unit filename="..\..\src\line_tcp_socket.h" />
 		<Unit filename="..\..\src\memblock.cc" />
@@ -40,12 +39,13 @@
 		<Unit filename="..\..\src\sync_sender_receiver.h" />
 		<Unit filename="..\..\src\tcp_socket.cc" />
 		<Unit filename="..\..\src\tcp_socket.h" />
-		<Unit filename="..\..\src\test_bb_1.cc" />
-		<Unit filename="..\..\src\test_bb_2.cc" />
-		<Unit filename="..\..\src\test_bf.cc" />
-		<Unit filename="..\..\src\test_client.cc" />
 		<Unit filename="..\..\src\utils.cc" />
 		<Unit filename="..\..\src\utils.h" />
+		<Unit filename="..\..\test\example.cfg" />
+		<Unit filename="..\..\test\test_bb_1.cc" />
+		<Unit filename="..\..\test\test_bb_2.cc" />
+		<Unit filename="..\..\test\test_bf.cc" />
+		<Unit filename="..\..\test\test_client.cc" />
 		<Extensions>
 			<code_completion />
 			<debugger />
