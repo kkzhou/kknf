@@ -22,6 +22,13 @@
 using std;
 using namespace AANF;
 
+class TestBF : public Server {
+public:
+    virtual int ProcessPacket(Packet &input_pkt) {
+
+    };
+};
+
 int main(int argc, char **argv) {
 
     char *opt_str = "f:m:h";
@@ -48,11 +55,14 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    Server *server = Server::GetServerInstance();
+    TestBF *server = new TestBF;
     int ret = server->LoadConfig(true, config_file);
     if (ret < 0) {
         cerr << "Load config file error!" << endl;
         return -1;
     }
+
+    server->Run();
+    return 0;
 
 }

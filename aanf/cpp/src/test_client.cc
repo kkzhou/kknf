@@ -14,3 +14,53 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
+
+#include <string>
+#include <iostream>
+#include "server.h"
+
+using std;
+using namespace AANF;
+
+class TestClient : public Server {
+public:
+    // 处理回应报文的，因为是Client，是请求的发起者，接收的是应答
+    virtual int ProcessPacket(Packet &input_pkt) {
+
+    };
+};
+
+int main(int argc, char **argv) {
+
+    char *opt_str = "f:h";
+    string config_file;
+
+    char c;
+    while ((c = getopt(argc, argv, opt_str)) != -1) {
+        switch (c) {
+        case 'f':
+            config_file = optarg;
+            break;
+        case 'h':
+        default:
+            cerr << "Usage: ./test_bf -f configfile -m [debug|daemon] -h" << endl;
+            break;
+        }
+    }
+    if (config_file.empty) {
+        cerr << "Parameter error:" << endl;
+        cerr << "Usage: ./test_bf -f configfile -h" << endl;
+        return -1;
+    }
+
+    TestClient *server = new TestClient;
+    int ret = server->LoadConfig(true, config_file);
+    if (ret < 0) {
+        cerr << "Load config file error!" << endl;
+        return -1;
+    }
+
+    server->Run();
+    return 0;
+
+}

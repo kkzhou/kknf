@@ -23,16 +23,6 @@ namespace AANF {
 
 using namespace libconfig;
 
-Server* Server::GetServerInstance() {
-    static Server *inst = 0;
-    if (inst) {
-        return inst;
-    }
-
-    inst = new Server();
-    return inst;
-}
-
 int Server::LoadConfig(bool first_time, std::string &config_file) {
 
     if (first_time) {

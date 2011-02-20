@@ -14,3 +14,55 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
+
+#include <string>
+#include <iostream>
+#include "server.h"
+
+using std;
+using namespace AANF;
+
+class TestBB2 : public Server {
+public:
+    virtual int ProcessPacket(Packet &input_pkt) {
+
+    };
+};
+
+int main(int argc, char **argv) {
+
+    char *opt_str = "f:m:h";
+    string config_file, exe_mode;
+
+    char c;
+    while ((c = getopt(argc, argv, opt_str)) != -1) {
+        switch (c) {
+        case 'f':
+            config_file = optarg;
+            break;
+        case 'm':
+            exe_mode = optarg;
+            break;
+        case 'h':
+        default:
+            cerr << "Usage: ./test_bf -f configfile -m [debug|daemon] -h" << endl;
+            break;
+        }
+    }
+    if (config_file.empty || exe_mode.empty()) {
+        cerr << "Parameter error:" << endl;
+        cerr << "Usage: ./test_bf -f configfile -m [debug|daemon] -h" << endl;
+        return -1;
+    }
+
+    TestBB2 *server = new TestBB2;
+    int ret = server->LoadConfig(true, config_file);
+    if (ret < 0) {
+        cerr << "Load config file error!" << endl;
+        return -1;
+    }
+
+    server->Run();
+    return 0;
+
+}

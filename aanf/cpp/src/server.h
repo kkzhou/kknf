@@ -40,10 +40,10 @@ public:
         Socket::DataFormat data_format_;
     };
     typedef (int)(*AdminCmdFunc)(std::string&);
-public:
-    // Server类是一个单体
-    static Server* GetServerInstance();
 
+public:
+    Server();
+    ~Server();
     // 加载/重新加载配置文件，因为不是所有配置项都是可重新加载的，因此要区分。
     // 返回值：
     // 0: 成功
@@ -102,8 +102,6 @@ public:
     int Log(bool remote, uint32_t level, const char *format, ...);
     int Report(std::string &property, int value);
 private:
-    Server();
-    ~Server();
     // 我用于侦听的ip和端口们
     std::map<std::string, ListenSocketInfo> listen_socket_map_;
     string my_admin_ip_;    // 这两个变量是包含在上面的map里的，这里
