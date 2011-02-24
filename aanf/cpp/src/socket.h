@@ -62,18 +62,36 @@ public:
     enum DataFormat {// Determines how to packetize data
         DF_BIN = 1,
         DF_HTTP = 2,
-        DF_LINE = 3
+        DF_LINE = 3,
+        DF_USR_1,
+        DF_USR_2,
+        DF_USR_3
     };
 
 public:
     Socket();
     virtual ~Socket();
+    // 准备好侦听套接口，这是服务器端的操作。
+    // 该函数创建socket描述符，并完成非阻塞的bind/listen/accept操作，但不加入到epoll。
+    // 返回值：
+    // 0: 成功
+    // <0: 失败
     virtual int PrepareListenSocket(std::string &listen_ip, uint16_t listen_port,
                            Socket::SocketType type,
                            DataFormat data_format) = 0;
+    // 准备好用于主动连接的套接口，这是客户端的操作。
+    // 该函数创建socket描述符，并完成非阻塞的connect操作，但是不加入epoll。
+    // 返回值：
+    // 0: 成功
+    // <0: 失败
     virtual int PrepareClientSocket(std::string &server_ip, uint16_t server_port,
                            Socket::SocketType type,
                            Socket::DataFormat data_format) = 0;
+    // 准备好由于客户端的connect，服务器的侦听套接口accept返回的新套接口，这是服务器端的操作。
+    // 该函数利用已存在的socket描述符，读取地址信息，即填满Socket对象的各个域，但不加入epoll。
+    // 返回值：
+    // 0: 成功
+    // <0: 失败
     virtual int PrepareServerSocket(int fd, Socket::SocketType type,
                            DataFormat data_format) = 0;
 
@@ -92,7 +110,9 @@ public:
 
     virtual int Reconnect() = 0;
 
+    // 该函数把一个MemBlock的数据放到该Socket对象的发送队列。
     int PushDataToSend(MemBlock *mb);
+
     int GetSocketError(int &error);
     uint16_t event_concern();
     void set_event_concern(uint16_t events);

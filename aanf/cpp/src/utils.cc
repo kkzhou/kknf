@@ -58,10 +58,10 @@ int ConditionVariable::Signal() {
 }
 
 
-uint32_t g_log_level = 0;
-uint32_t SetLogLevel(uint32_t new_level) {
-    uint32_t old_level = g_log_level;
-    g_log_level = new_level;
+uint32_t g_slog_level = 0;
+uint32_t SetSLogLevel(uint32_t new_level) {
+    uint32_t old_level = g_slog_level;
+    g_slog_level = new_level;
     return old_level;
 }
 

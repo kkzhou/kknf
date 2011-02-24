@@ -24,20 +24,21 @@
 
 namespace AANF {
 
-// 一个简单的Logger，用宏来控制log级别，并预定义了格式，即
+// 一个简单的日志(SLOG)，用宏来控制log级别，并预定义了格式，即
 // "级别” “时间” “函数” “文件” “代码行” “自定义内容”
-enum LogLevel {
+enum SLogLevel {
     L_FATAL = 1,
     L_SYSERR = 2,
     L_LOGICERR = 4,
     L_INFO = 8,
     L_DEBUG = 16,
 };
+
 #if !defined(SLOG)
 #define SLOG(level,format,arg...) \
             do { \
-                if ((level) & g_log_level) { \
-                    enum LogLevel tmp_level = level; \
+                if ((level) & g_slog_level) { \
+                    enum SLogLevel tmp_level = level; \
                     std::string level_str; \
                     if (tmp_level == L_FATAL) { \
                         level_str = "FATAL"; \
@@ -62,8 +63,8 @@ enum LogLevel {
 #endif
 
 // 全局的日志级别，通过控制它的值，可以控制哪些日志打印，哪些不打印。
-extern uint32_t g_log_level;
-uint32_t SetLogLevel(uint32_t new_loevel);
+extern uint32_t g_slog_level;
+uint32_t SetSLogLevel(uint32_t new_loevel);
 
 // 封装了pthread_mutex_t的加锁和解锁过程，通过构造函数和析构函数来控制，进而通过作用域控制。
 class Locker {
