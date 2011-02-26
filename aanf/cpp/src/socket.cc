@@ -31,7 +31,8 @@ Socket::Socket() {
     my_port_ = 0;
     peer_port_ = 0;
 
-    event_concern_ = EV_READ | EV_WRITE | EV_ERROR | EV_PERSIST;
+    want_to_read_ = true;
+    want_to_write_ = false;
 
     gettimeofday(&last_use_);
     retry_times_ = 0;
@@ -70,24 +71,6 @@ int Socket::GetSocketError(int &error)
         return -2;
 
     return 0;
-}
-
-uint16_t Socket::event_concern() {
-    return event_concern_;
-}
-
-void Socket::set_event_concern(uint16_t events) {
-    event_concern_ = events;
-}
-
-uint16_t Socket::add_event_to_concern(Event ev) {
-    event_concern_ |= ev;
-    return event_concern_;
-}
-
-uint16_t Socket::del_event_to_concern(Event ev) {
-    event_concern_ &= (~ev);
-    return event_concern_;
 }
 
 };// namespace AANF

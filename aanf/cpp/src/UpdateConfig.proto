@@ -1,0 +1,19 @@
+message UpdateConfigRequest {
+    required fixed32 Len = 1;
+    required fixed32 Ver = 2;
+    required int32 Cmd = 3;
+    required string MD5 = 4;
+}
+
+message UpdateConfigResponse {
+    enum ErrorCode {
+        NO_UPDATE = 0;
+        UPDATED = 1;
+    }
+    required fixed32 Len = 1;
+    required fixed32 Ver = 2;
+    required int32 Cmd = 3;
+    required ErrorCode = 4;
+    required string MD5 = 5;
+    required string ConfigFile = 6;
+}

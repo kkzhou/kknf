@@ -27,10 +27,14 @@ public:
         Server *server_;
     };
     // 传递给线程函数的参数
-    class WorkerThreadProcArg {
+    class ThreadProcArg {
     public:
         Server *server_;
         int id_;
+    };
+    class ConfigUpdateThreadProcArg : public ThreadProcArg {
+    public:
+        int check_interval_;
     };
     class ListenSocketInfo {
     public:
@@ -44,6 +48,9 @@ public:
 public:
     Server();
     ~Server();
+    // 线程函数，用来获取最新的配置文件
+    static void GetConfigThreadProc(ThreadProcArg *arg);
+    int SyncGetConfigFile();
     // 加载/重新加载配置文件，因为不是所有配置项都是可重新加载的，因此要区分。
     // 返回值：
     // 0: 成功
@@ -52,7 +59,6 @@ public:
     int LoadConfig(bool first_time, std::string &config_file);
     // 通过发送信号来触发配置文件的重新加载
     static void LoadConfigSignalHandler(int signo, short events, void *arg);
-
     // 检查配置文件是否发生变化，只是检查本地配置文件，
     // 至于如何从远程拉取配置文件，是另外的进程的任务。
     bool IsConfigFileChanged();
@@ -95,7 +101,7 @@ public:
     // <0: 失败
     int ProcessPacket(Packet &input_pkt) = 0;
     // 线程函数，通过调用Server::ProcessPacket函数实现业务逻辑
-    static void WorkerThreadProc(WorkerThreadProcArg *arg);
+    static void WorkerThreadProc(ThreadProcArg *arg);
 
 public:
     // 辅助接口
@@ -119,6 +125,8 @@ private:
     std::string log_server_ip_;
     uint16_t log_server_port_;
     bool config_server_ready_;
+    BinSyncSR *config_sr_;
+    bool config_file_changed_;
 
     // 上报服务器
     std::string report_server_ip_;

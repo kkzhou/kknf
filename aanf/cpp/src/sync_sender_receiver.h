@@ -28,6 +28,7 @@ class MemBlock;
 class SyncSR {
 public:
     SyncSR();
+    virtual ~SyncSR();
     int CloseSR();
     int SetOpterationTimeout(int usec);
     // 初始化并连接，对于TCP来说，完成连接过程，对于udp来说则设定对端地址

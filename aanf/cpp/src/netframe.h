@@ -53,9 +53,19 @@ public:
         T_SIGNAL,
         T_TIMER
     };
+
     enum SignalNo {
-        SN_SEND_QUEUE_NOTIFY = 101,
-        SN_RELOAD_CONFIG = 102
+        SN_SEND_QUEUE_NOTIFY = 100,
+        SN_USR_1 = 101,
+        SN_USR_2 = 102,
+        SN_USR_3 = 103,
+        SN_USR_4 = 104,
+        SN_USR_5 = 105,
+        SN_USR_6 = 106,
+        SN_USR_7 = 107,
+        SN_USR_8 = 108,
+        SN_USR_9 = 109,
+        SN_USR_10 = 110
     };
 
 public:
@@ -68,20 +78,26 @@ public:
         return socket_pool_;
     };
 
-    // 这个信号的handler是用于业务线程通知libevent，有数据要发送。
+    // 这是信号处理函数。
+    // 当worker线程要发送数据时，先把数据放到send_queue(s)里，然后发送信号，触发该函数。
     static void SendQueuesHandler(int signo, short events, void *arg);
 
     // 向系统中添加事件和处理函数
-    int AddSocketToMonitor(Socket *sk);// 添加一个套接口给epoll监听
-    int AddTimerToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int timeout_usec, int timer_id);// 添加一个定时器
-    int AddSignalToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int signo);// 添加一个信号
-
+    // 添加一个套接口给libevent侦听
+    int AddSocketToMonitor(Socket *sk);
+    // 添加一个定时器给libevent
+    int AddTimerToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int timeout_usec, int timer_id);
+    // 添加一个信号给libevent
+    int AddSignalToMonitor(CallbackForLibEvent cb, CallBackArg *cb_arg, int signo);
+    // 进入消息循环
     int Run();// Loop
 
-    // Packet proccessing interface
+    // 主线程调用该函数把数据包放到接收队列，worker线程从中去取
     int PushPacketToRecvQueue(Packet *in_pack);
+    // worker线程调用该函数把数据包从接收线程里取出来
     int GetPacketFromRecvQueue(int which_queue, Packet *&pack);
-
+    // worker线程在处理数据包时，如果需要异步发送数据包，则调用该函数；
+    // 该函数只是把数据包放到发送队列
     int AsyncSend(std::string &to_ipstr, uint16_t to_port,
                   std::string &my_ipstr, uint16_t my_port,
                   MemBlock *data, Socket::SocketType type,

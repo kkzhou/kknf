@@ -50,14 +50,7 @@ public:
         S_CONNECTING,       // TCP处于连接状态，即connect的INPROCESS状态
         S_LISTEN            // 侦听套接口开始侦听
     };
-    // 套接口的事件，只是epoll状态的子集，需要进行转换
-    // 可以按位或
-    enum Event {
-        EV_READ = 1,
-        EV_WRITE = 2,
-        EV_ERROR = 4
-        EV_PERSIST = 8
-    };
+
     // 数据基本格式，即如何确定数据包的边界
     enum DataFormat {// Determines how to packetize data
         DF_BIN = 1,
@@ -114,10 +107,6 @@ public:
     int PushDataToSend(MemBlock *mb);
 
     int GetSocketError(int &error);
-    uint16_t event_concern();
-    void set_event_concern(uint16_t events);
-    uint16_t add_event_to_concern(Event ev);
-    uint16_t del_event_to_concern(Event ev);
 
 public:
     int fd_;
@@ -130,7 +119,8 @@ public:
     std::string peer_ipstr_;
     uint16_t peer_port_;
 
-    uint16_t event_concern_;
+    bool want_to_write_;
+    bool want_to_read_;
 
     struct timeval last_use_;
     int retry_times_;

@@ -21,7 +21,18 @@
 
 namespace AANF {
 
-SyncSR::SyncSR() : fd_(-1) {
+SyncSR::SyncSR(bool is_tcp) {
+
+    // prepare socket
+    is_tcp_ = is_tcp;
+    if (fd_ = socket(PF_INET, is_tcp_ ? SOCK_STREAM : SOCK_DGRAM, 0) < 0) {
+        perror("socket() error: ");
+        return -3;
+    }
+}
+
+SyncSR::~SyncSR() {
+    CloseSR()();
 }
 
 int SyncSR::CloseSR() {
@@ -59,7 +70,7 @@ int SetOpterationTimeout(int usec) {
     return 0;
 }
 
-int SyncSR::ConnectToServer(std::string server_ip, uint16_t server_port, bool is_tcp) {
+int SyncSR::ConnectToServer(std::string server_ip, uint16_t server_port) {
        // Check parameters
     if (server_ip.empty()) {
         return -1;
@@ -70,12 +81,6 @@ int SyncSR::ConnectToServer(std::string server_ip, uint16_t server_port, bool is
     }
     server_ipstr_ = server_ip;
     server_port_ = server_port;
-    is_tcp_ = is_tcp;
-    // prepare socket
-    if (fd_ = socket(PF_INET, is_tcp_ ? SOCK_STREAM : SOCK_DGRAM, 0) < 0) {
-        perror("socket() error: ");
-        return -3;
-    }
 
     struct sockaddr_in server_addr;
     //server_addr.sin_family = AF_INET;

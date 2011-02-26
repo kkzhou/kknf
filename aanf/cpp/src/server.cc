@@ -50,19 +50,18 @@ int Server::LoadConfig(bool first_time, std::string &config_file) {
         report_server_ip_ = st["report_server_ip"];
         report_server_port_ = st["report_server_port"];
         report_interval_ = st["report_interval"];
-        report_server_type_ = tmpmap1[st["report_server_type"]]; // 要先检查一下是否存在
-        report_server_data_format_ = tmpmap2[st["report_server_data_format"]];
+        report_server_data_format_ = Socket::DF_BIN;
+        report_server_type_ = Socket::T_TCP_CLIENT;
         // config
         config_server_ip_ = st["config_server_ip"];
         config_server_port_ = st["config_server_port"];
         config_check_interval_ = st["config_check_interval"];
-        config_server_type_ = tmpmap1[st["config_server_type"]]; // 要先检查一下是否存在
-        config_server_data_format_ = tmpmap2[st["config_server_data_format"]];
+
         // logger
         log_server_ip_ = st["log_server_ip"];
         log_server_port_ = st["log_server_port"];
-        log_server_type_ = tmpmap1[st["log_server_type"]]; // 要先检查一下是否存在
-        log_server_data_format_ = tmpmap2[st["log_server_data_format"]];
+        log_server_data_format_ = Socket::DF_BIN;
+        log_server_type_ = Socket::T_TCP_CLIENT;
 
         worker_num_ = st["worker_num_"];
         send_queue_num_ = st["send_queue_num"];
@@ -72,6 +71,7 @@ int Server::LoadConfig(bool first_time, std::string &config_file) {
 
 
         for (int i = 0; i < tmp1; i++) {
+
             string name = st[i]("name");
 
             ListenSocketInfo tmpinfo;
@@ -124,9 +124,96 @@ void Server::LoadConfigSignalHandler(int signo, short events, CallBackArg *arg) 
 
 int Server::InitRemoteLogger() {
 
+    Socket *sk = netframe_->socket_pool()->CreateClientSocket(log_server_ip_,
+                                                              log_server_port_,
+                                                              log_server_type_,
+                                                              log_server_data_format_);
+    if (sk == 0) {
+        return -2;
+    }
+    netframe_->AddSocketToMonitor(sk);
+    log_server_ready_ = true;
+    return 0;
 }
 
 int Server::InitReporter() {
+
+    Socket *sk = netframe_->socket_pool()->CreateClientSocket(report_server_ip_,
+                                                              report_server_port_,
+                                                              report_server_type_,
+                                                              report_server_data_format_);
+    if (sk == 0) {
+        return -2;
+    }
+    netframe_->AddSocketToMonitor(sk);
+    log_server_ready_ = true;
+    return 0;
+}
+
+bool Server::IsConfigFileChanged() {
+    return config_file_changed_;
+}
+
+int Server::SyncGetConfigFile() {
+
+    MemBlock *send_buf;
+    MemPool::GetMemPool()->GetMemBlock(1024, send_buf);
+
+    ConfigUpdateRequest req;
+    ConfigUpdateResponse rsp;
+
+    // 构造请求
+    req.Ver = 1001;
+    // ...
+
+    // 发送请求并接收应答
+    MemBlock *recv_buf;
+    ret = config_sr_->SyncSendRecv(send_buf, recv_buf);
+    if (ret < 0) {
+        MemPool::GetMemPool()->ReturnMemBlock(send_buf);
+        //MemPool::GetMemPool()->ReturnMemBlock(recv_buf);
+        return -2;
+    }
+    istream is;
+    is.rdbuf()->pubsetbuf(recv_buf->start_, recv_buf->used_);
+    rsp.ParseFromString(is);
+
+    fstream fs;
+    fs.open(server->config_file_, ios_base::in | ios_base::out | ios_base::binary);
+    fs.write(rsp.ConfigFile.c_str(), rsp.ConfigFile.length());
+    config_file_changed_ = true;
+    return 0;
+}
+
+void Server::GetConfigThreadProc(ConfigUpdateThreadProcArg *arg) {
+
+    Server *server = arg->server_;
+
+    while (!server->cancel_) {
+        int ret = SyncGetConfigFile();
+        if (ret < 0) {
+            return;
+        }
+
+        // sleep
+        sleep(server->config_check_interval_);
+    } // while
+}
+
+int Server::InitConfigUpdater() {
+
+    int ret = SyncGetConfigFile();
+    if (ret < 0) {
+        return -2;
+    }
+    pthread_t id;
+    ConfigUpdateThreadProcArg *arg = new ConfigUpdateThreadProcArg;
+    arg->id_ = 0;
+    arg->check_interval_ = config_check_interval_;
+    arg->server_ = this;
+    pthread_create(&id, NULL, GetConfigThreadProc, arg);
+    config_server_ready_ = true;
+    return 0;
 }
 
 int Server::InitListenSocket() {
@@ -138,7 +225,9 @@ int Server::InitListenSocket() {
     int ret = 0;
     for (; it != endit; it++) {
         ret = netframe_->socket_pool()->CreateListenSocket(it->second.ip_,
-                                                           it->second.port_, it->second.type_, it->second.data_format_);
+                                                           it->second.port_,
+                                                           it->second.type_,
+                                                           it->second.data_format_);
         if (ret < 0) {
             return -1;
         }
@@ -146,7 +235,7 @@ int Server::InitListenSocket() {
     return 0;
 }
 
-void Server::WorkderThreadProc(WorkerThreadProcArg *arg) {
+void Server::WorkderThreadProc(ThreadProcArg *arg) {
 
     if (!arg) {
         return;
@@ -200,7 +289,7 @@ int Server::Run() {
                                                      log_server_type_, log_server_data_format_);
     }
     // 初始化Reporter，如果有的话
-        if (!(report_server_ip_.empty() || report_server_port_ == 0)) {
+    if (!(report_server_ip_.empty() || report_server_port_ == 0)) {
 
         netframe_->socket_pool()->CreateClientSocket(report_server_ip_, report_server_port_,
                                                      report_server_type_, report_server_data_format_);
@@ -209,7 +298,7 @@ int Server::Run() {
     // 初始化Worker线程
     pthread_t tid[worker_num_];
     for (int i = 0; i < worker_num_; i++) {
-        WorkerThreadProcArg *arg = new WorkerThreadProcArg
+        ThreadProcArg *arg = new ThreadProcArg
         arg->server_ = this;
         arg->id_ = i;
         pthread_create(&tid[i], NULL, Server::WorkerThreadProc, arg);

@@ -32,7 +32,6 @@ int TcpSocket::PrepareListenSocket(std::string &listen_ip, uint16_t listen_port,
     my_port_ = listen_port;
     type_ = type;
     data_format_ = data_format;
-    event_concern_ = Socket::EV_READ | Socket::EV_ERROR;
 
     // prepare socket
     if (fd_ = socket(PF_INET, SOCK_STREAM, 0) < 0) {
@@ -98,7 +97,6 @@ int TcpSocket::PrepareClientSocket(std::string &server_ip, uint16_t server_port,
     peer_port_ = server_port;
     type_ = type;
     data_format_ = data_format;
-    event_concern_ = Socket::EV_READ | Socket::EV_ERROR;
 
     // prepare socket
     if (fd_ = socket(PF_INET, SOCK_STREAM, 0) < 0) {
@@ -147,14 +145,13 @@ int TcpSocket::PrepareClientSocket(std::string &server_ip, uint16_t server_port,
     }
     return 0;
 }
+
 int TcpSocket::PrepareServerSocket(int fd, Socket::SocketType type,
                            Socket::DataFormat data_format) {
 
     fd_ = fd;
     type_ = type;
     data_format_ = data_format;
-    event_concern_ = Socket::EV_READ | Socket::EV_ERROR;
-
     // Set nonblocking
     int val = fcntl(fd_, F_GETFL, 0);
     if (val == -1) {
@@ -243,7 +240,8 @@ int TcpSocket::WriteHandler() {
             break;
         }
     }
-    if (send_mb_list_.size() ==0 ) {
+    if (send_mb_list_.size() == 0 ) {
+        // 应该从可写的监控中去掉
         return 1;
     }
     return 0;

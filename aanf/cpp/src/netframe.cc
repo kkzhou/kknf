@@ -22,7 +22,7 @@ namespace AANF {
 
 NetFrame::NetFrame(int send_queue_num, int recv_queue_num) {
 
-    if (recv_queue_num <= 0 || send_queue_num) {
+    if (recv_queue_num <= 0 || send_queue_num <= 0) {
         return -1;
     }
 
@@ -66,10 +66,10 @@ int NetFrame::AddSocketToMonitor(Socket *sk) {
     // Actually we should check the invalidation of 'sk'
     struct event ev;
     short events = EV_PERSIST;
-    if (sk->events_concern_ & Socket::EV_READ) {
+    if (sk->want_to_read_) {
         events |= EV_READ;
     }
-    if (sk->events_concern_ & Socket::EV_WRITE) {
+    if (sk->want_to_write_) {
         events |= EV_WRITE;
     }
 
@@ -164,11 +164,11 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
     // Handle the socket
 
     short events_concern = 0;
-    if (sk->event_concern_ | Socket::EV_READ) {
-        events_concern |= EV_READ;
+    if (sk->want_to_read_) {
+        events |= EV_READ;
     }
-    if (sk->event_concern_ | Socket::EV_WRITE) {
-        events_concern |= EV_WRITE;
+    if (sk->want_to_write_) {
+        events |= EV_WRITE;
     }
 
     // read
@@ -343,7 +343,7 @@ void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
             Packet *pkt = send_queues_[i].front();
             send_queues_[i].pop_front();
 
-            Socket *sk = SocketPool::GetSocketPool()->FindSocket(pkt->my_ipstr_, pkt->my_port_, pkt->sk_type_);
+            Socket *sk = SocketPool::GetSocketPool()->FindSocket(pkt->peer_ipstr_, pkt->peer_port_, pkt->sk_type_);
             if (sk) {
                 // The socket alreay exists, just send to it
                 sk->PushDataToSend(pkt->data_);
@@ -351,12 +351,8 @@ void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
             }
             // 如果不存在这个套接口，则要先创建，并且添加到libevent的侦听事件中。
             // Create a new one which should act as CLINET
-            SocketOperator *new_op = op_factory_->CreateSocketOperator(pkt->sk_type_, pkt->data_format_);
-            sk = SocketPool::GetSocketPool()->CreateSocket(new_op);
-            sk->my_ipstr_ = pkt->my_ipstr_;
-            sk->my_port_ = pkt->my_port_;
-            sk->type_ = pkt->sk_type_;
-            sk->event_concern_ = Socket::EV_READ | Socket::EV_WRITE | Socket::EV_ERROR;
+            sk = SocketPool::GetSocketPool()->CreateClientSocket(pkt->peer_ipstr_,
+                                                                 pkt->peer_port_, pkt->sk_type_, pkt->data_format_);
             // 把数据放到该socket的发送缓存里，所有权就交给这个socket了，
             // 销毁也由它负责。
             sk->PushDataToSend(pkt->data_);

@@ -18,18 +18,25 @@
 #ifndef _SOCKET_POOL_H_
 #define _SOCKET_POOL_H_
 
-#include <netinet/in.h>
 #include <map>
 #include <string>
+#include <socket.h>
 
 namespace AANF {
 // 套接口池类，用于管理套接口，包括查找、创建、删除和清除空闲套接口等操作。
 class SocketPool {
 public:
+    class SocketKey {
+    public:
+        std::string ip_;
+        uint16_t port_;
+        Socket::SocketType type_;
+    };
+
     SocketPool();
     ~SocketPool();
 
-    Socket* FindSocket(std::string &peer_ip, uint16_t peer_port, Socket::SocketType type);
+    Socket* FindSocket(SocketKey &key);
     int DestroySocket(Socket *sk);
     Socket* CreateListenSocket(std::string &listen_ip, uint16_t listen_port,
                                Socket::SocketType type,
@@ -48,8 +55,14 @@ public:
 private:
     int AddSocket(Socket *sk);
 
+    // 用于记录所有套接口。
+    // 如果是listen套接口，则用myip、myport作为key，
+    // 如果是server套接口，则用peerip、peerport做key
+    // 如果是client套接口，则用peerip、peerport做key；但是这种情况
+    // 可能会有多个套接口连接的是同一个peerip、peerport，因此用一个列表
+    std::map<SocketKey, std::list<Socket*>> socket_map_;
+
     // 会出现竞争状态，因此要加锁
-    std::map<std::string, Socket*> socket_map_;// Use string(IP:PORT:TYPE) as key
     pthread_mutex_t socket_map_lock_;
 };
 

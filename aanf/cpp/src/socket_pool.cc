@@ -20,9 +20,9 @@
 #include "bin_tcp_socket.h"
 #include "line_tcp_socket.h"
 #include "http_tcp_socket.h"
-//#include "bin_tcp_socket.h"
-//#include "line_tcp_socket.h"
-//#include "http_tcp_socket.h"
+//#include "bin_udp_socket.h"
+//#include "line_udp_socket.h"
+//#include "http_udp_socket.h"
 
 namespace AANF {
 
@@ -31,48 +31,59 @@ SocketPool::SocketPool() {
 }
 
 SocketPool::~SocketPool() {
+
+    // 先销毁所有的套接口
     SweepIdleSocket(-1);    // A trick
     pthread_mutex_destroy(&socket_map_lock_);
 }
 
-Socket* SocketPool::FindSocket(std::string &peer_ip, uint16_t peer_port, SocketType type) {
+Socket* SocketPool::FindSocket(SocketKey &key) {
 
     Locker locker(socket_map_lock_);
-    stringstream tmp_key;
-    if (type_ == T_TCP_LISTEN || type_ == T_TCP_CLIENT || type_ == T_UDP_CLIENT) {
-        // We use myip:myport as the key in map for these types of socket
-        return NULL;
-    } else {
-        tmp_key << peer_ip << ":" << peer_port << ":" << type;
-    }
-    map<string, Socket*>::iterator it = socket_map_.find(tmp_key.str());
+    Socket *sk;
+
+    map<SocketKey, list<Socket*>>::iterator it = socket_map_.find(key);
+
     if (it == socket_map_.end()) {
-        return NULL;
+        sk = NULL;
+    } else {
+        sk = it->second.pop();
     }
-    return it->second;
+    return sk;
 }
 
 int SocketPool::SweepIdleSocket( int max_idle_sec) {
 
     Locker locker(socket_map_lock_);
-    map<string, Socket*>::iterator it = socket_map_.begin();
-    map<string, Socket*>::iterator endit = socket_map_.end();
+    map<Socket, list<Socket*>>::iterator map_it = socket_map_.begin();
+    map<Socket, list<Socket*>>::iterator map_endit = socket_map_.end();
 
     struct timeval nowtime;
     gettimeofday(&nowtime);
 
     int delted_num = 0;
-    while (it != endit) {
-        int64_t delta = nowtime.tv_sec - (*it)->second->last_use_.tv_sec;
-        if (delta > max_idle_sec) {
-            Socket *tmpsk = *it->second;
-            delete tmpsk;
-            socket_map_.erase(it++);
-            deleted_num++;
+    while (map_it != map_endit) {
+
+        list<Socket*>::iterator list_it = map_it->second.begin();
+        list<Socket*>::iterator list_endit = map_it->second.end();
+        while (list_it != list_endit) {
+            int64_t delta = nowtime.tv_sec - (*list_it)->last_use_.tv_sec;
+            if (delta > max_idle_sec) {
+                Socket *tmpsk = *list_it;
+                delete tmpsk;
+                map_it->erase(it++);
+                deleted_num++;
+            } else {
+                list_it++;
+            }
+        }// while(list_it)
+        if (map_it->second.size() == 0) {
+            // 这个list已经是空的了，删除
+            socket_map_.erase(++map_it);
         } else {
-            it++;
+            map_it++;
         }
-    }
+    }// while (map_it)
 
     return deleted_num;
 }
@@ -80,34 +91,34 @@ int SocketPool::SweepIdleSocket( int max_idle_sec) {
 
 int SocketPool::AddSocket(Socket *sk) {
 
-    stringstream tmp_key;
-    // check sk
-    if (sk->type_ == Socket::T_TCP_SERVER) {
-        // check peer_ip/peer_port
-        if (sk->peer_ipstr_.empty() || sk->peer_port_ == 0) {
-            return -1;
-        }
-        tmp_key << sk->peer_ipstr_ << ":" << sk->peer_port_ << ":" << sk->type_;
-    } else if (sk->type_ == Socket::T_TCP_LISTEN || sk->type_ == Socket::T_TCP_CLIENT) {
-        // check my_ip/my_port
-        if (sk->my_ipstr_.empty() || sk->my_port_ == 0) {
-            return -1;
-        }
-        tmp_key << sk->my_ipstr_ << ":" << sk->my_port_ << ":" << sk->type_;
-    } else {
-        return -1;
+    SocketKey key;
+
+    if (sk->type_ == Socket::T_TCP_CLIENT || sk->type_ == Socket::T_TCP_SERVER) {
+        key.ip_ = sk->peer_ipstr_;
+        key.port_ = sk->peer_port_;
+        key.type_ = sk->type_;
+    } else if (sk->type_ == Socket::T_TCP_LISTEN) {
+        key.ip_ = sk->my_ipstr_;
+        key.port_ = sk->my_port_;
+        key.type_ = sk->type_;
     }
+
 
     {
         Locker locker(socket_map_lock_);
-        if (socket_map_.find(tmp_key.str()) != socket_map_.end()) {
-            // already exist
-            return -2;
+        map<SocketKey, list<Socket*>>::iterator it = socket_map_.find(key);
+        if (it != socket_map_.end()) {
+            // 已经存在
+            it->second.push_back(sk);
+            return 1;
+        } else {
+            list<Socket*> new_list;
+            new_list.push_back(sk);
+            pair<map<SocketKey, list<Socket*>>::iterator, bool>::iterator ret_it;
+            ret_it = socket_map_.insert(pair<SocketKey, list<Socket*>>(key, new_list));
         }
-
-        pair<map<string, Socket*>::iterator, bool>::iterator it;
-        it = socket_map_.insert(pair<string, Socket*>(tmp_key.str(), sk)));
     }
+
     return 0;
 }
 
@@ -116,14 +127,35 @@ int SocketPool::DestroySocket(Socket *sk) {
 
     Locker locker(socket_map_lock_);
     // First, delete myself from the socket map
-    stringstream tmp_key;
-    if (sk->type_ == T_TCP_LISTEN || sk->type_ == T_TCP_CLIENT || sk->type_ == T_UDP_CLIENT) {
-        // We use myip:myport as the key in map for these types of socket
-        tmp_key << sk->my_ipstr_ << ":" << sk->my_port_ << ":" << sk->type_;
-    } else {
-        tmp_key << sk->peer_ipstr_ << ":" << sk->peer_port_ << ":" << sk->type_;
+    SocketKey key;
+    if (sk->type_ == Socket::T_TCP_CLIENT || sk->type_ == Socket::T_TCP_SERVER) {
+        key.ip_ = sk->peer_ipstr_;
+        key.port_ = sk->peer_port_;
+        key.type_ = sk->type_;
+    } else if (sk->type_ == Socket::T_TCP_LISTEN) {
+        key.ip_ = sk->my_ipstr_;
+        key.port_ = sk->my_port_;
+        key.type_ = sk->type_;
     }
-    socket_map_.erase(tmp_key.str());
+
+    map<SocketKey, list<Socket*>>::iterator map_it = socket_map_.find(key);
+    if (map_it == socket_map_.end()) {
+        return -2;
+    }
+
+    list<Socket*>::iterator list_it = map_it->second.begin();
+    list<Socket*>::iterator list_endit = map_it->second.end();
+
+    while (list_it != list_endit) {
+
+        if (sk == *list_it) {
+            map_it->erase(++list_it);
+
+        } else {
+            list_it++;
+        }
+    }
+
     delete sk;
     return 0;
 }
