@@ -24,9 +24,7 @@ using namespace AANF;
 
 class TestBF : public Server {
 public:
-    virtual int ProcessPacket(Packet &input_pkt) {
-
-    };
+    virtual int ProcessPacket(Packet &input_pkt);
 };
 
 int main(int argc, char **argv) {
@@ -64,5 +62,13 @@ int main(int argc, char **argv) {
 
     server->Run();
     return 0;
+
+}
+
+
+int TestBF::ProcessPacket(Packet &input_pkt) {
+
+    ClientRequest req;
+    req.ParseFromArray(input_pkt.data_->start_, input_pkt.data_->used_);
 
 }

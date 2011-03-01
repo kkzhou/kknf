@@ -43,6 +43,12 @@ public:
         Socket::SocketType type_;
         Socket::DataFormat data_format_;
     };
+    enum LogType {
+        T_ROLL_BY_SIZE = 1,
+        T_ROLL_BY_DAY,
+        T_ROLL_BY_DAY_AND_SIZE
+    };
+
     typedef (int)(*AdminCmdFunc)(std::string&);
 
 public:
@@ -105,8 +111,8 @@ public:
 
 public:
     // 辅助接口
-    int Log(bool remote, uint32_t level, const char *format, ...);
-    int Report(std::string &property, int value);
+    int Log(bool remote, uint32_t logid, uint32_t level, const char *format, ...);
+    int Report(uint32_t report_id, std::string &property, int value);
 private:
     // 我用于侦听的ip和端口们
     std::map<std::string, ListenSocketInfo> listen_socket_map_;
@@ -138,6 +144,7 @@ private:
     uint32_t report_id_;
 
     // 远程日志服务器
+    std::string log_file_;
     std::string config_server_ip_;
     uint16_t config_server_port_;
     Socket::SocketType log_server_type_;
@@ -145,6 +152,7 @@ private:
     int config_check_interval_;
     bool log_server_ready_;
     uint32_t log_id_;
+    LogType log_type_;
 
     // 线程控制参数
     bool cancel_;

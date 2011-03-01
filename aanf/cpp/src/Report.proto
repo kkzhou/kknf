@@ -1,0 +1,23 @@
+message ReportRequest {
+    required fixed32 Len = 1;
+    required fixed32 Ver = 2;
+    required int32 Cmd = 3;
+    required int64 Max = 4;
+    required int64 Min = 5;
+    required int64 Avg = 6;
+    required int64 Dev = 7;
+    required int64 Count = 8;
+}
+
+message ReportResponse {
+    enum ErrorCode {
+        OK = 0;
+        NO_SUCH_REPORT_ID = 1;
+    }
+    required fixed32 Len = 1;
+    required fixed32 Ver = 2;
+    required int32 Cmd = 3;
+    required ErrorCode = 4;
+}
+
+

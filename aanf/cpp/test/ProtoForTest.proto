@@ -1,0 +1,56 @@
+message UserProfile {
+    required int64 UserID = 1;
+    required string UserName = 2;
+    required string UserDesc = 3;
+    required int32 Gender = 4;
+}
+// 客户端发给BF的报文
+message ClientRequest {
+    required fixed32 Len = 1;
+    required string UserNameKeyWord = 4;
+}
+
+message ClientResponse {
+    enum ErrorCode {
+        OK = 0;
+        NO_SUCH_USER = 1;
+        ERROR = 2;
+    }
+    required fixed32 Len = 1;
+    required ErrorCode = 4;
+    repeated UserProfile Users = 5;
+}
+
+// BF发给BB_1的报文，用于根据用户名的关键字得到用户ID列表
+message SearchUsersRequest {
+    required fixed32 Len = 1;
+    required string UserNameKeyWord = 4;
+}
+
+message SearchUsersResponse {
+    enum ErrorCode {
+        OK = 0;
+        NO_SUCH_USER = 1;
+        ERROR = 2;
+    }
+    required fixed32 Len = 1;
+    required ErrorCode = 4;
+    repeated int64 UserIDList = 5;
+}
+
+// BF发给BB_2的报文，用于根据用户ID列表，得到用户的详细信息(这里是UserDesc)
+message GetUsersRequest {
+    required fixed32 Len = 1;
+    repeated int64 UserIDList = 4;
+}
+
+message GetUsersResponse {
+    enum ErrorCode {
+        OK = 0;
+        NO_SUCH_USER = 1;
+        ERROR = 2;
+    }
+    required fixed32 Len = 1;
+    required ErrorCode = 4;
+    repeated UserProfile Users = 5;
+}

@@ -41,6 +41,10 @@ int Server::LoadConfig(bool first_time, std::string &config_file) {
         tmpmap2["bin"] = Socket::DF_BIN;
         tmpmap2["line"] = Socket::DF_LINE;
         tmpmap2["http"] = Socket::DF_HTTP;
+        map<string, LogType> tmpmap3;
+        tmpmap3["roll_by_day"] = T_ROLL_BY_DAY;
+        tmpmap3["roll_by_size"] = T_ROLL_BY_SIZE;
+        tmpmap3["roll_by_day_and_size"] = T_ROLL_BY_DAY_AND_SIZE;
 
         Setting st = cfg.lookup("server");
 
@@ -62,6 +66,7 @@ int Server::LoadConfig(bool first_time, std::string &config_file) {
         log_server_port_ = st["log_server_port"];
         log_server_data_format_ = Socket::DF_BIN;
         log_server_type_ = Socket::T_TCP_CLIENT;
+        log_type_ = tmpmaap3[st["log_type"]];
 
         worker_num_ = st["worker_num_"];
         send_queue_num_ = st["send_queue_num"];
