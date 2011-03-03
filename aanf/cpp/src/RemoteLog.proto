@@ -1,8 +1,9 @@
+import "PacketFormat.proto";
+
+package AANF_Protocol;
+
 message RemoteLogRequest {
-    required fixed32 Len = 1;
-    required fixed32 Ver = 2;
-    required int32 Cmd = 3;
-    required string LogData = 4;
+    required string log_data = 4;
 }
 
 message RemoteLogResponse {
@@ -10,9 +11,11 @@ message RemoteLogResponse {
         OK = 0;
         NO_SUCH_LOG_ID = 1;
     }
-    required fixed32 Len = 1;
-    required fixed32 Ver = 2;
-    required int32 Cmd = 3;
-    required ErrorCode = 4;
+    required ErrorCode error = 4;
 }
 
+// 在RemoteLog协议中的PacketFormat具体内容
+extend Protocol.PacketFormat {
+    optional RemoteLogRequest remote_log_req = 101;
+    optional RemoteLogResponse remote_log_rsp = 102;
+}

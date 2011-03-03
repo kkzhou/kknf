@@ -1,12 +1,14 @@
+import "PacketFormat.proto";
+
+package AANF_Protocol;
+
 message ReportRequest {
-    required fixed32 Len = 1;
-    required fixed32 Ver = 2;
-    required int32 Cmd = 3;
-    required int64 Max = 4;
-    required int64 Min = 5;
-    required int64 Avg = 6;
-    required int64 Dev = 7;
-    required int64 Count = 8;
+    required int32 report_id = 3;
+    required int64 max = 4;
+    required int64 min = 5;
+    required int64 avg = 6;
+    required int64 dev = 7;
+    required int64 cnt = 8;
 }
 
 message ReportResponse {
@@ -14,10 +16,12 @@ message ReportResponse {
         OK = 0;
         NO_SUCH_REPORT_ID = 1;
     }
-    required fixed32 Len = 1;
-    required fixed32 Ver = 2;
-    required int32 Cmd = 3;
-    required ErrorCode = 4;
+    required int32 report_id = 3;
+    required ErrorCode error = 4;
 }
 
-
+// 在Report协议中的PacketFormat具体内容
+extend Protocol.PacketFormat {
+    optional ReportRequest report_req = 101;
+    optional ReportResponse report_rsp = 102;
+}

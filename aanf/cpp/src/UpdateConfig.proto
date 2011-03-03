@@ -1,8 +1,9 @@
+import "PacketFormat.proto";
+
+package AANF_Protocol;
+
 message UpdateConfigRequest {
-    required fixed32 Len = 1;
-    required fixed32 Ver = 2;
-    required int32 Cmd = 3;
-    required string MD5 = 4;
+    required string md5 = 4;
 }
 
 message UpdateConfigResponse {
@@ -10,10 +11,13 @@ message UpdateConfigResponse {
         NO_UPDATE = 0;
         UPDATED = 1;
     }
-    required fixed32 Len = 1;
-    required fixed32 Ver = 2;
-    required int32 Cmd = 3;
-    required ErrorCode = 4;
-    required string MD5 = 5;
-    required string ConfigFile = 6;
+    required ErrorCode error = 4;
+    required string md5 = 5;
+    required string config_content = 6;
+}
+
+// 在RemoteLog协议中的PacketFormat具体内容
+extend Protocol.PacketFormat {
+    optional UpdateConfigRequest update_config_req = 101;
+    optional UpdateConfigResponse update_config_rsp = 102;
 }
