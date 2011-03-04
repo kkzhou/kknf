@@ -42,8 +42,8 @@
 		<Unit filename="..\..\src\netframe.h" />
 		<Unit filename="..\..\src\packet.cc" />
 		<Unit filename="..\..\src\packet.h" />
-		<Unit filename="..\..\src\server.cc" />
-		<Unit filename="..\..\src\server.h" />
+		<Unit filename="..\..\src\skeleton.cc" />
+		<Unit filename="..\..\src\skeleton.h" />
 		<Unit filename="..\..\src\socket.cc" />
 		<Unit filename="..\..\src\socket.h" />
 		<Unit filename="..\..\src\socket_pool.cc" />

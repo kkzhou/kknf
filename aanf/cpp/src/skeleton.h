@@ -20,16 +20,16 @@
 
 namespace AANF {
 
-class Server {
+class Skeleton {
 public:
     class SignalCallBackArg : public CallBackArg {
     public:
-        Server *server_;
+        Skeleton *skeletion_;
     };
     // 传递给线程函数的参数
     class ThreadProcArg {
     public:
-        Server *server_;
+        Skeleton *skeletion_;
         int id_;
     };
     class ConfigUpdateThreadProcArg : public ThreadProcArg {
@@ -52,8 +52,8 @@ public:
     typedef (int)(*AdminCmdFunc)(std::string&);
 
 public:
-    Server();
-    ~Server();
+    Skeleton();
+    ~Skeleton();
     // 线程函数，用来获取最新的配置文件
     static void GetConfigThreadProc(ThreadProcArg *arg);
     int SyncGetConfigFile();
@@ -91,7 +91,7 @@ public:
     // 初始化所有侦听套接口
     int InitListenSocket();
 
-    // 启动Server
+    // 启动
     int Run();
 
     // 处理命令通道数据包的接口
@@ -106,7 +106,7 @@ public:
     // 0: 成功
     // <0: 失败
     int ProcessPacket(Packet &input_pkt) = 0;
-    // 线程函数，通过调用Server::ProcessPacket函数实现业务逻辑
+    // 线程函数，通过调用Skeleton::ProcessPacket函数实现业务逻辑
     static void WorkerThreadProc(ThreadProcArg *arg);
 
 public:

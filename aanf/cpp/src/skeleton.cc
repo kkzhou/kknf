@@ -23,7 +23,7 @@ namespace AANF {
 
 using namespace libconfig;
 
-int Server::LoadConfig(bool first_time, std::string &config_file) {
+int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
 
     if (first_time) {
         // 系统启动时读取配置文件
@@ -119,15 +119,15 @@ int Server::LoadConfig(bool first_time, std::string &config_file) {
 
 }
 
-void Server::LoadConfigSignalHandler(int signo, short events, CallBackArg *arg) {
+void Skeleton::LoadConfigSignalHandler(int signo, short events, CallBackArg *arg) {
 
         SignalCallBackArg *cb_arg = reinterpret_cast<SignalCallBackArg*>(arg);
-        Server *srv = cb_arg->server_;
-        int ret = srv->LoadConfig(false, srv->config_file_);
+        Skeleton *skeleton = cb_arg->skeleton_;
+        int ret = skeleton->LoadConfig(false, srv->config_file_);
 
 }
 
-int Server::InitRemoteLogger() {
+int Skeleton::InitRemoteLogger() {
 
     Socket *sk = netframe_->socket_pool()->CreateClientSocket(log_server_ip_,
                                                               log_server_port_,
@@ -141,7 +141,7 @@ int Server::InitRemoteLogger() {
     return 0;
 }
 
-int Server::InitReporter() {
+int Skeleton::InitReporter() {
 
     Socket *sk = netframe_->socket_pool()->CreateClientSocket(report_server_ip_,
                                                               report_server_port_,
@@ -155,11 +155,11 @@ int Server::InitReporter() {
     return 0;
 }
 
-bool Server::IsConfigFileChanged() {
+bool Skeleton::IsConfigFileChanged() {
     return config_file_changed_;
 }
 
-int Server::SyncGetConfigFile() {
+int Skeleton::SyncGetConfigFile() {
 
     MemBlock *send_buf;
     MemPool::GetMemPool()->GetMemBlock(1024, send_buf);
@@ -190,18 +190,18 @@ int Server::SyncGetConfigFile() {
     return 0;
 }
 
-void Server::GetConfigThreadProc(ConfigUpdateThreadProcArg *arg) {
+void Skeleton::GetConfigThreadProc(ConfigUpdateThreadProcArg *arg) {
 
-    Server *server = arg->server_;
+    Skeleton *skeleton = arg->skeleton_;
 
-    while (!server->cancel_) {
+    while (!skeleton->cancel_) {
         int ret = SyncGetConfigFile();
         if (ret < 0) {
             return;
         }
 
         // sleep
-        sleep(server->config_check_interval_);
+        sleep(skeleton->config_check_interval_);
     } // while
 }
 
@@ -215,7 +215,7 @@ int Server::InitConfigUpdater() {
     ConfigUpdateThreadProcArg *arg = new ConfigUpdateThreadProcArg;
     arg->id_ = 0;
     arg->check_interval_ = config_check_interval_;
-    arg->server_ = this;
+    arg->skeleton_ = this;
     pthread_create(&id, NULL, GetConfigThreadProc, arg);
     config_server_ready_ = true;
     return 0;
@@ -240,30 +240,30 @@ int Server::InitListenSocket() {
     return 0;
 }
 
-void Server::WorkderThreadProc(ThreadProcArg *arg) {
+void Skeleton::WorkderThreadProc(ThreadProcArg *arg) {
 
     if (!arg) {
         return;
     }
-    Server *server = arg->server_;
+    Skeleton *skeleton = arg->skeleton_;
 
-    while (!server->cancel_) {
+    while (!skeleton->cancel_) {
         Packet *pkt = 0;
-        int ret - server->netframe_->GetPacketFromRecvQueue(arg->id_, ptk);
+        int ret - skeleton->netframe_->GetPacketFromRecvQueue(arg->id_, ptk);
         if (ret < 0) {
             break;
         }
         // 先处理命令通道
 
-        if (server->my_admin_ip_ == pkt->my_ipstr_ && server->my_admin_port_ == pkt->my_port_) {
+        if (skeleton->my_admin_ip_ == pkt->my_ipstr_ && skeleton->my_admin_port_ == pkt->my_port_) {
             // 这是一个命令通道的数据
-            ret = server->ProcessAdminPacket(pkt);
+            ret = skeleton->ProcessAdminPacket(pkt);
             if (ret < 0) {
                 //
             }
         } else {
             // 这是普通数据包
-            ret = server->ProcessPacket(pkt);
+            ret = skeleton->ProcessPacket(pkt);
             if (ret < 0) {
                 //
             }
@@ -304,7 +304,7 @@ int Server::Run() {
     pthread_t tid[worker_num_];
     for (int i = 0; i < worker_num_; i++) {
         ThreadProcArg *arg = new ThreadProcArg
-        arg->server_ = this;
+        arg->skeleton_ = this;
         arg->id_ = i;
         pthread_create(&tid[i], NULL, Server::WorkerThreadProc, arg);
     }
@@ -315,7 +315,7 @@ int Server::Run() {
     return 0;
 }
 
-int Server::RegisterAdminCommand(std::string &cmd, AdminCmdFunc func) {
+int Skeleton::RegisterAdminCommand(std::string &cmd, AdminCmdFunc func) {
 
     if (!func) {
         return -1;
@@ -329,7 +329,7 @@ int Server::RegisterAdminCommand(std::string &cmd, AdminCmdFunc func) {
     return 0;
 }
 
-int Server::ProcessAdminCmdPacket(Packet &input_pkt) {
+int Skeleton::ProcessAdminCmdPacket(Packet &input_pkt) {
 
     if (input_pkt->data_format_ != Socket::DF_LINE) {
         return -1;

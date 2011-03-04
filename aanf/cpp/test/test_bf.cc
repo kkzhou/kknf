@@ -22,7 +22,7 @@
 using std;
 using namespace AANF;
 
-class TestBF : public Server {
+class TestBF : public Skeleton {
 public:
     virtual int ProcessPacket(Packet &input_pkt);
 private:

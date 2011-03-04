@@ -17,12 +17,12 @@
 
 #include <string>
 #include <iostream>
-#include "server.h"
+#include "skeleton.h"
 
 using std;
 using namespace AANF;
 
-class TestBB1 : public Server {
+class TestBB1 : public Skeleton {
 public:
     virtual int ProcessPacket(Packet &input_pkt) {
 
