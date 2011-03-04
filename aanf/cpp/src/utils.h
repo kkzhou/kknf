@@ -32,6 +32,7 @@ enum SLogLevel {
     L_LOGICERR = 4,
     L_INFO = 8,
     L_DEBUG = 16,
+    L_FUNC = 32
 };
 
 #if !defined(SLOG)
@@ -55,12 +56,16 @@ enum SLogLevel {
                     } \
                     std::string timestr; \
                     CurrentTimeString(timestr); \
-                    fprintf(stderr, "%s %s %s %s %d "#format, level_str.c_str(), \
+                    fprintf(stderr, "%s %s %s %s %d ", level_str.c_str(), \
                             timestr.c_str(), __PRETTY_FUNCTION__, \
-                            __FILE__, __LINE__, ##arg); \
+                            __FILE__, __LINE__); \
+                    fprintf(stderr, format, ##arg); \
                 } \
             } while (0)
 #endif
+
+#define ENTERING SLOG(SLogLevel::L_FUNC, "Enter\n");
+#define LEAVING SLOG(SLogLevel::L_FUNC, "Leave\n");
 
 // 全局的日志级别，通过控制它的值，可以控制哪些日志打印，哪些不打印。
 extern uint32_t g_slog_level;

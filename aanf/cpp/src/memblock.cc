@@ -15,7 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#include "zxb_memblock.h"
+#include "utils.h"
+#include "memblock.h"
 
 using namespace std;
 
@@ -27,15 +28,20 @@ MemBlock::MemBlock ()
     :start_(0), curpos_(0),
      len_(0)
 {
+    ENTERING;
+    LEAVING;
 }
 
 MemPool::MemPool() {
+
+    ENTERING;
     pthread_mutex_t(&pool_lock_, NULL);
     unorganized_byte_num_ = 0;
     free_item_pos_ = ;
     free_start_pos_ = 0;
     max_block_size_ = 0;
     block_size_step_ = 0;
+    LEAVING;
 }
 
 int MemPool::CreateMemPool (int init_pool_size, int max_block_size, int block_size_step, MemPool *&mp)
