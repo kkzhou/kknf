@@ -26,20 +26,20 @@ namespace AANF {
 
 // 一个简单的日志(SLOG)，用宏来控制log级别，并预定义了格式，即
 // "级别” “时间” “函数” “文件” “代码行” “自定义内容”
-enum SLogLevel {
+enum LogLevel {
     L_FATAL = 1,
     L_SYSERR = 2,
     L_LOGICERR = 4,
     L_INFO = 8,
     L_DEBUG = 16,
-    L_FUNC = 32
+    L_FUNC = 32 // 打印每个函数的调用序列
 };
 
 #if !defined(SLOG)
 #define SLOG(level,format,arg...) \
             do { \
                 if ((level) & g_slog_level) { \
-                    enum SLogLevel tmp_level = level; \
+                    enum LogLevel tmp_level = level; \
                     std::string level_str; \
                     if (tmp_level == L_FATAL) { \
                         level_str = "FATAL"; \
@@ -64,12 +64,12 @@ enum SLogLevel {
             } while (0)
 #endif
 
-#define ENTERING SLOG(SLogLevel::L_FUNC, "Enter\n");
-#define LEAVING SLOG(SLogLevel::L_FUNC, "Leave\n");
+#define ENTERING SLOG(LogLevel::L_FUNC, "Enter\n");
+#define LEAVING SLOG(LogLevel::L_FUNC, "Leave\n");
 
 // 全局的日志级别，通过控制它的值，可以控制哪些日志打印，哪些不打印。
 extern uint32_t g_slog_level;
-uint32_t SetSLogLevel(uint32_t new_loevel);
+uint32_t SetLogLevel(uint32_t new_loevel);
 
 // 封装了pthread_mutex_t的加锁和解锁过程，通过构造函数和析构函数来控制，进而通过作用域控制。
 class Locker {
@@ -108,13 +108,15 @@ private:
 // 这是一个静态类
 class TimeUtil {
 public:
+    // 把time_t结构的时间，转换成字符串，如2010-03-01 23:32:09
     static int TimeToString(time_t time_sec, std::string &time_str);
-
+    // 获取字符串形式的当前时间
     static std::string CurrentTimeString(std::string &time_str);
-
+    // 把字符串形式的时间转换成time_t
     static time_t StringToTime(std::string &time_str);
 
 private:
+    // 禁止使用，因为这是一个静态类。
     TimeUtil();
     TimeUtil(TimeUtil&);
 };// class TimeUtil

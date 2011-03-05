@@ -19,12 +19,13 @@
 #define _PACKET_H_
 
 #include "socket.h"
-#include "memblock.h"
 
 namespace AANF {
 
 class MemBlock;
 
+// Packet类只是用来存储一些信息，没有操作函数。
+//
 class Packet {
 public:
     Packet(struct timeval &create_time,

@@ -23,6 +23,7 @@ namespace AANF {
 
 // 构造函数
 Socket::Socket() {
+    ENTERING;
     fd_ = -1;
     type_ = T_TCP_CLIENT;
     status_ = S_NOTREADY;
@@ -38,11 +39,13 @@ Socket::Socket() {
     retry_times_ = 0;
     pthread_mutex_init(&send_mb_list_lock_, NULL);
     font_mb_cur_pos_ = 0;
+    LEAVING;
 }
 // 析构函数
 // 需要释放资源，包括接受缓存、发送缓存列表
 Socket::~Socket() {
 
+    ENTERING;
     close(fd_);
 
     // Return the recv buf MemBlock
@@ -54,22 +57,29 @@ Socket::~Socket() {
     for (; it != endit; it++) {
         *it->Return();
     }
+    LEAVING;
 }
 
 int Socket::PushDataToSend(MemBlock *mb)
 {
+    ENTERING;
     send_mb_list_.push_back(mb);
     gettimeofday(&last_use_);
+    LEAVING;
     return 0;
 }
 
 int Socket::GetSocketError(int &error)
 {
+    ENTERING;
     error = 0;
     socklen_t optlen = sizeof(error);
-    if (getsockopt(fd_, SOL_SOCKET, SO_ERROR, &error, &optlen) < 0)
+    if (getsockopt(fd_, SOL_SOCKET, SO_ERROR, &error, &optlen) < 0) {
+        SLOG(LogLevel::L_SYSERR, "getsocketopt error\n");
+        LEAVING;
         return -2;
-
+    }
+    LEAVING;
     return 0;
 }
 

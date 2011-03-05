@@ -32,10 +32,11 @@ namespace AANF {
 // 当客户释放MemBlock时，MemPool把它放到列表中（相同大小的放到一个列表）。
 // 当再有客户请求相近大小的内存时，从列表中取，如果列表中没有，则从整块内存中创建新的MemBlock。
 class MemBlock {
+friend class MemPool;
 public:
     void *start_;   // 该内存块的起始地址
     int used_;      // 该内存块已使用字节数
-    int len_;       // 该内存块的可用大小
+    int len_;       // 该内存块的总大小
 
 private:
     MemBlock ();
@@ -46,19 +47,43 @@ private:
 };
 
 class MemPool {
-// For maintaining
 public:
-    int GetMemBlock(int size, MemBlock *&mb);   // 获取一个MemBlock
-    int ReturnMemBlock(MemBlock *mb);   // 归还一个MemBlock
-    int PrintStatus();  //　打印当前MemPool的状态
-    int EnlargeMemPool(int size_to_add);    // 扩张整个内存池大小
+    // 获取一个MemBlock
+    // 返回值：
+    // 0: 成功
+    // -1: 参数错误
+    // -2: 内存不够，请先EnlargeMemPool
+    int GetMemBlock(int size, MemBlock *&mb);
+    // 归还一个MemBlock，不是被释放，而是被回收
+    // 返回值：
+    // 0: 成功
+    // -1: 参数错误
+    int ReturnMemBlock(MemBlock *mb);
+    //　打印当前MemPool的状态，例如共有多少个MemBlock，用于调试。
+    // 返回值：
+    // 0: 成功
+    // -1: 参数错误
+    int PrintStatus();
+    // 扩张整个内存池大小
+    // 返回值：
+    // 0: 成功
+    // -1: 参数错误
+    int EnlargeMemPool(int size_to_add);
     // 创建一个内存池，包装构造函数
+    // 返回值：
+    // 0: 成功
+    // -1: 已经存在了，不能再次创建
     static int CreateMemPool(int init_pool_size, int max_block_size, int block_size_step, MemPool *&mp);
+    // 获取当前的内存池的实例，没有把CreateMemPool函数的功能集合到这个函数，因为创建需要很多参数。
+    // 返回值：
+    // 内存池实例指针
     static MemPool* GetMemPool();
 
 private:
+    // 禁止外界直接构造内存池
     MemPool();
     ~MemPool();
+
     pthread_mutex_t pool_lock_; // 能锁住整个内存池所有操作的锁
 
     std::vector<std::list<MemBlock*> > recycled_block_lists_;// 回收回来的MemBlock，按大小用list维护

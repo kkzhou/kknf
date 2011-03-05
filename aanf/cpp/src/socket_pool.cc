@@ -23,22 +23,28 @@
 //#include "bin_udp_socket.h"
 //#include "line_udp_socket.h"
 //#include "http_udp_socket.h"
+#include "utils.h"
 
 namespace AANF {
 
 SocketPool::SocketPool() {
+    ENTERING;
     pthread_mutex_init(&socket_map_lock_, NULL);
+    LEAVING;
 }
 
 SocketPool::~SocketPool() {
 
     // 先销毁所有的套接口
+    ENTERING;
     SweepIdleSocket(-1);    // A trick
     pthread_mutex_destroy(&socket_map_lock_);
+    LEAVING;
 }
 
 Socket* SocketPool::FindSocket(SocketKey &key) {
 
+    ENTERING;
     Locker locker(socket_map_lock_);
     Socket *sk;
 
@@ -49,11 +55,14 @@ Socket* SocketPool::FindSocket(SocketKey &key) {
     } else {
         sk = it->second.pop();
     }
+
+    LEAVING;
     return sk;
 }
 
 int SocketPool::SweepIdleSocket( int max_idle_sec) {
 
+    ENTERING;
     Locker locker(socket_map_lock_);
     map<Socket, list<Socket*>>::iterator map_it = socket_map_.begin();
     map<Socket, list<Socket*>>::iterator map_endit = socket_map_.end();
@@ -85,12 +94,14 @@ int SocketPool::SweepIdleSocket( int max_idle_sec) {
         }
     }// while (map_it)
 
+    LEAVING;
     return deleted_num;
 }
 
 
 int SocketPool::AddSocket(Socket *sk) {
 
+    ENTERING;
     SocketKey key;
 
     if (sk->type_ == Socket::T_TCP_CLIENT || sk->type_ == Socket::T_TCP_SERVER) {
@@ -119,12 +130,14 @@ int SocketPool::AddSocket(Socket *sk) {
         }
     }
 
+    LEAVING;
     return 0;
 }
 
 
 int SocketPool::DestroySocket(Socket *sk) {
 
+    ENTERING;
     Locker locker(socket_map_lock_);
     // First, delete myself from the socket map
     SocketKey key;
@@ -140,6 +153,8 @@ int SocketPool::DestroySocket(Socket *sk) {
 
     map<SocketKey, list<Socket*>>::iterator map_it = socket_map_.find(key);
     if (map_it == socket_map_.end()) {
+        SLOG(LogLevel::L_LOGICERR, "the Socket to destroy not exists\n");
+        LEAVING;
         return -2;
     }
 
@@ -157,6 +172,7 @@ int SocketPool::DestroySocket(Socket *sk) {
     }
 
     delete sk;
+    LEAVING;
     return 0;
 }
 
@@ -164,8 +180,11 @@ Socket* SocketPool::CreateListenSocket(std::string &listen_ip, uint16_t listen_p
                                        Socket::SocketType type,
                                        Socket::DataFormat data_format) {
 
+    ENTERING;
     Socket *sk = socket_pool_->FindSocket(listen_ip, listen_port, type);
     if (sk) {
+        SLOG(LogLevel::L_LOGICERR, "already exists\n");
+        LEAVING;
         return -2;
     }
 
@@ -202,7 +221,7 @@ Socket* SocketPool::CreateListenSocket(std::string &listen_ip, uint16_t listen_p
     default:
         break;
     }
-
+    LEAVING;
     return sk;
 }
 
@@ -210,6 +229,7 @@ Socket* SocketPool::CreateClientSocket(std::string &server_ip, uint16_t server_p
                                        Socket::SocketType type,
                                        Socket::DataFormat data_format) {
 
+    ENTERING;
     Socket *sk = 0;
 
     switch (type) {
@@ -246,12 +266,14 @@ Socket* SocketPool::CreateClientSocket(std::string &server_ip, uint16_t server_p
         break;
     }
 
+    LEAVING;
     return sk;
 }
 
 Socket* SocketPool::CreateServerSocket(int fd, Socket::SocketType type,
                                        Socket::DataFormat data_format) {
 
+    ENTERING;
     Socket *sk = 0;
 
     switch (type) {
@@ -288,6 +310,7 @@ Socket* SocketPool::CreateServerSocket(int fd, Socket::SocketType type,
         break;
     }
 
+    LEAVING;
     return sk;
 }
 

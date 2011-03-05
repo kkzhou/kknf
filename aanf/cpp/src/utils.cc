@@ -75,7 +75,8 @@ int ConditionVariable::Signal() {
 
 
 uint32_t g_slog_level = 0;
-uint32_t SetSLogLevel(uint32_t new_level) {
+uint32_t SetLogLevel(uint32_t new_level) {
+
     ENTERING;
     uint32_t old_level = g_slog_level;
     g_slog_level = new_level;
@@ -89,7 +90,7 @@ int TimeUtil::TimeToString(time_t time_sec, std::string &time_str) {
 
     ENTERING;
     if (time_sec < 0) {
-        SLOG(SLogLevel::L_LOGICERR, "time_sec < 0\n")
+        SLOG(LogLevel::L_LOGICERR, "time_sec < 0\n")
         LEAVING;
         return -1;
     }
@@ -99,7 +100,7 @@ int TimeUtil::TimeToString(time_t time_sec, std::string &time_str) {
     buf.reserve(100);
     size_t ret = strftime(&buf[0], buf.size(), "%Y-%m-%d %H:%M:%S", plocaltime);
     if (ret == 0) {
-        SLOG(SLogLevel::L_SYSERR, "strftime error\n");
+        SLOG(LogLevel::L_SYSERR, "strftime error\n");
         LEAVING;
         return -2;
     }
@@ -113,7 +114,7 @@ std::string TimeUtil::CurrentTimeString(std::string &time_str) {
     ENTERING;
     time_t curtime = time(NULL);
     if (curtime == -1) {
-        SLOG(SLogLevel::L_SYSERR, "time() error\n");
+        SLOG(LogLevel::L_SYSERR, "time() error\n");
         LEAVING;
         return -1;
     }
@@ -132,7 +133,7 @@ time_t TimeUtil::StringToTime(std::string &time_str) {
                         &local_time.tm_hour, &local_time.tm_min, &local_time.tm_sec);
 
     if (ret == EOF || ret != 6) {
-        SLOG(SLogLevel::L_LOGICERR, "time_str invalid\n");
+        SLOG(LogLevel::L_LOGICERR, "time_str invalid\n");
         return -1;
     }
 

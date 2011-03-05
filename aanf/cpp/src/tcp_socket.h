@@ -17,8 +17,12 @@
 #ifndef _TCP_SOCKET_H_
 #define _TCP_SOCKET_H_
 
+#include <string>
+
 #include "socket.h"
+
 namespace AANF {
+
 class TcpSocket : public Socket {
 public:
     virtual int PrepareListenSocket(std::string &listen_ip, uint16_t listen_port,

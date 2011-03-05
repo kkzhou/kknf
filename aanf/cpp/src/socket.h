@@ -52,7 +52,8 @@ public:
     };
 
     // 数据基本格式，即如何确定数据包的边界
-    enum DataFormat {// Determines how to packetize data
+    // 默认的BIN格式是LV格式，即先是uint32_t的长度，然后跟着包体
+    enum DataFormat {
         DF_BIN = 1,
         DF_HTTP = 2,
         DF_LINE = 3,
@@ -65,7 +66,7 @@ public:
     Socket();
     virtual ~Socket();
     // 准备好侦听套接口，这是服务器端的操作。
-    // 该函数创建socket描述符，并完成非阻塞的bind/listen/accept操作，但不加入到epoll。
+    // 该函数创建socket描述符，并完成非阻塞的bind/listen操作，但不加入到epoll。
     // 返回值：
     // 0: 成功
     // <0: 失败
@@ -90,7 +91,7 @@ public:
 
     // 读数据
     // 返回值：
-    // 0: 还未读完一个数据包（我们用LV结构定义数据包，L是uint32_t类型）
+    // 0: 还未读完一个数据包
     // 1: 已经读完一个数据包
     // <0: 出现错误
     virtual int ReadHandler() = 0;
@@ -101,15 +102,26 @@ public:
     // <0: 出现错误
     virtual int WriteHandler() = 0;
 
+    // 重连，用于TCP_CLIENT的类型
+    // 返回值：
+    // 0: 成功
+    // <0: 失败
     virtual int Reconnect() = 0;
 
     // 该函数把一个MemBlock的数据放到该Socket对象的发送队列。
+    // 返回值：
+    // 0: 成功
+    // <0: 失败
     int PushDataToSend(MemBlock *mb);
 
+    // 获取当前socket的错误
+    // 返回值：
+    // 0: 成功
+    // <0: 失败
     int GetSocketError(int &error);
 
 public:
-    int fd_;
+    int fd_;    // 文件描述符，即系统资源socket
     SocketType type_;
     SocketStatus status_;
     DataFormat data_format_;
@@ -119,11 +131,11 @@ public:
     std::string peer_ipstr_;
     uint16_t peer_port_;
 
-    bool want_to_write_;
+    bool want_to_write_; // 这两个变量被用于epoll
     bool want_to_read_;
 
     struct timeval last_use_;
-    int retry_times_;
+    int retry_times_;   // 重连次数，是连续重连次数
 
 private:
     MemBlock *recv_mb_; // Buffer to receive data before packetized

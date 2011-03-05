@@ -26,6 +26,7 @@ Packet::Packet(struct timeval create_time,
                Socket::SocketType type, Socket::DataFormat df,
                MemBlock *data) {
 
+    ENTERING;
     create_time_ = create_time;
     peer_ipstr_ = peer_ipstr;
     peer_port_ = peer_port;
@@ -34,9 +35,18 @@ Packet::Packet(struct timeval create_time,
     data_format_ = fd;
     type_ = type;
     data_ = data;
+    LEAVING;
 }
 
 ~Packet() {
+
+    ENTERING;
+    if (data_) {
+        SLOG(LogLevel::L_DEBUG, "this packet contains data");
+        MemPool::GetMemPool()->ReturnMemBlock(data_);
+    }
+
+    LEAVING;
 }
 
 };// namespace ZXB
