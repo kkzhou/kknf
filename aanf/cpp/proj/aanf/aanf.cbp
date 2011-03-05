@@ -34,6 +34,8 @@
 		<Unit filename="..\..\src\UpdateConfig.proto" />
 		<Unit filename="..\..\src\bin_tcp_socket.cc" />
 		<Unit filename="..\..\src\bin_tcp_socket.h" />
+		<Unit filename="..\..\src\http_tcp_socket.cc" />
+		<Unit filename="..\..\src\http_tcp_socket.h" />
 		<Unit filename="..\..\src\line_tcp_socket.cc" />
 		<Unit filename="..\..\src\line_tcp_socket.h" />
 		<Unit filename="..\..\src\memblock.cc" />

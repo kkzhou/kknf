@@ -15,9 +15,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-
-#include "server.h"
 #include <libconfig.hh>
+#include "server.h"
+#include "utils.h"
 
 namespace AANF {
 
@@ -25,28 +25,42 @@ using namespace libconfig;
 
 int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
 
+    ENTERING;
     if (first_time) {
         // 系统启动时读取配置文件
         Config cfg;
         try {
             cfg.readFile(config_file.c_str());
         } catch (FileIOException &e) {
+            SLOG(LogLevel::L_LOGICERR, "cant read config file %s\n", config_file);
+            LEAVING;
             return -1;
         }
 
+        // 建立一些map，用来把配置文件中的字符串映射成程序中需要的类型
+        map<string, Socket::SocketType> tmpmap1;
+        tmpmap1["tcp"] = Socket::SocketType.T_TCP_LISTEN;
+        tmpmap1["udp"] = Socket::SocketType.T_UDP_SERVER;
 
-        map<string, Socket::SocketType> tmpmap1, tmpmap2;
-        tmpmap1["tcp"] = Socket::T_TCP_LISTEN;
-        tmpmap1["udp"] = Socket::T_UDP_SERVER;
-        tmpmap2["bin"] = Socket::DF_BIN;
-        tmpmap2["line"] = Socket::DF_LINE;
-        tmpmap2["http"] = Socket::DF_HTTP;
+        map<string, Socket::DataFormat> tmpmap2;
+        tmpmap2["bin"] = Socket::DataFormat.DF_BIN;
+        tmpmap2["line"] = Socket::DataFormat.DF_LINE;
+        tmpmap2["http"] = Socket::DataFormat.DF_HTTP;
+
         map<string, LogType> tmpmap3;
-        tmpmap3["roll_by_day"] = T_ROLL_BY_DAY;
-        tmpmap3["roll_by_size"] = T_ROLL_BY_SIZE;
-        tmpmap3["roll_by_day_and_size"] = T_ROLL_BY_DAY_AND_SIZE;
+        tmpmap3["roll_by_day"] = LogType.T_ROLL_BY_DAY;
+        tmpmap3["roll_by_size"] = LogType.T_ROLL_BY_SIZE;
+        tmpmap3["roll_by_day_and_size"] = LogType.T_ROLL_BY_DAY_AND_SIZE;
 
-        Setting st = cfg.lookup("server");
+        map<string, uint32_t> tmpmap4;
+        tmpmap4["fatal"] = LogLevel.L_FATAL;
+        tmpmap4["debug"] = LogLevel.L_DEBUG;
+        tmpmap4["syserr"] = LogLevel.L_SYSERR;
+        tmpmap4["logicerr"] = LogLevel.L_LOGICERR;
+        tmpmap4["info"] = LogLevel.L_INFO;
+        tmpmap4["func"] = LogLevel.L_FUNC;
+
+        Setting st = cfg.lookup("skeleton");
 
         my_connect_ipstr_ = st["my_connect_ip"];
         my_connect_port_ = st["my_connect_port"];
@@ -68,10 +82,25 @@ int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
         log_server_type_ = Socket::T_TCP_CLIENT;
         log_type_ = tmpmaap3[st["log_type"]];
 
+        log_file_ = st["log_file"];
+        SLog::SetSLogFileDescriptor(log_file_);
+
+        string tmp_log_level_str = st["log_level"];
+        uint32_t tmp_log_level = 0;
+        map<string, LogLevel>::iterator it, endit;
+        it = tmpmap4.begin();
+        endit = tmpmap4.end();
+        for (; it != endit; it++) {
+            if (tmp_log_level_str.find(it->first) != string::npos) {
+                tmp_log_level |= it->second;
+            }
+        }
+        SLog::SetLogLevel(tmp_log_level);
+
         worker_num_ = st["worker_num_"];
         send_queue_num_ = st["send_queue_num"];
 
-        Setting st2 = cfg.lookup("server.listen_socket");
+        Setting st2 = cfg.lookup("skeleton.listen_socket");
         int tmp1 = st.getLength();
 
 
@@ -91,9 +120,11 @@ int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
         // 初始化NetFrame
         int ret = 0;
         netframe_ = new NetFrame(send_queue_num_, worker_num_);
-        // 初始化远程日志服务
+        // 初始化日志服务
+        SLog::InitSLog()
         ret = InitRemoteLogger();
         if (ret < 0) {
+
             return -2
         }
         // 初始化远程数据上报服务

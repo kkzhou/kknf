@@ -19,7 +19,10 @@
 
 #include "tcp_socket.h"
 
+class MemBlock;
+
 namespace AANF {
+
 class LineTcpSocket : public TcpSocket {
 public:
     virtual int ReadHandler();

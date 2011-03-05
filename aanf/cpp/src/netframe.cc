@@ -16,13 +16,45 @@
 */
 
 #include "netframe.h"
+#include "utils.h"
 
 namespace AANF {
 
+SocketPool* NetFrame::socket_pool() {
+    ENTERING;
+    LEAVING;
+    return socket_pool_;
+};
+
+int NetFrame::set_max_recv_queue_size(int max_size) {
+
+    ENTERING;
+    if (max_size <= 0) {
+        SLOG(LogLevel::L_LOGICERR, "parameter invalid\n");
+        LEAVING;
+        return -1;
+    }
+    max_recv_queue_size_ = max_size;
+    LEAVING;
+}
+int NetFrame::set_max_send_queue_size(int max_size) {
+
+    ENTERING;
+    if (max_size <= 0) {
+        SLOG(LogLevel::L_LOGICERR, "parameter invalid\n");
+        LEAVING;
+        return -1;
+    }
+    max_send_queue_size_ = max_size;
+    LEAVING;
+}
 
 NetFrame::NetFrame(int send_queue_num, int recv_queue_num) {
 
+    ENTERING;
     if (recv_queue_num <= 0 || send_queue_num <= 0) {
+        SLOG(LogLevel::L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     }
 
@@ -49,16 +81,24 @@ NetFrame::NetFrame(int send_queue_num, int recv_queue_num) {
     }
 
     socket_pool_ = new SocketPool;
+    LEAVING;
+    return;
 }
 
 NetFrame::~NetFrame(){
     // 系统终止，需要释放所有资源
+    ENTERING;
+    LEAVING;
+    return;
 }
 
 
 int NetFrame::AddSocketToMonitor(Socket *sk) {
 
+    ENTERING;
     if (!sk) {
+        SLOG(LogLevel::L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     }
     // The Socket is ready for monitor, that is, we can put it
@@ -80,13 +120,19 @@ int NetFrame::AddSocketToMonitor(Socket *sk) {
     event_set(&ev, sk->fd_, events, NetFrame::SocketCallback, arg);
 
     if (-1 == event_base_set(ev_base_, &ev)) {
+
+        SLOG(LogLevel::L_SYSERR, "event_base_set() error\n");
+        LEAVING;
         return -2;
     }
 
     if (-1 == event_add(&ev, NULL)) {
+
+        SLOG(LogLevel::L_SYSERR, "event_add() error\n");
+        LEAVING;
         return -2;
     }
-
+    LEAVING;
     return 0;
 }
 
@@ -94,9 +140,14 @@ int NetFrame::AddSocketToMonitor(Socket *sk) {
 int NetFrame::AddSignalToMonitor(CallBackForLibEvent cb,
                                  CallBackArg *cb_arg, int signo) {
 
+    ENTERING;
     if (signo < 0) {
+
+        SLOG(LogLevel::L_SYSERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     }
+
     struct event ev;
     short events = EV_PERSIST;
 
@@ -104,13 +155,20 @@ int NetFrame::AddSignalToMonitor(CallBackForLibEvent cb,
     event_set(&ev, signo, events, cb, cb_arg);
 
     if (-1 == event_base_set(ev_base_, &ev)) {
+
+        SLOG(LogLevel::L_SYSERR, "event_base_set() error\n");
+        LEAVING;
         return -2;
     }
 
     if (-1 == event_add(&ev, NULL)) {
+
+        SLOG(LogLevel::L_SYSERR, "event_add() error\n");
+        LEAVING;
         return -2;
     }
 
+    LEAVING;
     return 0;
 }
 
@@ -118,7 +176,10 @@ int NetFrame::AddTimerToMonitor(CallBackForLibEvent cb,
                                 CallBackArg *cb_arg,
                                 int timeout_usec, int timer_id) {
 
+    ENTERING;
     if (signo < 0) {
+        SLOG(LogLevel::L_SYSERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     }
     struct event ev;
@@ -133,30 +194,42 @@ int NetFrame::AddTimerToMonitor(CallBackForLibEvent cb,
     event_set(&ev, signo, events, cb, cb_arg);
 
     if (-1 == event_base_set(ev_base_, &ev)) {
+
+        SLOG(LogLevel::L_SYSERR, "event_base_set() error\n");
+        LEAVING;
         return -2;
     }
 
     if (-1 == event_add(&ev, NULL)) {
+
+        SLOG(LogLevel::L_SYSERR, "event_add() error\n");
+        LEAVING;
         return -2;
     }
-
+    LEAVING;
     return 0;
 }
 
 int NetFrame::Run() {
+
+    ENTERING;
     // 添加几个预置的handler，例如处理发送队列通知信号的handler
     CallBackArg *cb_arg = new CallBackArg;
     AddSignalToMonitor(SendQueuesHandler, cb_arg, SN_SEND_QUEUE_NOTIFY);
 
     event_base_dispatch(ev_base_);
+    LEAVING;
     return 0;
 }
 
 void NetFrame::SocketCallback(int fd, short events, void *arg) {
 
+    ENTERING;
     SocketCallBackArg cb_arg = reinterpret_cast<SocketCallBackArg*>(arg);
     if (cb_arg->type_ != NetFrame::T_SOCKET) {
         // It's not a socket event
+        SLOG(LogLevel::L_FATAL, "not a socket event\n")
+        LEAVING;
         return;
     }
 
@@ -176,29 +249,34 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
     int process_result = 0;
     if ((sk->status_ == Socket::S_ESTABLISHED) && (events_concern | EV_READ) && (events | EV_READ))) {
         read_result = sk->ReadHandler();
-    }
 
-    if (read_result < 0) {
-        // If error happens in reading the only thing we should do is closing it
-        socket_pool_->DestroySocket(sk);
-        return;
-    } else if (read_result == 1) {
-        // A complete packet has been read
-        // process it
-        struct timeval nowtime;
-        gettimeofday(&nowtime);
-
-        Packet *pkt_read = new Packet(nowtime, sk->peer_ipstr_, sk->peer_port_,
-                                     sk->my_ipstr_, sk->my_port_,
-                                     sk->type_, sk->data_format_, sk->recv_mb_);
-        sk->recv_mb_ = 0;
-        process_result = cb_arg->nf_->PushPacketToRecvQueue(pkt_read);
-        if (process_result == -1) {
-            // receive queue(s) is full
+        if (read_result < 0) {
+            // If error happens in reading the only thing we should do is closing it
+            socket_pool_->DestroySocket(sk);
+            SLOG(LogLevel::L_FATAL, "ReadHandler() error\n")
+            LEAVING;
             return;
-        }
 
-    } else {
+        } else if (read_result == 1) {
+            // A complete packet has been read
+            // process it
+            struct timeval nowtime;
+            gettimeofday(&nowtime);
+
+            Packet *pkt_read = new Packet(nowtime, sk->peer_ipstr_, sk->peer_port_,
+                                         sk->my_ipstr_, sk->my_port_,
+                                         sk->type_, sk->data_format_, sk->recv_mb_);
+            sk->recv_mb_ = 0;
+            process_result = cb_arg->nf_->PushPacketToRecvQueue(pkt_read);
+            if (process_result == -1) {
+                // receive queue(s) is full
+                SLOG(LogLevel::L_FATAL, "ReadHandler() error\n")
+                LEAVING;
+                return;
+            }
+
+        } else {
+        }
     }
 
     // write
@@ -206,29 +284,34 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
     if ((sk->status_ == Socket::S_ESTABLISHED) && (events_concern | EV_WRITE) && (events | EV_WRITE)) {
         // data transmiting
         write_result = sk->WriteHandler();
-    }
 
-    if (write_result < 0) {
-        if (sk->type_ == Socket::T_TCP_SERVER) {
-            // If error happens in writing and I am a server, just close it
-            socket_pool_->DestroySocket(sk);
-            return;
-        } else {
-            // I am client, so reconnect
-            if (sk->Reconnect() == 0) {
-                AddSocketToMonitor(sk);
-            } else {
+        if (write_result < 0) {
+            if (sk->type_ == Socket::T_TCP_SERVER) {
+                // If error happens in writing and I am a server, just close it
                 socket_pool_->DestroySocket(sk);
+                SLOG(LogLevel::L_SYSERR, "WriteHandler() error\n");
+                LEAVING;
+                return;
+            } else {
+                // I am client, so reconnect
+                if (sk->Reconnect() == 0) {
+                    SLOG(LogLevel::L_SYSERR, "Reconnect() succeed\n");
+                    AddSocketToMonitor(sk);
+                } else {
+                    SLOG(LogLevel::L_SYSERR, "Reconnect() fail\n");
+                    socket_pool_->DestroySocket(sk);
+                }
+
+                LEAVING;
+                return;
             }
-
-            return;
+        } else if (write_result == 1) {
+            // 缓存的数据已经写完，把套接口的写事件从epoll中删除
+            sk->event_concern ^= (~Socket::EV_WRITE);
+            AddSocketToMonitor(sk);
+        } else {
         }
-    } else if (write_result == 1) {
-        // 缓存的数据已经写完，把套接口的写事件从epoll中删除
-        sk->event_concern ^= (~Socket::EV_WRITE);
-        AddSocketToMonitor(sk);
     }
-
     // connect
     write_result = 0;
     if ((sk->status_ == Socket::S_CONNECTING) && (events_concern | EV_WRITE) && (events | EV_WRITE)) {
@@ -237,6 +320,8 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
         int error = 0;
         if (sk->GetSocketError(error) < 0 || error != 0) {
             socket_pool_->DestroySocket(sk);
+            SLOG(LogLevel::L_SYSERR, "connect() error: %s\n", error);
+            LEAVING;
             return;
         }
         // try to write
@@ -244,9 +329,13 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
         if (write_result < 0) {
             if (sk->Reconnect() == 0 ) {
                 AddSocketToMonitor(sk);
+                SLOG(LogLevel::L_SYSERR, "Reconnect() succeed\n");
             } else {
                 socket_pool_->DestroySocket(sk);
+                SLOG(LogLevel::L_SYSERR, "Reconnect() fail\n");
             }
+
+            LEAVING;
             return;
         }
     }
@@ -259,12 +348,16 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
         AddSocketToMonitor(newsk);
 
     }
+    LEAVING;
     return;
 }
 
 int NetFrame::PushPacketToRecvQueue(Packet *in_pack) {
 
+    ENTERING;
     if (!in_pack) {
+        SLOG(LogLevel::L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     }
 
@@ -279,18 +372,26 @@ int NetFrame::PushPacketToRecvQueue(Packet *in_pack) {
 
     {
         ConditionVariable cv(recv_queue_locks_[tmp_which], recv_queue_conds_[tmp_which]);
+        if (recv_queues_[tmp_which].size() == max_recv_queue_size_) {
+            SLOG(LogLevel::L_LOGICERR, "recv_queues_[%d] is full\n", tmp_which);
+            LEAVING;
+            return -2;
+        }
         recv_queues_[tmp_which].push_back(in_pack);
         if (recv_queues_[tmp_which].size() == 1) {
             cv.Signal();
         }
     }
-
+    LEAVING;
     return 0;
 }
 
 int NetFrame::GetPacketFromRecvQueue(int which_queue, Packet *&pack) {
 
+    ENTERING;
     if (which_queue < 0 || which_queue >= recv_queues_.size()) {
+        SLOG(LogLevel::L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     }
 
@@ -302,6 +403,7 @@ int NetFrame::GetPacketFromRecvQueue(int which_queue, Packet *&pack) {
         pack = recv_queues_[which_queue].front();
         recv_queues_[which_queue].pop_front();
     }
+    LEAVING;
     return 0;
 }
 
@@ -310,9 +412,12 @@ int NetFrame::AsyncSend(std::string &to_ipstr, uint16_t to_port,
                         MemBlock *data, Socket::SocketType type,
                         Socket::DataFormat data_format, int which_queue) {
 
+    ENTERING;
     if (to_ipstr.empty() || to_port == 0 ||
         (type != Socket::T_TCP_CLIENT && type != Socket::T_UDP_CLIENT)) {
 
+        SLOG(LogLevel::L_LOGICERR, "parameter invalid");
+        LEAVING;
         return -1;
     }
 
@@ -324,14 +429,19 @@ int NetFrame::AsyncSend(std::string &to_ipstr, uint16_t to_port,
                                  my_ipstr, my_port, type, data_format, data);
         send_queues_[which_queue].push_back(pkt);
     }
+    LEAVING;
     return 0;
 }
 
 void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
 
+    ENTERING;
     if (signo != SN_SEND_QUEUES_NOTIFY) {
+        SLOG(LogLevel::L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return;
     }
+
     CallBackArg *cb_arg = reinterpret_cast<CallBackArg*>(arg);
 
     // 把发送队列的所有MemBlock交给Socket对象
@@ -409,7 +519,8 @@ void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
             // 成功创建新的套接口，并把数据交给它了。
         }// while
     } // for
-
+    SLOG(LogLevel::L_DEBUG, "all packets in send_queue are put into the socket send buffer\n");
+    LEAVING;
 }
 
 }; // namespace AANF

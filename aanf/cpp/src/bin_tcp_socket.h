@@ -20,6 +20,7 @@
 #include "tcp_socket.h"
 
 namespace AANF {
+
 class BinTcpSocket : public TcpSocket {
 public:
     virtual int ReadHandler();

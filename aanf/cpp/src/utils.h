@@ -21,6 +21,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <string>
+#include <cstdio>
 
 namespace AANF {
 
@@ -38,7 +39,7 @@ enum LogLevel {
 #if !defined(SLOG)
 #define SLOG(level,format,arg...) \
             do { \
-                if ((level) & g_slog_level) { \
+                if ((level) & SLog::slog_level) { \
                     enum LogLevel tmp_level = level; \
                     std::string level_str; \
                     if (tmp_level == L_FATAL) { \
@@ -68,8 +69,15 @@ enum LogLevel {
 #define LEAVING SLOG(LogLevel::L_FUNC, "Leave\n");
 
 // 全局的日志级别，通过控制它的值，可以控制哪些日志打印，哪些不打印。
-extern uint32_t g_slog_level;
-uint32_t SetLogLevel(uint32_t new_loevel);
+class SLog {
+public:
+    static InitSLog(uint32_t log_level = 0xFFFFFFFF, std::string &logfile = "");
+    static uint32_t slog_level;
+    static FILE *slog_fd_;
+    static uint32_t SetLogLevel(uint32_t new_loevel);
+    static int SetSLogFileDescriptor(std::string &filename);
+};
+
 
 // 封装了pthread_mutex_t的加锁和解锁过程，通过构造函数和析构函数来控制，进而通过作用域控制。
 class Locker {

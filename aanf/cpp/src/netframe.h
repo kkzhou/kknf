@@ -74,9 +74,9 @@ public:
 public:
     NetFrame(int send_queue_num, int recv_queue_num);
     ~NetFrame();
-    SocketPool* socket_pool() {
-        return socket_pool_;
-    };
+    SocketPool* socket_pool();
+    int set_max_recv_queue_size(int max_size);
+    int set_max_send_queue_size(int max_size);
 
     // 这是信号处理函数。
     // 当worker线程要发送数据时，先把数据放到send_queue(s)里，然后发送信号，触发该函数。
@@ -114,10 +114,11 @@ private:
     std::vector<std::list<Packet*> > recv_queues_;
     std::vector<pthread_mutex_t*> recv_queue_locks_;// It's dangerous to copy a pthread_mutex_t so we use pointer
     std::vector<pthread_cond_t*> recv_queue_conds_;
+    int max_recv_queue_size_;
     // send queues
     std::vector<std::list<Packet*> > send_queues_;
     std::vector<pthread_mutex_t*> send_queue_locks_;// It's dangerous to copy a pthread_mutex_t so we use pointer
-
+    int max_send_queue_size_;
     // Prohibits
     NetFrame(NetFrame&);
     NetFrame& operator=(NetFrame&);

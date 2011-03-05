@@ -16,6 +16,7 @@
 */
 
 #include "bin_tcp_socket.h"
+#include "utils.h"
 
 
 #define MAX_IOVEC_NUM 1000
@@ -30,6 +31,7 @@ namespace AANF {
 // 1: 读完一个包
 int BinTcpSocket::ReadHandler() {
 
+    ENTERING;
     int read_num = 0；
     // 开始接收
     if (len_field_read_ < sizeof(uint32_t)) {
@@ -40,26 +42,34 @@ int BinTcpSocket::ReadHandler() {
             if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0) {
                 // 表明该套接口没有数据可读，应该来说不会达到这里，
                 // 因为ReadHandler函数是在该套接口可读时才调用的。
+                SLOG(LogLevel::L_SYSERR, "no data to read: %s\n", strerror(errno));
+                LEAVING;
                 return 0;
             }
             // 否则，说明套接口出现错误
+            SLOG(LogLevel::L_SYSERR, "read error: %s\n", strerror(errno));
+            LEAVING;
             return -2;
         }
+
         len_field_read_ += read_num;
         if (len_field_read_ < sizeof(uint32_t)) {
             // 表明还未把len域读出来，不必继续读了，等下一次可读时再继续
+            SLOG(LogLevel::L_DEBUG, "len_field not read completely\n");
+            LEAVING;
             return 0;
         } else {
+            // 长度域已经被读出来了，可以准备接收缓存了（因为只有知道长度了，才知道该分配多大缓存）
             assert(len_field_read_ == sizeof(uint32_t));
             assert(recv_mb_ == 0);  // 在长度域还未读完之前，这个指针是空的
-            int real_len = ntohl(len_field_);
+            int real_len = ntohl(len_field_);   // 长度的值需要转成主机字节序才行
             recv_mb_ = MemPool::GetMemPool()->GetMemBlock(real_len);
             memcpy(recv_mb_->start_, &len_field_, sizeof(uint32_t));
             recv_mb_->used_ += sizeof(uint32_t);
         }
     }
 
-    // 长度域已经读完，开始读数据
+    // 长度域已经读完，缓存已经准备好，开始读数据
     uint32_t len = htonl(*reinterpret_cast<uint32_t*>(recv_mb_->start_));
     assert(len <= recv_mb_->len_);
 
@@ -68,17 +78,25 @@ int BinTcpSocket::ReadHandler() {
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0) {
             // 表明该套接口没有数据可读，应该来说不会达到这里，
             // 因为ReadHandler函数是在该套接口可读时才调用的。
+            SLOG(LogLevel::L_SYSERR, "no data to read: %s\n", strerror(errno));
+            LEAVING;
             return 0;
         }
         // 否则，说明套接口出现错误
+        SLOG(LogLevel::L_SYSERR, "read error: %s\n", strerror(errno));
+        LEAVING;
         return -2;
     }
 
     recv_mb_->used_ += read_num;
     if (recv_mb_->used_ == len) {
         // 已经读完一个数据包了
+        SLOG(LogLevel::L_DEBUG, "completely read a packet\n");
+        LEAVING;
         return 1;
     }
+    SLOG(LogLevel::L_DEBUG, "not completely read, to continue\n");
+    LEAVING;
     return 0;
 }
 

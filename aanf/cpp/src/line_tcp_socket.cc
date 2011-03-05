@@ -17,58 +17,71 @@
 
 #include "line_tcp_socket.h"
 
-
-#define MAX_IOVEC_NUM 1000
-
 namespace AANF {
 
 #define NON_PACKETIZED_BUFFER_SIZE 1048576 // 1M
 
 LineTcpSocket::LineTcpSocket() {
 
-    MemPool::GetMemPool()->GetMemBlock(NON_PACKETIZED_BUFFER_SIZE, non_packetized_buf_);
+    ENTERING;
+    int ret = MemPool::GetMemPool()->GetMemBlock(NON_PACKETIZED_BUFFER_SIZE, non_packetized_buf_);
+    if (ret < 0) {
+        SLOG(LogLevel::L_FATAL, "can't allocate memory\n");
+    }
+    LEAVING;
 }
 
 LineTcpSocket::~LineTcpSocket() {
 
-    MemPool::GetMemPool()->ReturnMemBlock(non_packetized_buf_);
+    ENTERING;
+    int ret = MemPool::GetMemPool()->ReturnMemBlock(non_packetized_buf_);
+    if (ret < 0) {
+        SLOG(LogLevel::L_FATAL, "can't return the memblock\n");
+    }
+    LEAVING;
 }
 
-// 实际完成对套接口读操作的函数。
-// 返回值：
-// 0: 还未读完一个包
-// <0: 出现错误，应该关闭套接口或者重新连接
-// 1: 读完一个包
+
 int LineTcpSocket::ReadHandler() {
 
+    ENTERING;
     int read_num = 0；
 
-    read_num = read(fd_, non_packetized_buf_->start_ + non_packetized_buf_->used_,  len - non_packetized_buf_->used_);
+    read_num = read(fd_, non_packetized_buf_->start_ + non_packetized_buf_->used_,
+                    len - non_packetized_buf_->used_);
+
     if (read_num <= 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0) {
             // 表明该套接口没有数据可读，应该来说不会达到这里，
             // 因为ReadHandler函数是在该套接口可读时才调用的。
+            SLOG(LogLevel::L_SYSERR, "no data to read: %s\n", strerror(errno));
+            LEAVING;
             return 0;
         }
         // 否则，说明套接口出现错误
+        SLOG(LogLevel::L_SYSERR, "read error: %s\n", strerror(errno));
+        LEAVING;
         return -2;
     }
 
     // 检查是否已经读入了'\n'
-    char *start_pos = non_packetized_buf_->start_;
-    char *pos1 = start_pos + non_packetized_buf_->used_;
-    non_packetized_buf_->used_ += read_num; // 更新已使用长度
+    char *start_pos = non_packetized_buf_->start_;          // 记录缓存的开始处
+    char *pos1 = start_pos + non_packetized_buf_->used_;    // 记录上次已经检查过缓存的末尾（因为这次读入后还未更新used_的值）
+    non_packetized_buf_->used_ += read_num;                 // 更新已使用长度
     char *pos2, *endpos;
-    pos2 = endpos = non_packetized_buf_->used_ ;
+    pos2 = endpos = start_pos + non_packetized_buf_->used_ ;// 记录缓存的末尾
 
     while (pos2 > pos1) {
         if (*pos2 == '\n') {
             break;
         }
+        pos2--;
     }
 
     if (pos2 == pos1) {
         // non_packetized_buf_里还没有一个完整的行
+        SLOG(LogLevel::L_DEBUG, "not read a complete line\n");
+        LEAVING;
         return 0;
     }
 
@@ -77,6 +90,7 @@ int LineTcpSocket::ReadHandler() {
     assert(recv_mb_ == 0);
     int ret = MemPool::GetMemPool()->GetMemBlock(pos2 - start_pos + 1, recv_mb_);
     if (ret < 0) {
+        SLOG(LogLevel::L_FATAL, "can't allocate a memblock\n");
     }
 
     memcpy(recv_mb_->start_, start_pos, pos2 - start_pos + 1);
@@ -84,6 +98,7 @@ int LineTcpSocket::ReadHandler() {
 
     memmove(non_packetized_buf_->start_, pos2 + 1, endpos - pos2);
     non_packetized_buf_->used_ = endpos - pos2;
+    LEAVING;
     return 1;
 }
 

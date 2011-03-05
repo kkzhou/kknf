@@ -17,8 +17,9 @@
 
 #include <pthread.h>
 #include <string>
-#include "utils.h"
 #include <sys/time.h>
+#include <cstdio>
+#include "utils.h"
 
 namespace AANF {
 
@@ -73,17 +74,41 @@ int ConditionVariable::Signal() {
     LEAVING;
 }
 
+uint32_t SLog::slog_level = 0xFFFFFFFF;
+FILE *SLog::slog_fd_ = stderr;
 
-uint32_t g_slog_level = 0;
-uint32_t SetLogLevel(uint32_t new_level) {
+SLog::InitSLog(uint32_t log_level, string &logfile) {
 
-    ENTERING;
-    uint32_t old_level = g_slog_level;
-    g_slog_level = new_level;
-    LEAVING;
+    log_level = log_level;
+
+    if (logfile.empty()) {
+        slog_fd_ = stderr;
+    }
+
+    slog_fd_ = fopen(filename.c_str(), "a+");
+}
+
+
+uint32_t SLog::SetLogLevel(uint32_t new_level) {
+
+    uint32_t old_level = log_level;
+    log_level = new_level;
     return old_level;
 }
 
+int SLog::SetSLogFileDescriptor(std::string &filename) {
+
+    if (filename.empty()) {
+        slog_fd_ = stderr;
+        return -1;
+    }
+
+    slog_fd_ = fopen(filename.c_str(), "a+");
+    if (slog_fd_ == NULL) {
+        return -2;
+    }
+    return 0;
+}
 
 
 int TimeUtil::TimeToString(time_t time_sec, std::string &time_str) {
