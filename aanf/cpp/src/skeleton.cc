@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
-
+#include <iostream>
 #include <libconfig.hh>
 #include "server.h"
 #include "utils.h"
@@ -22,18 +22,17 @@
 namespace AANF {
 
 using namespace libconfig;
+using namespace std;
 
 int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
 
-    ENTERING;
     if (first_time) {
         // 系统启动时读取配置文件
         Config cfg;
         try {
             cfg.readFile(config_file.c_str());
         } catch (FileIOException &e) {
-            SLOG(LogLevel::L_LOGICERR, "cant read config file %s\n", config_file);
-            LEAVING;
+            cerr << "cant read config file: " << config_file << endl;
             return -1;
         }
 
@@ -64,6 +63,7 @@ int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
 
         my_connect_ipstr_ = st["my_connect_ip"];
         my_connect_port_ = st["my_connect_port"];
+
         // report
         report_server_ip_ = st["report_server_ip"];
         report_server_port_ = st["report_server_port"];
@@ -81,9 +81,7 @@ int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
         log_server_data_format_ = Socket::DF_BIN;
         log_server_type_ = Socket::T_TCP_CLIENT;
         log_type_ = tmpmaap3[st["log_type"]];
-
         log_file_ = st["log_file"];
-        SLog::SetSLogFileDescriptor(log_file_);
 
         string tmp_log_level_str = st["log_level"];
         uint32_t tmp_log_level = 0;
@@ -95,7 +93,6 @@ int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
                 tmp_log_level |= it->second;
             }
         }
-        SLog::SetLogLevel(tmp_log_level);
 
         worker_num_ = st["worker_num_"];
         send_queue_num_ = st["send_queue_num"];
@@ -116,32 +113,48 @@ int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
 
             listen_socket_map_.insert(name, tmpinfo);
         }
+
         // 进行初始化工作
         // 初始化NetFrame
         int ret = 0;
         netframe_ = new NetFrame(send_queue_num_, worker_num_);
+
         // 初始化日志服务
-        SLog::InitSLog()
+        ret = SLog::InitSLog(log_level_, log_type_);
+        if (ret < 0) {
+            cerr << "SLog init error!" << endl;
+            return -2;
+        }
+        SLOG(LogLevel.L_INFO, "SLog is ready\n");
         ret = InitRemoteLogger();
         if (ret < 0) {
-
-            return -2
+            SLOG(LogLevel.L_INFO, "InitRemoteLogger() error!\n");
+        } else {
+            log_server_ready_ = true;
         }
+
         // 初始化远程数据上报服务
         ret = InitReporter();
         if (ret < 0) {
-            return -2
+            SLOG(LogLevel.L_INFO, "InitReporter() error!\n");
+        } else {
+            report_server_ready_ = true;
         }
         // 初始化配置服务
         ret = InitConfigUpdater();
         if (ret < 0) {
-            return -2
+            SLOG(LogLevel.L_INFO, "InitConfigUpdater() error!\n");
+        } else {
+            config_server_ready_ = true;
         }
+
         // 初始化侦听套接口
         ret = InitListenSocket();
         if (ret < 0) {
+            SLOG(LogLevel.L_INFO, "InitListenSocket() error!\n");
             return -2
         }
+
     } else {
         // 是动态更新配置文件
     }
@@ -152,41 +165,56 @@ int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
 
 void Skeleton::LoadConfigSignalHandler(int signo, short events, CallBackArg *arg) {
 
-        SignalCallBackArg *cb_arg = reinterpret_cast<SignalCallBackArg*>(arg);
-        Skeleton *skeleton = cb_arg->skeleton_;
-        int ret = skeleton->LoadConfig(false, srv->config_file_);
-
+    ENTERING
+    SignalCallBackArg *cb_arg = reinterpret_cast<SignalCallBackArg*>(arg);
+    Skeleton *skeleton = cb_arg->skeleton_;
+    int ret = skeleton->LoadConfig(false, srv->config_file_);
+    if (ret < 0) {
+        SLOG(LogLevel.L_SYSERR, "LoadConfig() error: %d\n", ret);
+    }
+    return;
 }
 
 int Skeleton::InitRemoteLogger() {
 
+    ENTERING;
     Socket *sk = netframe_->socket_pool()->CreateClientSocket(log_server_ip_,
                                                               log_server_port_,
                                                               log_server_type_,
                                                               log_server_data_format_);
     if (sk == 0) {
+        SLOG(LogLevel.L_SYSERR, "CreateClientSocket() for remote log error!\n");
+        LEAVING;
         return -2;
     }
     netframe_->AddSocketToMonitor(sk);
     log_server_ready_ = true;
+    LEAVING;
     return 0;
 }
 
 int Skeleton::InitReporter() {
 
+    ENTERING;
     Socket *sk = netframe_->socket_pool()->CreateClientSocket(report_server_ip_,
                                                               report_server_port_,
                                                               report_server_type_,
                                                               report_server_data_format_);
     if (sk == 0) {
+        SLOG(LogLevel.L_SYSERR, "CreateClientSocket() for reporter error!\n");
+        LEAVING;
         return -2;
     }
+
     netframe_->AddSocketToMonitor(sk);
     log_server_ready_ = true;
+    LEAVING;
     return 0;
 }
 
 bool Skeleton::IsConfigFileChanged() {
+    ENTERING;
+    LEAVING;
     return config_file_changed_;
 }
 
@@ -228,9 +256,12 @@ void Skeleton::GetConfigThreadProc(ConfigUpdateThreadProcArg *arg) {
     while (!skeleton->cancel_) {
         int ret = SyncGetConfigFile();
         if (ret < 0) {
-            return;
+            SLOG(LogLevel.L_SYSERR, "SyncGetConfigfile() error: %d\n", ret);
         }
 
+        if (config_file_changed_) {
+            pthread_(NetFrame::SignalNo.SN_USR_1);
+        }
         // sleep
         sleep(skeleton->config_check_interval_);
     } // while

@@ -39,7 +39,7 @@ enum LogLevel {
 #if !defined(SLOG)
 #define SLOG(level,format,arg...) \
             do { \
-                if ((level) & SLog::slog_level) { \
+                if ((level) & SLog::slog_level_) { \
                     enum LogLevel tmp_level = level; \
                     std::string level_str; \
                     if (tmp_level == L_FATAL) { \

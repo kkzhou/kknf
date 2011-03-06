@@ -17,37 +17,50 @@
 
 #include "sync_sender_receiver.h"
 #include "memblock.h"
+#include "utils.h"
 
 
 namespace AANF {
 
 SyncSR::SyncSR(bool is_tcp) {
 
+    ENTERING
     // prepare socket
     is_tcp_ = is_tcp;
     if (fd_ = socket(PF_INET, is_tcp_ ? SOCK_STREAM : SOCK_DGRAM, 0) < 0) {
-        perror("socket() error: ");
-        return -3;
+        SLOG(LogLevel.L_SYSERR, "socket() error!\n");
     }
+    LEAVING;
 }
 
 SyncSR::~SyncSR() {
-    CloseSR()();
+
+    ENTERING;
+    CloseSR();
+    LEAVING;
 }
 
 int SyncSR::CloseSR() {
+
+    ENTERING;
     if (fd_ >= 0) {
         close(fd_);
         fd_ = -1;
     }
+    LEAVING;
     return 0;
 }
 
 int SetOpterationTimeout(int usec) {
 
+    ENTERING;
     if (usec < 0) {
+        SLOG(LogLevel.L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     } else if (usec == 0) {
+        SLOG(LogLevel.L_INFO, "no timeout for the operations on the socket\n");
+        LEAVING;
         return 0;
     } else {
     }
@@ -59,20 +72,27 @@ int SetOpterationTimeout(int usec) {
     socklen_t = timeout_len = sizeof(struct timeval);
     ret = setsockopt(fd_, SOL_SOCKET, SO_RCVTIMEO, &timeout, &timeout_len);
     if (ret == -1) {
-        perror("setsockopt error:");
+        SLOG(LogLevel.L_SYSERR, "setsockopt() for SO_RCVTIMO error: %s\n", strerror(errno));
+        LEAVING;
         return -2;
     }
     ret = setsockopt(fd_, SOL_SOCKET, SO_SNDTIMEO, &timeout, &timeout_len);
     if (ret == -1) {
-        perror("setsockopt error:");
+        SLOG(LogLevel.L_SYSERR, "setsockopt() for SO_SNDTIMO error: %s\n", strerror(errno));
+        LEAVING;
         return -2;
     }
+    LEAVING;
     return 0;
 }
 
 int SyncSR::ConnectToServer(std::string server_ip, uint16_t server_port) {
-       // Check parameters
+
+    ENTERING;
     if (server_ip.empty()) {
+
+        SLOG(LogLevel.L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     }
 
@@ -85,7 +105,11 @@ int SyncSR::ConnectToServer(std::string server_ip, uint16_t server_port) {
     struct sockaddr_in server_addr;
     //server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(server_port);
+
     if (inet_aton(server_ip.c_str(), &server_addr.sin_addr) ==0) {
+
+        SLOG(LogLevel.L_SYSERR, "inet_aton() error\n");
+        LEAVING;
         return -3;
     }
     socket_len addr_len = sizeof(struct sockaddr_in);
@@ -93,17 +117,23 @@ int SyncSR::ConnectToServer(std::string server_ip, uint16_t server_port) {
     // connect
     if (connect(fd_, (struct sockaddr*)&server_addr, addr_len) == -1) {
         if (errno != EAGAIN || errno != EWOULDBLOCK) {
-            perror("Connect error: ");
+            SLOG(LogLevel.L_SYSERR, "connect() error: %s\n", strerror(errno));
+            LEAVING;
             return -3;
         }
     }
+    LEAVING;
     return 0;
-
 }
 
 int BinSyncSR::SyncSendRecv(MemBlock *to_send, MemBlock *&to_recv) {
 
+    ENTERING;
+
     if (!to_send || timeout_usec < 0) {
+
+        SLOG(LogLevel.L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     }
 

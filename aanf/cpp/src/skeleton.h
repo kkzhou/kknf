@@ -29,7 +29,7 @@ public:
     // 传递给线程函数的参数
     class ThreadProcArg {
     public:
-        Skeleton *skeletion_;
+        Skeleton *skeleton_;
         int id_;
     };
     class ConfigUpdateThreadProcArg : public ThreadProcArg {
@@ -153,6 +153,7 @@ private:
     bool log_server_ready_;
     uint32_t log_id_;
     LogType log_type_;
+    uint32_t log_level_;
 
     // 线程控制参数
     bool cancel_;

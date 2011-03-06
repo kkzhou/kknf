@@ -79,7 +79,7 @@ FILE *SLog::slog_fd_ = stderr;
 
 SLog::InitSLog(uint32_t log_level, string &logfile) {
 
-    log_level = log_level;
+    slog_level_ = log_level;
 
     if (logfile.empty()) {
         slog_fd_ = stderr;
