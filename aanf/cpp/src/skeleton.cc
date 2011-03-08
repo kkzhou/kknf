@@ -18,11 +18,13 @@
 #include <libconfig.hh>
 #include "server.h"
 #include "utils.h"
+#include "UpdateConfig.pb.h"
 
 namespace AANF {
 
 using namespace libconfig;
 using namespace std;
+using namespace Protocol;
 
 int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
 
@@ -152,13 +154,14 @@ int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
         ret = InitListenSocket();
         if (ret < 0) {
             SLOG(LogLevel.L_INFO, "InitListenSocket() error!\n");
+            LEAVING;
             return -2
         }
 
     } else {
         // 是动态更新配置文件
     }
-
+    LEAVING;
     return 0;
 
 }
@@ -172,6 +175,7 @@ void Skeleton::LoadConfigSignalHandler(int signo, short events, CallBackArg *arg
     if (ret < 0) {
         SLOG(LogLevel.L_SYSERR, "LoadConfig() error: %d\n", ret);
     }
+    LEAVING;
     return;
 }
 
@@ -223,21 +227,35 @@ int Skeleton::SyncGetConfigFile() {
     MemBlock *send_buf;
     MemPool::GetMemPool()->GetMemBlock(1024, send_buf);
 
-    ConfigUpdateRequest req;
-    ConfigUpdateResponse rsp;
+    PacketFormat req, rsp;
 
     // 构造请求
-    req.Ver = 1001;
-    // ...
+    req.set_version(1000);
+    req.set_service_id(11);
+    req.set_type(111);
+    req.set_md5("aaa");
+    req.set_length(req.ByteSize());
+
+    MemBlock *send_buf;
+    int ret = 0;
+    ret = MemPool::GetMemPool()->GetMemBlock(req.length());
+    if (ret < 0) {
+        SLOG(LogLevel.L_SYSERR, "GetMemBlock() error: %d\n", ret);
+        LEAVING;
+    }
+    req.SerializeToArray(send_buf.start_, req.length());
 
     // 发送请求并接收应答
     MemBlock *recv_buf;
     ret = config_sr_->SyncSendRecv(send_buf, recv_buf);
     if (ret < 0) {
         MemPool::GetMemPool()->ReturnMemBlock(send_buf);
-        //MemPool::GetMemPool()->ReturnMemBlock(recv_buf);
+        MemPool::GetMemPool()->ReturnMemBlock(recv_buf);
+        SLOG(LogLevel.L_SYSERR, "SyncSendRecv() error: %d\n", ret);
+        LEAVING;
         return -2;
     }
+
     istream is;
     is.rdbuf()->pubsetbuf(recv_buf->start_, recv_buf->used_);
     rsp.ParseFromString(is);
@@ -246,11 +264,16 @@ int Skeleton::SyncGetConfigFile() {
     fs.open(server->config_file_, ios_base::in | ios_base::out | ios_base::binary);
     fs.write(rsp.ConfigFile.c_str(), rsp.ConfigFile.length());
     config_file_changed_ = true;
+    MemPool::GetMemPool()->ReturnMemBlock(send_buf);
+    MemPool::GetMemPool()->ReturnMemBlock(recv_buf);
+    LEAVING;
+
     return 0;
 }
 
 void Skeleton::GetConfigThreadProc(ConfigUpdateThreadProcArg *arg) {
 
+    ENTERING;
     Skeleton *skeleton = arg->skeleton_;
 
     while (!skeleton->cancel_) {
@@ -265,10 +288,12 @@ void Skeleton::GetConfigThreadProc(ConfigUpdateThreadProcArg *arg) {
         // sleep
         sleep(skeleton->config_check_interval_);
     } // while
+    LEAVING;
 }
 
 int Server::InitConfigUpdater() {
 
+    ENTERING;
     int ret = SyncGetConfigFile();
     if (ret < 0) {
         return -2;
@@ -280,11 +305,13 @@ int Server::InitConfigUpdater() {
     arg->skeleton_ = this;
     pthread_create(&id, NULL, GetConfigThreadProc, arg);
     config_server_ready_ = true;
+    LEAVING;
     return 0;
 }
 
 int Server::InitListenSocket() {
 
+    ENTERING;
     map<string, ListenSocketInfo>::iterator it, endit;
     it = listen_socket_map_.begin();
     endit = listen_socket_map_.end();
@@ -296,15 +323,22 @@ int Server::InitListenSocket() {
                                                            it->second.type_,
                                                            it->second.data_format_);
         if (ret < 0) {
+
+            SLOG(LogLevel.L_SYSERR, "CreateListenSocket() error: %d\n", ret);
+            LEAVING;
             return -1;
         }
     }
+    LEAVING;
     return 0;
 }
 
 void Skeleton::WorkderThreadProc(ThreadProcArg *arg) {
 
+    ENTERING;
     if (!arg) {
+        SLOG(LogLevel.L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return;
     }
     Skeleton *skeleton = arg->skeleton_;
@@ -331,11 +365,15 @@ void Skeleton::WorkderThreadProc(ThreadProcArg *arg) {
             }
         }
     } // while
+    LEAVING;
 }
 
 int Server::Run() {
 
+    ENTERING;
     if (!netframe_) {
+        SLOG(LogLevel.L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     }
 
@@ -374,26 +412,36 @@ int Server::Run() {
     for (int i = 0; i < worker_num_; i++) {
         pthread_join(tid[i], NULL);
     }
+    LEAVING;
     return 0;
 }
 
 int Skeleton::RegisterAdminCommand(std::string &cmd, AdminCmdFunc func) {
 
+    ENTERING;
     if (!func) {
+        SLOG(LogLevel.L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     }
-    pair<map<string, AdminCmdFunc>::iterator, bool> ret =
-        admin_cmd_map_.insert(pair<string, AdminCmdFunc>(cmd, func));
-    if (ret.second) {
+    map<string, AdminCmdFunc>::iterator it =
+        admin_cmd_map_.find(cmd, func);
+    if (it != admin_cmd_map_.end()) {
+        SLOG(LogLevel.L_LOGICERR, "the admin command has alreay registered\n");
+        LEAVING;
         return -2;
     }
     admin_cmd_map_[cmd] = func;
+    LEAVING;
     return 0;
 }
 
 int Skeleton::ProcessAdminCmdPacket(Packet &input_pkt) {
 
+    ENTERING;
     if (input_pkt->data_format_ != Socket::DF_LINE) {
+        SLOG(LogLevel.L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     }
     string cmd_options_lines(input_pkt->data_->start_, input_pkt->data_->start_ + input_pkt->data_->used_);
@@ -423,6 +471,8 @@ int Skeleton::ProcessAdminCmdPacket(Packet &input_pkt) {
         if (it != admin_cmd_map_.end()) {
             int ret = it->second(cmd, options); // 调用注册的admin函数
             if (ret < 0) {
+                SLOG(LogLevel.L_LOGICERR, "admin command executed error\n");
+                LEAVING;
                 return -2;
             }
         }
@@ -436,10 +486,7 @@ int Skeleton::ProcessAdminCmdPacket(Packet &input_pkt) {
             pos1 = pos2 = pos2 + 1;
         }
     } // while
-
-
-
-
+    LEAVING;
     return 0;
 }
 

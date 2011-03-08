@@ -144,6 +144,9 @@ int BinSyncSR::SyncSendRecv(MemBlock *to_send, MemBlock *&to_recv) {
                          byte_sent_num, to_send->used_ - byte_sent_num, 0);
 
     if (byte_sent_num != to_send->used_) {
+
+        SLOG(LogLevel.L_SYSERR, "synchronously send() error: %s\n", strerror(errno));
+        LEAVING;
         return -2;
     }
     // 开始接收
@@ -151,15 +154,24 @@ int BinSyncSR::SyncSendRecv(MemBlock *to_send, MemBlock *&to_recv) {
     int byte_recv_num = 0;
     uint32_t len_field = 0;
     byte_recv_num = recv(fd_, (char*)&len_field, sizeof(uint32_t), 0);
+
     if (byte_recv_num != sizeof(uint32_t)) {
+
+        SLOG(LogLevel.L_SYSERR, "synchronously recv() len_field error: %s\n", strerror(errno));
+        LEAVING;
         return -3;
     }
 
     uint32_t real_len = ntohl(len_field);
     to_recv = MemPool::GetMemPool()->GetMemBlock(real_len);
+
     if (to_recv == 0) {
+
+        SLOG(LogLevel.L_SYSERR, "GetMemBlock() error\n");
+        LEAVING;
         return -4;
     }
+
     memcpy(to_recv->start_, &len_field, 4);
     to_recv->used_ += 4;
 
@@ -168,10 +180,14 @@ int BinSyncSR::SyncSendRecv(MemBlock *to_send, MemBlock *&to_recv) {
     byte_recv_num = recv(fd_, to_recv->start_, to_recv->used_ , 0);
 
     if (byte_recv_num != real_len) {
+
         MemPool::GetMemPool()->ReturnMemBlock(to_recv);
         to_recv = 0;
+        SLOG(LogLevel.L_SYSERR, "synchronously recv() error: %s\n", strerror(errno));
+        LEAVING;
         return -5;
     }
+    LEAVING;
     return 0;
 }
 
@@ -179,7 +195,11 @@ int BinSyncSR::SyncSendRecv(MemBlock *to_send, MemBlock *&to_recv) {
 
 int LineSyncSR::SyncSendRecv(MemBlock *to_send, MemBlock *&to_recv) {
 
+    ENTERING;
     if (!to_send || timeout_usec < 0) {
+
+        SLOG(LogLevel.L_LOGICERR, "parameter invalid\n");
+        LEAVING;
         return -1;
     }
 
@@ -188,21 +208,31 @@ int LineSyncSR::SyncSendRecv(MemBlock *to_send, MemBlock *&to_recv) {
     byte_sent_num = send(fd_, to_send->start_, to_send->used_, 0);
 
     if (byte_sent_num != to_send->used_) {
+
+        SLOG(LogLevel.L_SYSERR, "synchronously send() error: %s\n", strerror(errno));
+        LEAVING;
         return -2;
     }
     // 开始接收
     int byte_recv_num = 0;
     to_recv = MemPool::GetMemPool()->GetMemBlock(1024);
     if (to_recv == 0) {
+
+        SLOG(LogLevel.L_SYSERR, "GetMemBlock() error\n");
+        LEAVING;
         return -3;
     }
 
     // 然后接收数据域
     byte_recv_num = 0;
     byte_recv_num = recv(fd_, to_recv->start_, to_recv->used_ , 0);
+
     if (byte_recv_num <= 0) {
+
         MemPool::GetMemPool()->ReturnMemBlock(to_recv);
         to_recv = 0;
+        SLOG(LogLevel.L_SYSERR, "synchronously recv() error\n");
+        LEAVING;
         return -4;
     }
 
@@ -212,11 +242,14 @@ int LineSyncSR::SyncSendRecv(MemBlock *to_send, MemBlock *&to_recv) {
     }
 
     if (*pos != '\n') {
+
         MemPool::GetMemPool()->ReturnMemBlock(to_recv);
         to_recv = 0;
+        SLOG(LogLevel.L_SYSERR, "data recved not contain a RET\n");
+        LEAVING;
         return -5;
     }
-
+    LEAVING;
     return 0;
 }
 }
