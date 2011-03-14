@@ -91,6 +91,9 @@ public:
     // 初始化所有侦听套接口
     int InitListenSocket();
 
+    // 初始化skeleton
+    int Init();
+
     // 启动
     int Run();
 

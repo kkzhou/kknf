@@ -26,6 +26,52 @@ using namespace libconfig;
 using namespace std;
 using namespace Protocol;
 
+int Skeleton::Init() {
+
+    // 进行初始化工作
+    // 初始化NetFrame
+    int ret = 0;
+    netframe_ = new NetFrame(send_queue_num_, worker_num_);
+
+    // 初始化日志服务
+    ret = SLog::InitSLog(log_level_, log_type_);
+    if (ret < 0) {
+        cerr << "SLog init error!" << endl;
+        return -2;
+    }
+    SLOG(LogLevel.L_INFO, "SLog is ready\n");
+    ret = InitRemoteLogger();
+    if (ret < 0) {
+        SLOG(LogLevel.L_INFO, "InitRemoteLogger() error!\n");
+    } else {
+        log_server_ready_ = true;
+    }
+
+    // 初始化远程数据上报服务
+    ret = InitReporter();
+    if (ret < 0) {
+        SLOG(LogLevel.L_INFO, "InitReporter() error!\n");
+    } else {
+        report_server_ready_ = true;
+    }
+    // 初始化配置服务
+    ret = InitConfigUpdater();
+    if (ret < 0) {
+        SLOG(LogLevel.L_INFO, "InitConfigUpdater() error!\n");
+    } else {
+        config_server_ready_ = true;
+    }
+
+    // 初始化侦听套接口
+    ret = InitListenSocket();
+    if (ret < 0) {
+        SLOG(LogLevel.L_INFO, "InitListenSocket() error!\n");
+        LEAVING;
+        return -2
+    }
+    return 0;
+}
+
 int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
 
     if (first_time) {
@@ -114,48 +160,6 @@ int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
             tmpinfo.type_ = st[i]("type");
 
             listen_socket_map_.insert(name, tmpinfo);
-        }
-
-        // 进行初始化工作
-        // 初始化NetFrame
-        int ret = 0;
-        netframe_ = new NetFrame(send_queue_num_, worker_num_);
-
-        // 初始化日志服务
-        ret = SLog::InitSLog(log_level_, log_type_);
-        if (ret < 0) {
-            cerr << "SLog init error!" << endl;
-            return -2;
-        }
-        SLOG(LogLevel.L_INFO, "SLog is ready\n");
-        ret = InitRemoteLogger();
-        if (ret < 0) {
-            SLOG(LogLevel.L_INFO, "InitRemoteLogger() error!\n");
-        } else {
-            log_server_ready_ = true;
-        }
-
-        // 初始化远程数据上报服务
-        ret = InitReporter();
-        if (ret < 0) {
-            SLOG(LogLevel.L_INFO, "InitReporter() error!\n");
-        } else {
-            report_server_ready_ = true;
-        }
-        // 初始化配置服务
-        ret = InitConfigUpdater();
-        if (ret < 0) {
-            SLOG(LogLevel.L_INFO, "InitConfigUpdater() error!\n");
-        } else {
-            config_server_ready_ = true;
-        }
-
-        // 初始化侦听套接口
-        ret = InitListenSocket();
-        if (ret < 0) {
-            SLOG(LogLevel.L_INFO, "InitListenSocket() error!\n");
-            LEAVING;
-            return -2
         }
 
     } else {

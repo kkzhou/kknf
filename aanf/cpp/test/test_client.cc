@@ -17,17 +17,23 @@
 
 #include <string>
 #include <iostream>
-#include "server.h"
+#include "skeleton.h"
+#include "ProtoForTest.pb.h"
 
 using std;
 using namespace AANF;
+using namespace Protocol;
 
 class TestClient : public Skeleton {
 public:
-    // 处理回应报文的，因为是Client，是请求的发起者，接收的是应答
-    virtual int ProcessPacket(Packet &input_pkt) {
-
+    class TestClientThreadArg {
+    public:
+        TestClient *client_;
     };
+public:
+    // 处理回应报文的，因为是Client，是请求的发起者，接收的是应答
+    virtual int ProcessPacket(Packet &input_pkt);
+    static void TestClientThreadProc(TestClientThreadArg *arg);
 };
 
 int main(int argc, char **argv) {
@@ -43,24 +49,51 @@ int main(int argc, char **argv) {
             break;
         case 'h':
         default:
-            cerr << "Usage: ./test_bf -f configfile -m [debug|daemon] -h" << endl;
+            cerr << "Usage: ./test_client -f configfile -h" << endl;
             break;
         }
     }
     if (config_file.empty) {
         cerr << "Parameter error:" << endl;
-        cerr << "Usage: ./test_bf -f configfile -h" << endl;
+        cerr << "Usage: ./test_client -f configfile -h" << endl;
         return -1;
     }
 
-    TestClient *server = new TestClient;
-    int ret = server->LoadConfig(true, config_file);
+    TestClient *client = new TestClient;
+    int ret = client->LoadConfig(true, config_file);
     if (ret < 0) {
         cerr << "Load config file error!" << endl;
         return -1;
     }
 
-    server->Run();
+    client->Init();
+    // 启动一个线程来启动netframe
+    pthread_t tid;
+    TestClientThreadArg *arg = new TestClientThreadArg;
+    arg->client_ = client;
+    pthread_create(&tid, NULL, TestClientThreadProc, arg);
+    sleep(3);
+    // 发送数据包
+    PacketFormat req;
+    req.set_service_id(11);
+    req.set_type(111);
+    req.set_version(111);
+    SearchUserRequest search_user_req;
+    search_user_req.set_query_string("nihao");
+    req.SetExtension(client_search_user_req, search_user_req);
+    req.set_length(req.ByteSize());
+    MemBlock *to_send = 0;
+    int ret = MemPool::GetMemPool()->GetMemBlock(req.length(), to_send);
+    req.SerializeToArray(to_send->start_, to_send->used_);
+    string to_ip = "127.0.0.1";
+    uint16_t to_port = 10001;
+
+    client->AsyncSend(to_ip, to_port, "127.0.0.1", 0,
+                      to_send, Socket::SocketType.T_TCP_CLIENT,
+                      Socket::DataFormat.DF_BIN, 0);
+    client->cancel_ = true;
+    pthread_join(tid, 0);
+    cerr << "exit!" << endl;
     return 0;
 
 }

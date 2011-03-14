@@ -18,9 +18,11 @@
 #include <string>
 #include <iostream>
 #include "server.h"
+#include "ProtoForTest.pb.h"
 
 using std;
 using namespace AANF;
+using namespace Protocol;
 
 class TestBF : public Skeleton {
 public:
@@ -57,40 +59,31 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    TestBF *server = new TestBF;
-    int ret = server->LoadConfig(true, config_file);
+    TestBF *bf = new TestBF;
+    int ret = bf->LoadConfig(true, config_file);
     if (ret < 0) {
         cerr << "Load config file error!" << endl;
         return -1;
     }
-
-    server->Run();
+    bf->Init();
+    bf->Run();
     return 0;
 
 }
 
 
+
+
 int TestBF::ProcessPacket(Packet &input_pkt) {
 
-    // 获得对内对外的ip和端口，用来分派数据包。（每个数据包到来都需要查找一次，效率不高，不过listen套接口一般很少）
-    string outter_ip, inner_ip;
-    uint16_t outter_port, inner_port;
-    map<string, ListenSocketInfo>::iterator tmpit = listen_socket_map_.find("outter_data_channel");
-    if (tmpit != listen_socket_map_.end()) {
-        outter_ip = tmpit->second.ip_;
-        outter_port = tmpit->second.port_;
+    PacketFormat req;
+    req.ParseFromArray(input_pkt.data_->start_, input_pkt.data_->used_);
+    if (req.type() == 1) {
+        SLOG(LogLevel.L_LOGICERR, "input packet is type=%d\n", req.type());
+        PacketFormat bb1req;
+        GetUserIDByKeywordRequest get_userid_by_keyword_req;
+        get_userid_by_keyword_req.set_user_name_keyword(req.cl);
     }
 
-    tmpit = listen_socket_map_.find("inner_data_channel");
-    if (tmpit != listen_socket_map_.end()) {
-        inner_ip = tmpit->second.ip_;
-        inner_port = tmpit->second.port_;
-    }
-
-    // 根据数据包的来源，分别进行处理。
-    if (input_pkt.my_ipstr_ == outter_ip && input_pkt.my_port_ == outter_port) {
-        // 这是一个从外网来的数据包（即从客户端来的数据包）
-
-    }
 
 }
