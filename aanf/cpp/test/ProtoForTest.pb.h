@@ -32,69 +32,69 @@ void protobuf_AssignDesc_ProtoForTest_2eproto();
 void protobuf_ShutdownFile_ProtoForTest_2eproto();
 
 class UserProfile;
-class SearchUserRequest;
-class SearchUserResponse;
-class GetUserIDByKeywordRequest;
-class GetUserIDByKeywordResponse;
-class GetUserProfileRequest;
-class GetUserProfileResponse;
+class CToBFReq;
+class CToBFRsp;
+class BFToBB1Req;
+class BFToBB1Rsp;
+class BFToBB2Req;
+class BFToBB2Rsp;
 
-enum SearchUserResponse_ErrorCode {
-  SearchUserResponse_ErrorCode_OK = 0,
-  SearchUserResponse_ErrorCode_NO_SUCH_USER = 1,
-  SearchUserResponse_ErrorCode_ERROR = 2
+enum CToBFRsp_ErrorCode {
+  CToBFRsp_ErrorCode_OK = 0,
+  CToBFRsp_ErrorCode_NO_SUCH_USER = 1,
+  CToBFRsp_ErrorCode_ERROR = 2
 };
-bool SearchUserResponse_ErrorCode_IsValid(int value);
-const SearchUserResponse_ErrorCode SearchUserResponse_ErrorCode_ErrorCode_MIN = SearchUserResponse_ErrorCode_OK;
-const SearchUserResponse_ErrorCode SearchUserResponse_ErrorCode_ErrorCode_MAX = SearchUserResponse_ErrorCode_ERROR;
+bool CToBFRsp_ErrorCode_IsValid(int value);
+const CToBFRsp_ErrorCode CToBFRsp_ErrorCode_ErrorCode_MIN = CToBFRsp_ErrorCode_OK;
+const CToBFRsp_ErrorCode CToBFRsp_ErrorCode_ErrorCode_MAX = CToBFRsp_ErrorCode_ERROR;
 
-const ::google::protobuf::EnumDescriptor* SearchUserResponse_ErrorCode_descriptor();
-inline const ::std::string& SearchUserResponse_ErrorCode_Name(SearchUserResponse_ErrorCode value) {
+const ::google::protobuf::EnumDescriptor* CToBFRsp_ErrorCode_descriptor();
+inline const ::std::string& CToBFRsp_ErrorCode_Name(CToBFRsp_ErrorCode value) {
   return ::google::protobuf::internal::NameOfEnum(
-    SearchUserResponse_ErrorCode_descriptor(), value);
+    CToBFRsp_ErrorCode_descriptor(), value);
 }
-inline bool SearchUserResponse_ErrorCode_Parse(
-    const ::std::string& name, SearchUserResponse_ErrorCode* value) {
-  return ::google::protobuf::internal::ParseNamedEnum<SearchUserResponse_ErrorCode>(
-    SearchUserResponse_ErrorCode_descriptor(), name, value);
+inline bool CToBFRsp_ErrorCode_Parse(
+    const ::std::string& name, CToBFRsp_ErrorCode* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<CToBFRsp_ErrorCode>(
+    CToBFRsp_ErrorCode_descriptor(), name, value);
 }
-enum GetUserIDByKeywordResponse_ErrorCode {
-  GetUserIDByKeywordResponse_ErrorCode_OK = 0,
-  GetUserIDByKeywordResponse_ErrorCode_NO_SUCH_USER = 1,
-  GetUserIDByKeywordResponse_ErrorCode_ERROR = 2
+enum BFToBB1Rsp_ErrorCode {
+  BFToBB1Rsp_ErrorCode_OK = 0,
+  BFToBB1Rsp_ErrorCode_NO_SUCH_USER = 1,
+  BFToBB1Rsp_ErrorCode_ERROR = 2
 };
-bool GetUserIDByKeywordResponse_ErrorCode_IsValid(int value);
-const GetUserIDByKeywordResponse_ErrorCode GetUserIDByKeywordResponse_ErrorCode_ErrorCode_MIN = GetUserIDByKeywordResponse_ErrorCode_OK;
-const GetUserIDByKeywordResponse_ErrorCode GetUserIDByKeywordResponse_ErrorCode_ErrorCode_MAX = GetUserIDByKeywordResponse_ErrorCode_ERROR;
+bool BFToBB1Rsp_ErrorCode_IsValid(int value);
+const BFToBB1Rsp_ErrorCode BFToBB1Rsp_ErrorCode_ErrorCode_MIN = BFToBB1Rsp_ErrorCode_OK;
+const BFToBB1Rsp_ErrorCode BFToBB1Rsp_ErrorCode_ErrorCode_MAX = BFToBB1Rsp_ErrorCode_ERROR;
 
-const ::google::protobuf::EnumDescriptor* GetUserIDByKeywordResponse_ErrorCode_descriptor();
-inline const ::std::string& GetUserIDByKeywordResponse_ErrorCode_Name(GetUserIDByKeywordResponse_ErrorCode value) {
+const ::google::protobuf::EnumDescriptor* BFToBB1Rsp_ErrorCode_descriptor();
+inline const ::std::string& BFToBB1Rsp_ErrorCode_Name(BFToBB1Rsp_ErrorCode value) {
   return ::google::protobuf::internal::NameOfEnum(
-    GetUserIDByKeywordResponse_ErrorCode_descriptor(), value);
+    BFToBB1Rsp_ErrorCode_descriptor(), value);
 }
-inline bool GetUserIDByKeywordResponse_ErrorCode_Parse(
-    const ::std::string& name, GetUserIDByKeywordResponse_ErrorCode* value) {
-  return ::google::protobuf::internal::ParseNamedEnum<GetUserIDByKeywordResponse_ErrorCode>(
-    GetUserIDByKeywordResponse_ErrorCode_descriptor(), name, value);
+inline bool BFToBB1Rsp_ErrorCode_Parse(
+    const ::std::string& name, BFToBB1Rsp_ErrorCode* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<BFToBB1Rsp_ErrorCode>(
+    BFToBB1Rsp_ErrorCode_descriptor(), name, value);
 }
-enum GetUserProfileResponse_ErrorCode {
-  GetUserProfileResponse_ErrorCode_OK = 0,
-  GetUserProfileResponse_ErrorCode_NO_SUCH_USER = 1,
-  GetUserProfileResponse_ErrorCode_ERROR = 2
+enum BFToBB2Rsp_ErrorCode {
+  BFToBB2Rsp_ErrorCode_OK = 0,
+  BFToBB2Rsp_ErrorCode_NO_SUCH_USER = 1,
+  BFToBB2Rsp_ErrorCode_ERROR = 2
 };
-bool GetUserProfileResponse_ErrorCode_IsValid(int value);
-const GetUserProfileResponse_ErrorCode GetUserProfileResponse_ErrorCode_ErrorCode_MIN = GetUserProfileResponse_ErrorCode_OK;
-const GetUserProfileResponse_ErrorCode GetUserProfileResponse_ErrorCode_ErrorCode_MAX = GetUserProfileResponse_ErrorCode_ERROR;
+bool BFToBB2Rsp_ErrorCode_IsValid(int value);
+const BFToBB2Rsp_ErrorCode BFToBB2Rsp_ErrorCode_ErrorCode_MIN = BFToBB2Rsp_ErrorCode_OK;
+const BFToBB2Rsp_ErrorCode BFToBB2Rsp_ErrorCode_ErrorCode_MAX = BFToBB2Rsp_ErrorCode_ERROR;
 
-const ::google::protobuf::EnumDescriptor* GetUserProfileResponse_ErrorCode_descriptor();
-inline const ::std::string& GetUserProfileResponse_ErrorCode_Name(GetUserProfileResponse_ErrorCode value) {
+const ::google::protobuf::EnumDescriptor* BFToBB2Rsp_ErrorCode_descriptor();
+inline const ::std::string& BFToBB2Rsp_ErrorCode_Name(BFToBB2Rsp_ErrorCode value) {
   return ::google::protobuf::internal::NameOfEnum(
-    GetUserProfileResponse_ErrorCode_descriptor(), value);
+    BFToBB2Rsp_ErrorCode_descriptor(), value);
 }
-inline bool GetUserProfileResponse_ErrorCode_Parse(
-    const ::std::string& name, GetUserProfileResponse_ErrorCode* value) {
-  return ::google::protobuf::internal::ParseNamedEnum<GetUserProfileResponse_ErrorCode>(
-    GetUserProfileResponse_ErrorCode_descriptor(), name, value);
+inline bool BFToBB2Rsp_ErrorCode_Parse(
+    const ::std::string& name, BFToBB2Rsp_ErrorCode* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<BFToBB2Rsp_ErrorCode>(
+    BFToBB2Rsp_ErrorCode_descriptor(), name, value);
 }
 // ===================================================================
 
@@ -217,14 +217,14 @@ class UserProfile : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
-class SearchUserRequest : public ::google::protobuf::Message {
+class CToBFReq : public ::google::protobuf::Message {
  public:
-  SearchUserRequest();
-  virtual ~SearchUserRequest();
+  CToBFReq();
+  virtual ~CToBFReq();
   
-  SearchUserRequest(const SearchUserRequest& from);
+  CToBFReq(const CToBFReq& from);
   
-  inline SearchUserRequest& operator=(const SearchUserRequest& from) {
+  inline CToBFReq& operator=(const CToBFReq& from) {
     CopyFrom(from);
     return *this;
   }
@@ -238,16 +238,16 @@ class SearchUserRequest : public ::google::protobuf::Message {
   }
   
   static const ::google::protobuf::Descriptor* descriptor();
-  static const SearchUserRequest& default_instance();
-  void Swap(SearchUserRequest* other);
+  static const CToBFReq& default_instance();
+  void Swap(CToBFReq* other);
   
   // implements Message ----------------------------------------------
   
-  SearchUserRequest* New() const;
+  CToBFReq* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const SearchUserRequest& from);
-  void MergeFrom(const SearchUserRequest& from);
+  void CopyFrom(const CToBFReq& from);
+  void MergeFrom(const CToBFReq& from);
   void Clear();
   bool IsInitialized() const;
   
@@ -304,18 +304,18 @@ class SearchUserRequest : public ::google::protobuf::Message {
   }
   
   void InitAsDefaultInstance();
-  static SearchUserRequest* default_instance_;
+  static CToBFReq* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class SearchUserResponse : public ::google::protobuf::Message {
+class CToBFRsp : public ::google::protobuf::Message {
  public:
-  SearchUserResponse();
-  virtual ~SearchUserResponse();
+  CToBFRsp();
+  virtual ~CToBFRsp();
   
-  SearchUserResponse(const SearchUserResponse& from);
+  CToBFRsp(const CToBFRsp& from);
   
-  inline SearchUserResponse& operator=(const SearchUserResponse& from) {
+  inline CToBFRsp& operator=(const CToBFRsp& from) {
     CopyFrom(from);
     return *this;
   }
@@ -329,16 +329,16 @@ class SearchUserResponse : public ::google::protobuf::Message {
   }
   
   static const ::google::protobuf::Descriptor* descriptor();
-  static const SearchUserResponse& default_instance();
-  void Swap(SearchUserResponse* other);
+  static const CToBFRsp& default_instance();
+  void Swap(CToBFRsp* other);
   
   // implements Message ----------------------------------------------
   
-  SearchUserResponse* New() const;
+  CToBFRsp* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const SearchUserResponse& from);
-  void MergeFrom(const SearchUserResponse& from);
+  void CopyFrom(const CToBFRsp& from);
+  void MergeFrom(const CToBFRsp& from);
   void Clear();
   bool IsInitialized() const;
   
@@ -359,54 +359,54 @@ class SearchUserResponse : public ::google::protobuf::Message {
   
   // nested types ----------------------------------------------------
   
-  typedef SearchUserResponse_ErrorCode ErrorCode;
-  static const ErrorCode OK = SearchUserResponse_ErrorCode_OK;
-  static const ErrorCode NO_SUCH_USER = SearchUserResponse_ErrorCode_NO_SUCH_USER;
-  static const ErrorCode ERROR = SearchUserResponse_ErrorCode_ERROR;
+  typedef CToBFRsp_ErrorCode ErrorCode;
+  static const ErrorCode OK = CToBFRsp_ErrorCode_OK;
+  static const ErrorCode NO_SUCH_USER = CToBFRsp_ErrorCode_NO_SUCH_USER;
+  static const ErrorCode ERROR = CToBFRsp_ErrorCode_ERROR;
   static inline bool ErrorCode_IsValid(int value) {
-    return SearchUserResponse_ErrorCode_IsValid(value);
+    return CToBFRsp_ErrorCode_IsValid(value);
   }
   static const ErrorCode ErrorCode_MIN =
-    SearchUserResponse_ErrorCode_ErrorCode_MIN;
+    CToBFRsp_ErrorCode_ErrorCode_MIN;
   static const ErrorCode ErrorCode_MAX =
-    SearchUserResponse_ErrorCode_ErrorCode_MAX;
+    CToBFRsp_ErrorCode_ErrorCode_MAX;
   static inline const ::google::protobuf::EnumDescriptor*
   ErrorCode_descriptor() {
-    return SearchUserResponse_ErrorCode_descriptor();
+    return CToBFRsp_ErrorCode_descriptor();
   }
   static inline const ::std::string& ErrorCode_Name(ErrorCode value) {
-    return SearchUserResponse_ErrorCode_Name(value);
+    return CToBFRsp_ErrorCode_Name(value);
   }
   static inline bool ErrorCode_Parse(const ::std::string& name,
       ErrorCode* value) {
-    return SearchUserResponse_ErrorCode_Parse(name, value);
+    return CToBFRsp_ErrorCode_Parse(name, value);
   }
   
   // accessors -------------------------------------------------------
   
-  // required .ProtoForTest.SearchUserResponse.ErrorCode error = 4;
+  // required .ProtoForTest.CToBFRsp.ErrorCode error = 4;
   inline bool has_error() const;
   inline void clear_error();
   static const int kErrorFieldNumber = 4;
-  inline ::ProtoForTest::SearchUserResponse_ErrorCode error() const;
-  inline void set_error(::ProtoForTest::SearchUserResponse_ErrorCode value);
+  inline ::ProtoForTest::CToBFRsp_ErrorCode error() const;
+  inline void set_error(::ProtoForTest::CToBFRsp_ErrorCode value);
   
-  // repeated .ProtoForTest.UserProfile user_profile_list = 5;
-  inline int user_profile_list_size() const;
-  inline void clear_user_profile_list();
-  static const int kUserProfileListFieldNumber = 5;
-  inline const ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile >& user_profile_list() const;
-  inline ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile >* mutable_user_profile_list();
-  inline const ::ProtoForTest::UserProfile& user_profile_list(int index) const;
-  inline ::ProtoForTest::UserProfile* mutable_user_profile_list(int index);
-  inline ::ProtoForTest::UserProfile* add_user_profile_list();
+  // repeated .ProtoForTest.UserProfile user_profile = 5;
+  inline int user_profile_size() const;
+  inline void clear_user_profile();
+  static const int kUserProfileFieldNumber = 5;
+  inline const ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile >& user_profile() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile >* mutable_user_profile();
+  inline const ::ProtoForTest::UserProfile& user_profile(int index) const;
+  inline ::ProtoForTest::UserProfile* mutable_user_profile(int index);
+  inline ::ProtoForTest::UserProfile* add_user_profile();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
   int error_;
-  ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile > user_profile_list_;
+  ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile > user_profile_;
   friend void  protobuf_AddDesc_ProtoForTest_2eproto();
   friend void protobuf_AssignDesc_ProtoForTest_2eproto();
   friend void protobuf_ShutdownFile_ProtoForTest_2eproto();
@@ -425,18 +425,18 @@ class SearchUserResponse : public ::google::protobuf::Message {
   }
   
   void InitAsDefaultInstance();
-  static SearchUserResponse* default_instance_;
+  static CToBFRsp* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class GetUserIDByKeywordRequest : public ::google::protobuf::Message {
+class BFToBB1Req : public ::google::protobuf::Message {
  public:
-  GetUserIDByKeywordRequest();
-  virtual ~GetUserIDByKeywordRequest();
+  BFToBB1Req();
+  virtual ~BFToBB1Req();
   
-  GetUserIDByKeywordRequest(const GetUserIDByKeywordRequest& from);
+  BFToBB1Req(const BFToBB1Req& from);
   
-  inline GetUserIDByKeywordRequest& operator=(const GetUserIDByKeywordRequest& from) {
+  inline BFToBB1Req& operator=(const BFToBB1Req& from) {
     CopyFrom(from);
     return *this;
   }
@@ -450,16 +450,16 @@ class GetUserIDByKeywordRequest : public ::google::protobuf::Message {
   }
   
   static const ::google::protobuf::Descriptor* descriptor();
-  static const GetUserIDByKeywordRequest& default_instance();
-  void Swap(GetUserIDByKeywordRequest* other);
+  static const BFToBB1Req& default_instance();
+  void Swap(BFToBB1Req* other);
   
   // implements Message ----------------------------------------------
   
-  GetUserIDByKeywordRequest* New() const;
+  BFToBB1Req* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const GetUserIDByKeywordRequest& from);
-  void MergeFrom(const GetUserIDByKeywordRequest& from);
+  void CopyFrom(const BFToBB1Req& from);
+  void MergeFrom(const BFToBB1Req& from);
   void Clear();
   bool IsInitialized() const;
   
@@ -521,18 +521,18 @@ class GetUserIDByKeywordRequest : public ::google::protobuf::Message {
   }
   
   void InitAsDefaultInstance();
-  static GetUserIDByKeywordRequest* default_instance_;
+  static BFToBB1Req* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class GetUserIDByKeywordResponse : public ::google::protobuf::Message {
+class BFToBB1Rsp : public ::google::protobuf::Message {
  public:
-  GetUserIDByKeywordResponse();
-  virtual ~GetUserIDByKeywordResponse();
+  BFToBB1Rsp();
+  virtual ~BFToBB1Rsp();
   
-  GetUserIDByKeywordResponse(const GetUserIDByKeywordResponse& from);
+  BFToBB1Rsp(const BFToBB1Rsp& from);
   
-  inline GetUserIDByKeywordResponse& operator=(const GetUserIDByKeywordResponse& from) {
+  inline BFToBB1Rsp& operator=(const BFToBB1Rsp& from) {
     CopyFrom(from);
     return *this;
   }
@@ -546,16 +546,16 @@ class GetUserIDByKeywordResponse : public ::google::protobuf::Message {
   }
   
   static const ::google::protobuf::Descriptor* descriptor();
-  static const GetUserIDByKeywordResponse& default_instance();
-  void Swap(GetUserIDByKeywordResponse* other);
+  static const BFToBB1Rsp& default_instance();
+  void Swap(BFToBB1Rsp* other);
   
   // implements Message ----------------------------------------------
   
-  GetUserIDByKeywordResponse* New() const;
+  BFToBB1Rsp* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const GetUserIDByKeywordResponse& from);
-  void MergeFrom(const GetUserIDByKeywordResponse& from);
+  void CopyFrom(const BFToBB1Rsp& from);
+  void MergeFrom(const BFToBB1Rsp& from);
   void Clear();
   bool IsInitialized() const;
   
@@ -576,55 +576,55 @@ class GetUserIDByKeywordResponse : public ::google::protobuf::Message {
   
   // nested types ----------------------------------------------------
   
-  typedef GetUserIDByKeywordResponse_ErrorCode ErrorCode;
-  static const ErrorCode OK = GetUserIDByKeywordResponse_ErrorCode_OK;
-  static const ErrorCode NO_SUCH_USER = GetUserIDByKeywordResponse_ErrorCode_NO_SUCH_USER;
-  static const ErrorCode ERROR = GetUserIDByKeywordResponse_ErrorCode_ERROR;
+  typedef BFToBB1Rsp_ErrorCode ErrorCode;
+  static const ErrorCode OK = BFToBB1Rsp_ErrorCode_OK;
+  static const ErrorCode NO_SUCH_USER = BFToBB1Rsp_ErrorCode_NO_SUCH_USER;
+  static const ErrorCode ERROR = BFToBB1Rsp_ErrorCode_ERROR;
   static inline bool ErrorCode_IsValid(int value) {
-    return GetUserIDByKeywordResponse_ErrorCode_IsValid(value);
+    return BFToBB1Rsp_ErrorCode_IsValid(value);
   }
   static const ErrorCode ErrorCode_MIN =
-    GetUserIDByKeywordResponse_ErrorCode_ErrorCode_MIN;
+    BFToBB1Rsp_ErrorCode_ErrorCode_MIN;
   static const ErrorCode ErrorCode_MAX =
-    GetUserIDByKeywordResponse_ErrorCode_ErrorCode_MAX;
+    BFToBB1Rsp_ErrorCode_ErrorCode_MAX;
   static inline const ::google::protobuf::EnumDescriptor*
   ErrorCode_descriptor() {
-    return GetUserIDByKeywordResponse_ErrorCode_descriptor();
+    return BFToBB1Rsp_ErrorCode_descriptor();
   }
   static inline const ::std::string& ErrorCode_Name(ErrorCode value) {
-    return GetUserIDByKeywordResponse_ErrorCode_Name(value);
+    return BFToBB1Rsp_ErrorCode_Name(value);
   }
   static inline bool ErrorCode_Parse(const ::std::string& name,
       ErrorCode* value) {
-    return GetUserIDByKeywordResponse_ErrorCode_Parse(name, value);
+    return BFToBB1Rsp_ErrorCode_Parse(name, value);
   }
   
   // accessors -------------------------------------------------------
   
-  // required .ProtoForTest.GetUserIDByKeywordResponse.ErrorCode error = 4;
+  // required .ProtoForTest.BFToBB1Rsp.ErrorCode error = 4;
   inline bool has_error() const;
   inline void clear_error();
   static const int kErrorFieldNumber = 4;
-  inline ::ProtoForTest::GetUserIDByKeywordResponse_ErrorCode error() const;
-  inline void set_error(::ProtoForTest::GetUserIDByKeywordResponse_ErrorCode value);
+  inline ::ProtoForTest::BFToBB1Rsp_ErrorCode error() const;
+  inline void set_error(::ProtoForTest::BFToBB1Rsp_ErrorCode value);
   
-  // repeated int64 user_id_list = 5;
-  inline int user_id_list_size() const;
-  inline void clear_user_id_list();
-  static const int kUserIdListFieldNumber = 5;
-  inline const ::google::protobuf::RepeatedField< ::google::protobuf::int64 >& user_id_list() const
+  // repeated int64 user_id = 5;
+  inline int user_id_size() const;
+  inline void clear_user_id();
+  static const int kUserIdFieldNumber = 5;
+  inline const ::google::protobuf::RepeatedField< ::google::protobuf::int64 >& user_id() const
       ;
-  inline ::google::protobuf::RepeatedField< ::google::protobuf::int64 >* mutable_user_id_list();
-  inline ::google::protobuf::int64 user_id_list(int index) const;
-  inline void set_user_id_list(int index, ::google::protobuf::int64 value);
-  inline void add_user_id_list(::google::protobuf::int64 value);
+  inline ::google::protobuf::RepeatedField< ::google::protobuf::int64 >* mutable_user_id();
+  inline ::google::protobuf::int64 user_id(int index) const;
+  inline void set_user_id(int index, ::google::protobuf::int64 value);
+  inline void add_user_id(::google::protobuf::int64 value);
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
   int error_;
-  ::google::protobuf::RepeatedField< ::google::protobuf::int64 > user_id_list_;
+  ::google::protobuf::RepeatedField< ::google::protobuf::int64 > user_id_;
   friend void  protobuf_AddDesc_ProtoForTest_2eproto();
   friend void protobuf_AssignDesc_ProtoForTest_2eproto();
   friend void protobuf_ShutdownFile_ProtoForTest_2eproto();
@@ -643,18 +643,18 @@ class GetUserIDByKeywordResponse : public ::google::protobuf::Message {
   }
   
   void InitAsDefaultInstance();
-  static GetUserIDByKeywordResponse* default_instance_;
+  static BFToBB1Rsp* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class GetUserProfileRequest : public ::google::protobuf::Message {
+class BFToBB2Req : public ::google::protobuf::Message {
  public:
-  GetUserProfileRequest();
-  virtual ~GetUserProfileRequest();
+  BFToBB2Req();
+  virtual ~BFToBB2Req();
   
-  GetUserProfileRequest(const GetUserProfileRequest& from);
+  BFToBB2Req(const BFToBB2Req& from);
   
-  inline GetUserProfileRequest& operator=(const GetUserProfileRequest& from) {
+  inline BFToBB2Req& operator=(const BFToBB2Req& from) {
     CopyFrom(from);
     return *this;
   }
@@ -668,16 +668,16 @@ class GetUserProfileRequest : public ::google::protobuf::Message {
   }
   
   static const ::google::protobuf::Descriptor* descriptor();
-  static const GetUserProfileRequest& default_instance();
-  void Swap(GetUserProfileRequest* other);
+  static const BFToBB2Req& default_instance();
+  void Swap(BFToBB2Req* other);
   
   // implements Message ----------------------------------------------
   
-  GetUserProfileRequest* New() const;
+  BFToBB2Req* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const GetUserProfileRequest& from);
-  void MergeFrom(const GetUserProfileRequest& from);
+  void CopyFrom(const BFToBB2Req& from);
+  void MergeFrom(const BFToBB2Req& from);
   void Clear();
   bool IsInitialized() const;
   
@@ -700,22 +700,22 @@ class GetUserProfileRequest : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // repeated int64 user_id_list = 4;
-  inline int user_id_list_size() const;
-  inline void clear_user_id_list();
-  static const int kUserIdListFieldNumber = 4;
-  inline const ::google::protobuf::RepeatedField< ::google::protobuf::int64 >& user_id_list() const
+  // repeated int64 user_id = 4;
+  inline int user_id_size() const;
+  inline void clear_user_id();
+  static const int kUserIdFieldNumber = 4;
+  inline const ::google::protobuf::RepeatedField< ::google::protobuf::int64 >& user_id() const
       ;
-  inline ::google::protobuf::RepeatedField< ::google::protobuf::int64 >* mutable_user_id_list();
-  inline ::google::protobuf::int64 user_id_list(int index) const;
-  inline void set_user_id_list(int index, ::google::protobuf::int64 value);
-  inline void add_user_id_list(::google::protobuf::int64 value);
+  inline ::google::protobuf::RepeatedField< ::google::protobuf::int64 >* mutable_user_id();
+  inline ::google::protobuf::int64 user_id(int index) const;
+  inline void set_user_id(int index, ::google::protobuf::int64 value);
+  inline void add_user_id(::google::protobuf::int64 value);
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
-  ::google::protobuf::RepeatedField< ::google::protobuf::int64 > user_id_list_;
+  ::google::protobuf::RepeatedField< ::google::protobuf::int64 > user_id_;
   friend void  protobuf_AddDesc_ProtoForTest_2eproto();
   friend void protobuf_AssignDesc_ProtoForTest_2eproto();
   friend void protobuf_ShutdownFile_ProtoForTest_2eproto();
@@ -734,18 +734,18 @@ class GetUserProfileRequest : public ::google::protobuf::Message {
   }
   
   void InitAsDefaultInstance();
-  static GetUserProfileRequest* default_instance_;
+  static BFToBB2Req* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class GetUserProfileResponse : public ::google::protobuf::Message {
+class BFToBB2Rsp : public ::google::protobuf::Message {
  public:
-  GetUserProfileResponse();
-  virtual ~GetUserProfileResponse();
+  BFToBB2Rsp();
+  virtual ~BFToBB2Rsp();
   
-  GetUserProfileResponse(const GetUserProfileResponse& from);
+  BFToBB2Rsp(const BFToBB2Rsp& from);
   
-  inline GetUserProfileResponse& operator=(const GetUserProfileResponse& from) {
+  inline BFToBB2Rsp& operator=(const BFToBB2Rsp& from) {
     CopyFrom(from);
     return *this;
   }
@@ -759,16 +759,16 @@ class GetUserProfileResponse : public ::google::protobuf::Message {
   }
   
   static const ::google::protobuf::Descriptor* descriptor();
-  static const GetUserProfileResponse& default_instance();
-  void Swap(GetUserProfileResponse* other);
+  static const BFToBB2Rsp& default_instance();
+  void Swap(BFToBB2Rsp* other);
   
   // implements Message ----------------------------------------------
   
-  GetUserProfileResponse* New() const;
+  BFToBB2Rsp* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const GetUserProfileResponse& from);
-  void MergeFrom(const GetUserProfileResponse& from);
+  void CopyFrom(const BFToBB2Rsp& from);
+  void MergeFrom(const BFToBB2Rsp& from);
   void Clear();
   bool IsInitialized() const;
   
@@ -789,54 +789,54 @@ class GetUserProfileResponse : public ::google::protobuf::Message {
   
   // nested types ----------------------------------------------------
   
-  typedef GetUserProfileResponse_ErrorCode ErrorCode;
-  static const ErrorCode OK = GetUserProfileResponse_ErrorCode_OK;
-  static const ErrorCode NO_SUCH_USER = GetUserProfileResponse_ErrorCode_NO_SUCH_USER;
-  static const ErrorCode ERROR = GetUserProfileResponse_ErrorCode_ERROR;
+  typedef BFToBB2Rsp_ErrorCode ErrorCode;
+  static const ErrorCode OK = BFToBB2Rsp_ErrorCode_OK;
+  static const ErrorCode NO_SUCH_USER = BFToBB2Rsp_ErrorCode_NO_SUCH_USER;
+  static const ErrorCode ERROR = BFToBB2Rsp_ErrorCode_ERROR;
   static inline bool ErrorCode_IsValid(int value) {
-    return GetUserProfileResponse_ErrorCode_IsValid(value);
+    return BFToBB2Rsp_ErrorCode_IsValid(value);
   }
   static const ErrorCode ErrorCode_MIN =
-    GetUserProfileResponse_ErrorCode_ErrorCode_MIN;
+    BFToBB2Rsp_ErrorCode_ErrorCode_MIN;
   static const ErrorCode ErrorCode_MAX =
-    GetUserProfileResponse_ErrorCode_ErrorCode_MAX;
+    BFToBB2Rsp_ErrorCode_ErrorCode_MAX;
   static inline const ::google::protobuf::EnumDescriptor*
   ErrorCode_descriptor() {
-    return GetUserProfileResponse_ErrorCode_descriptor();
+    return BFToBB2Rsp_ErrorCode_descriptor();
   }
   static inline const ::std::string& ErrorCode_Name(ErrorCode value) {
-    return GetUserProfileResponse_ErrorCode_Name(value);
+    return BFToBB2Rsp_ErrorCode_Name(value);
   }
   static inline bool ErrorCode_Parse(const ::std::string& name,
       ErrorCode* value) {
-    return GetUserProfileResponse_ErrorCode_Parse(name, value);
+    return BFToBB2Rsp_ErrorCode_Parse(name, value);
   }
   
   // accessors -------------------------------------------------------
   
-  // required .ProtoForTest.GetUserProfileResponse.ErrorCode error = 4;
+  // required .ProtoForTest.BFToBB2Rsp.ErrorCode error = 4;
   inline bool has_error() const;
   inline void clear_error();
   static const int kErrorFieldNumber = 4;
-  inline ::ProtoForTest::GetUserProfileResponse_ErrorCode error() const;
-  inline void set_error(::ProtoForTest::GetUserProfileResponse_ErrorCode value);
+  inline ::ProtoForTest::BFToBB2Rsp_ErrorCode error() const;
+  inline void set_error(::ProtoForTest::BFToBB2Rsp_ErrorCode value);
   
-  // repeated .ProtoForTest.UserProfile user_profile_list = 5;
-  inline int user_profile_list_size() const;
-  inline void clear_user_profile_list();
-  static const int kUserProfileListFieldNumber = 5;
-  inline const ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile >& user_profile_list() const;
-  inline ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile >* mutable_user_profile_list();
-  inline const ::ProtoForTest::UserProfile& user_profile_list(int index) const;
-  inline ::ProtoForTest::UserProfile* mutable_user_profile_list(int index);
-  inline ::ProtoForTest::UserProfile* add_user_profile_list();
+  // repeated .ProtoForTest.UserProfile user_profile = 5;
+  inline int user_profile_size() const;
+  inline void clear_user_profile();
+  static const int kUserProfileFieldNumber = 5;
+  inline const ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile >& user_profile() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile >* mutable_user_profile();
+  inline const ::ProtoForTest::UserProfile& user_profile(int index) const;
+  inline ::ProtoForTest::UserProfile* mutable_user_profile(int index);
+  inline ::ProtoForTest::UserProfile* add_user_profile();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
   int error_;
-  ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile > user_profile_list_;
+  ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile > user_profile_;
   friend void  protobuf_AddDesc_ProtoForTest_2eproto();
   friend void protobuf_AssignDesc_ProtoForTest_2eproto();
   friend void protobuf_ShutdownFile_ProtoForTest_2eproto();
@@ -855,37 +855,37 @@ class GetUserProfileResponse : public ::google::protobuf::Message {
   }
   
   void InitAsDefaultInstance();
-  static GetUserProfileResponse* default_instance_;
+  static BFToBB2Rsp* default_instance_;
 };
 // ===================================================================
 
 
 // ===================================================================
 
-static const int kClientSearchUserReqFieldNumber = 201;
+static const int kCToBfReqFieldNumber = 201;
 extern ::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::ProtoForTest::SearchUserRequest >, 11, false >
-  client_search_user_req;
-static const int kClientSearchUserRspFieldNumber = 202;
+    ::google::protobuf::internal::MessageTypeTraits< ::ProtoForTest::CToBFReq >, 11, false >
+  c_to_bf_req;
+static const int kCToBfRspFieldNumber = 202;
 extern ::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::ProtoForTest::SearchUserResponse >, 11, false >
-  client_search_user_rsp;
-static const int kBbGetUserIdByKeywordReqFieldNumber = 203;
+    ::google::protobuf::internal::MessageTypeTraits< ::ProtoForTest::CToBFRsp >, 11, false >
+  c_to_bf_rsp;
+static const int kBfToBb1ReqFieldNumber = 203;
 extern ::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::ProtoForTest::GetUserIDByKeywordRequest >, 11, false >
-  bb_get_user_id_by_keyword_req;
-static const int kBbGetUserIdByKeywordRspFieldNumber = 204;
+    ::google::protobuf::internal::MessageTypeTraits< ::ProtoForTest::BFToBB1Req >, 11, false >
+  bf_to_bb1_req;
+static const int kBfToBb1RspFieldNumber = 204;
 extern ::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::ProtoForTest::GetUserIDByKeywordResponse >, 11, false >
-  bb_get_user_id_by_keyword_rsp;
-static const int kBbGetUserProfileReqFieldNumber = 205;
+    ::google::protobuf::internal::MessageTypeTraits< ::ProtoForTest::BFToBB1Rsp >, 11, false >
+  bf_to_bb1_rsp;
+static const int kBfToBb2ReqFieldNumber = 205;
 extern ::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::ProtoForTest::GetUserProfileRequest >, 11, false >
-  bb_get_user_profile_req;
-static const int kBbGetUserProfileRspFieldNumber = 206;
+    ::google::protobuf::internal::MessageTypeTraits< ::ProtoForTest::BFToBB2Req >, 11, false >
+  bf_to_bb2_req;
+static const int kBfToBb2RspFieldNumber = 206;
 extern ::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::ProtoForTest::GetUserProfileResponse >, 11, false >
-  bb_get_user_profile_rsp;
+    ::google::protobuf::internal::MessageTypeTraits< ::ProtoForTest::BFToBB2Rsp >, 11, false >
+  bf_to_bb2_rsp;
 
 // ===================================================================
 
@@ -1009,43 +1009,43 @@ inline void UserProfile::set_gender(::google::protobuf::int32 value) {
 
 // -------------------------------------------------------------------
 
-// SearchUserRequest
+// CToBFReq
 
 // required string query_string = 4;
-inline bool SearchUserRequest::has_query_string() const {
+inline bool CToBFReq::has_query_string() const {
   return _has_bit(0);
 }
-inline void SearchUserRequest::clear_query_string() {
+inline void CToBFReq::clear_query_string() {
   if (query_string_ != &_default_query_string_) {
     query_string_->clear();
   }
   _clear_bit(0);
 }
-inline const ::std::string& SearchUserRequest::query_string() const {
+inline const ::std::string& CToBFReq::query_string() const {
   return *query_string_;
 }
-inline void SearchUserRequest::set_query_string(const ::std::string& value) {
+inline void CToBFReq::set_query_string(const ::std::string& value) {
   _set_bit(0);
   if (query_string_ == &_default_query_string_) {
     query_string_ = new ::std::string;
   }
   query_string_->assign(value);
 }
-inline void SearchUserRequest::set_query_string(const char* value) {
+inline void CToBFReq::set_query_string(const char* value) {
   _set_bit(0);
   if (query_string_ == &_default_query_string_) {
     query_string_ = new ::std::string;
   }
   query_string_->assign(value);
 }
-inline void SearchUserRequest::set_query_string(const char* value, size_t size) {
+inline void CToBFReq::set_query_string(const char* value, size_t size) {
   _set_bit(0);
   if (query_string_ == &_default_query_string_) {
     query_string_ = new ::std::string;
   }
   query_string_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* SearchUserRequest::mutable_query_string() {
+inline ::std::string* CToBFReq::mutable_query_string() {
   _set_bit(0);
   if (query_string_ == &_default_query_string_) {
     query_string_ = new ::std::string;
@@ -1055,217 +1055,217 @@ inline ::std::string* SearchUserRequest::mutable_query_string() {
 
 // -------------------------------------------------------------------
 
-// SearchUserResponse
+// CToBFRsp
 
-// required .ProtoForTest.SearchUserResponse.ErrorCode error = 4;
-inline bool SearchUserResponse::has_error() const {
+// required .ProtoForTest.CToBFRsp.ErrorCode error = 4;
+inline bool CToBFRsp::has_error() const {
   return _has_bit(0);
 }
-inline void SearchUserResponse::clear_error() {
+inline void CToBFRsp::clear_error() {
   error_ = 0;
   _clear_bit(0);
 }
-inline ::ProtoForTest::SearchUserResponse_ErrorCode SearchUserResponse::error() const {
-  return static_cast< ::ProtoForTest::SearchUserResponse_ErrorCode >(error_);
+inline ::ProtoForTest::CToBFRsp_ErrorCode CToBFRsp::error() const {
+  return static_cast< ::ProtoForTest::CToBFRsp_ErrorCode >(error_);
 }
-inline void SearchUserResponse::set_error(::ProtoForTest::SearchUserResponse_ErrorCode value) {
-  GOOGLE_DCHECK(::ProtoForTest::SearchUserResponse_ErrorCode_IsValid(value));
+inline void CToBFRsp::set_error(::ProtoForTest::CToBFRsp_ErrorCode value) {
+  GOOGLE_DCHECK(::ProtoForTest::CToBFRsp_ErrorCode_IsValid(value));
   _set_bit(0);
   error_ = value;
 }
 
-// repeated .ProtoForTest.UserProfile user_profile_list = 5;
-inline int SearchUserResponse::user_profile_list_size() const {
-  return user_profile_list_.size();
+// repeated .ProtoForTest.UserProfile user_profile = 5;
+inline int CToBFRsp::user_profile_size() const {
+  return user_profile_.size();
 }
-inline void SearchUserResponse::clear_user_profile_list() {
-  user_profile_list_.Clear();
+inline void CToBFRsp::clear_user_profile() {
+  user_profile_.Clear();
 }
 inline const ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile >&
-SearchUserResponse::user_profile_list() const {
-  return user_profile_list_;
+CToBFRsp::user_profile() const {
+  return user_profile_;
 }
 inline ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile >*
-SearchUserResponse::mutable_user_profile_list() {
-  return &user_profile_list_;
+CToBFRsp::mutable_user_profile() {
+  return &user_profile_;
 }
-inline const ::ProtoForTest::UserProfile& SearchUserResponse::user_profile_list(int index) const {
-  return user_profile_list_.Get(index);
+inline const ::ProtoForTest::UserProfile& CToBFRsp::user_profile(int index) const {
+  return user_profile_.Get(index);
 }
-inline ::ProtoForTest::UserProfile* SearchUserResponse::mutable_user_profile_list(int index) {
-  return user_profile_list_.Mutable(index);
+inline ::ProtoForTest::UserProfile* CToBFRsp::mutable_user_profile(int index) {
+  return user_profile_.Mutable(index);
 }
-inline ::ProtoForTest::UserProfile* SearchUserResponse::add_user_profile_list() {
-  return user_profile_list_.Add();
+inline ::ProtoForTest::UserProfile* CToBFRsp::add_user_profile() {
+  return user_profile_.Add();
 }
 
 // -------------------------------------------------------------------
 
-// GetUserIDByKeywordRequest
+// BFToBB1Req
 
 // repeated string user_name_keyword = 4;
-inline int GetUserIDByKeywordRequest::user_name_keyword_size() const {
+inline int BFToBB1Req::user_name_keyword_size() const {
   return user_name_keyword_.size();
 }
-inline void GetUserIDByKeywordRequest::clear_user_name_keyword() {
+inline void BFToBB1Req::clear_user_name_keyword() {
   user_name_keyword_.Clear();
 }
 inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
-GetUserIDByKeywordRequest::user_name_keyword() const {
+BFToBB1Req::user_name_keyword() const {
   return user_name_keyword_;
 }
 inline ::google::protobuf::RepeatedPtrField< ::std::string>*
-GetUserIDByKeywordRequest::mutable_user_name_keyword() {
+BFToBB1Req::mutable_user_name_keyword() {
   return &user_name_keyword_;
 }
-inline const ::std::string& GetUserIDByKeywordRequest::user_name_keyword(int index) const {
+inline const ::std::string& BFToBB1Req::user_name_keyword(int index) const {
   return user_name_keyword_.Get(index);
 }
-inline ::std::string* GetUserIDByKeywordRequest::mutable_user_name_keyword(int index) {
+inline ::std::string* BFToBB1Req::mutable_user_name_keyword(int index) {
   return user_name_keyword_.Mutable(index);
 }
-inline void GetUserIDByKeywordRequest::set_user_name_keyword(int index, const ::std::string& value) {
+inline void BFToBB1Req::set_user_name_keyword(int index, const ::std::string& value) {
   user_name_keyword_.Mutable(index)->assign(value);
 }
-inline void GetUserIDByKeywordRequest::set_user_name_keyword(int index, const char* value) {
+inline void BFToBB1Req::set_user_name_keyword(int index, const char* value) {
   user_name_keyword_.Mutable(index)->assign(value);
 }
-inline void GetUserIDByKeywordRequest::set_user_name_keyword(int index, const char* value, size_t size) {
+inline void BFToBB1Req::set_user_name_keyword(int index, const char* value, size_t size) {
   user_name_keyword_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* GetUserIDByKeywordRequest::add_user_name_keyword() {
+inline ::std::string* BFToBB1Req::add_user_name_keyword() {
   return user_name_keyword_.Add();
 }
-inline void GetUserIDByKeywordRequest::add_user_name_keyword(const ::std::string& value) {
+inline void BFToBB1Req::add_user_name_keyword(const ::std::string& value) {
   user_name_keyword_.Add()->assign(value);
 }
-inline void GetUserIDByKeywordRequest::add_user_name_keyword(const char* value) {
+inline void BFToBB1Req::add_user_name_keyword(const char* value) {
   user_name_keyword_.Add()->assign(value);
 }
-inline void GetUserIDByKeywordRequest::add_user_name_keyword(const char* value, size_t size) {
+inline void BFToBB1Req::add_user_name_keyword(const char* value, size_t size) {
   user_name_keyword_.Add()->assign(reinterpret_cast<const char*>(value), size);
 }
 
 // -------------------------------------------------------------------
 
-// GetUserIDByKeywordResponse
+// BFToBB1Rsp
 
-// required .ProtoForTest.GetUserIDByKeywordResponse.ErrorCode error = 4;
-inline bool GetUserIDByKeywordResponse::has_error() const {
+// required .ProtoForTest.BFToBB1Rsp.ErrorCode error = 4;
+inline bool BFToBB1Rsp::has_error() const {
   return _has_bit(0);
 }
-inline void GetUserIDByKeywordResponse::clear_error() {
+inline void BFToBB1Rsp::clear_error() {
   error_ = 0;
   _clear_bit(0);
 }
-inline ::ProtoForTest::GetUserIDByKeywordResponse_ErrorCode GetUserIDByKeywordResponse::error() const {
-  return static_cast< ::ProtoForTest::GetUserIDByKeywordResponse_ErrorCode >(error_);
+inline ::ProtoForTest::BFToBB1Rsp_ErrorCode BFToBB1Rsp::error() const {
+  return static_cast< ::ProtoForTest::BFToBB1Rsp_ErrorCode >(error_);
 }
-inline void GetUserIDByKeywordResponse::set_error(::ProtoForTest::GetUserIDByKeywordResponse_ErrorCode value) {
-  GOOGLE_DCHECK(::ProtoForTest::GetUserIDByKeywordResponse_ErrorCode_IsValid(value));
+inline void BFToBB1Rsp::set_error(::ProtoForTest::BFToBB1Rsp_ErrorCode value) {
+  GOOGLE_DCHECK(::ProtoForTest::BFToBB1Rsp_ErrorCode_IsValid(value));
   _set_bit(0);
   error_ = value;
 }
 
-// repeated int64 user_id_list = 5;
-inline int GetUserIDByKeywordResponse::user_id_list_size() const {
-  return user_id_list_.size();
+// repeated int64 user_id = 5;
+inline int BFToBB1Rsp::user_id_size() const {
+  return user_id_.size();
 }
-inline void GetUserIDByKeywordResponse::clear_user_id_list() {
-  user_id_list_.Clear();
+inline void BFToBB1Rsp::clear_user_id() {
+  user_id_.Clear();
 }
 inline const ::google::protobuf::RepeatedField< ::google::protobuf::int64 >&
-GetUserIDByKeywordResponse::user_id_list() const {
-  return user_id_list_;
+BFToBB1Rsp::user_id() const {
+  return user_id_;
 }
 inline ::google::protobuf::RepeatedField< ::google::protobuf::int64 >*
-GetUserIDByKeywordResponse::mutable_user_id_list() {
-  return &user_id_list_;
+BFToBB1Rsp::mutable_user_id() {
+  return &user_id_;
 }
-inline ::google::protobuf::int64 GetUserIDByKeywordResponse::user_id_list(int index) const {
-  return user_id_list_.Get(index);
+inline ::google::protobuf::int64 BFToBB1Rsp::user_id(int index) const {
+  return user_id_.Get(index);
 }
-inline void GetUserIDByKeywordResponse::set_user_id_list(int index, ::google::protobuf::int64 value) {
-  user_id_list_.Set(index, value);
+inline void BFToBB1Rsp::set_user_id(int index, ::google::protobuf::int64 value) {
+  user_id_.Set(index, value);
 }
-inline void GetUserIDByKeywordResponse::add_user_id_list(::google::protobuf::int64 value) {
-  user_id_list_.Add(value);
+inline void BFToBB1Rsp::add_user_id(::google::protobuf::int64 value) {
+  user_id_.Add(value);
 }
 
 // -------------------------------------------------------------------
 
-// GetUserProfileRequest
+// BFToBB2Req
 
-// repeated int64 user_id_list = 4;
-inline int GetUserProfileRequest::user_id_list_size() const {
-  return user_id_list_.size();
+// repeated int64 user_id = 4;
+inline int BFToBB2Req::user_id_size() const {
+  return user_id_.size();
 }
-inline void GetUserProfileRequest::clear_user_id_list() {
-  user_id_list_.Clear();
+inline void BFToBB2Req::clear_user_id() {
+  user_id_.Clear();
 }
 inline const ::google::protobuf::RepeatedField< ::google::protobuf::int64 >&
-GetUserProfileRequest::user_id_list() const {
-  return user_id_list_;
+BFToBB2Req::user_id() const {
+  return user_id_;
 }
 inline ::google::protobuf::RepeatedField< ::google::protobuf::int64 >*
-GetUserProfileRequest::mutable_user_id_list() {
-  return &user_id_list_;
+BFToBB2Req::mutable_user_id() {
+  return &user_id_;
 }
-inline ::google::protobuf::int64 GetUserProfileRequest::user_id_list(int index) const {
-  return user_id_list_.Get(index);
+inline ::google::protobuf::int64 BFToBB2Req::user_id(int index) const {
+  return user_id_.Get(index);
 }
-inline void GetUserProfileRequest::set_user_id_list(int index, ::google::protobuf::int64 value) {
-  user_id_list_.Set(index, value);
+inline void BFToBB2Req::set_user_id(int index, ::google::protobuf::int64 value) {
+  user_id_.Set(index, value);
 }
-inline void GetUserProfileRequest::add_user_id_list(::google::protobuf::int64 value) {
-  user_id_list_.Add(value);
+inline void BFToBB2Req::add_user_id(::google::protobuf::int64 value) {
+  user_id_.Add(value);
 }
 
 // -------------------------------------------------------------------
 
-// GetUserProfileResponse
+// BFToBB2Rsp
 
-// required .ProtoForTest.GetUserProfileResponse.ErrorCode error = 4;
-inline bool GetUserProfileResponse::has_error() const {
+// required .ProtoForTest.BFToBB2Rsp.ErrorCode error = 4;
+inline bool BFToBB2Rsp::has_error() const {
   return _has_bit(0);
 }
-inline void GetUserProfileResponse::clear_error() {
+inline void BFToBB2Rsp::clear_error() {
   error_ = 0;
   _clear_bit(0);
 }
-inline ::ProtoForTest::GetUserProfileResponse_ErrorCode GetUserProfileResponse::error() const {
-  return static_cast< ::ProtoForTest::GetUserProfileResponse_ErrorCode >(error_);
+inline ::ProtoForTest::BFToBB2Rsp_ErrorCode BFToBB2Rsp::error() const {
+  return static_cast< ::ProtoForTest::BFToBB2Rsp_ErrorCode >(error_);
 }
-inline void GetUserProfileResponse::set_error(::ProtoForTest::GetUserProfileResponse_ErrorCode value) {
-  GOOGLE_DCHECK(::ProtoForTest::GetUserProfileResponse_ErrorCode_IsValid(value));
+inline void BFToBB2Rsp::set_error(::ProtoForTest::BFToBB2Rsp_ErrorCode value) {
+  GOOGLE_DCHECK(::ProtoForTest::BFToBB2Rsp_ErrorCode_IsValid(value));
   _set_bit(0);
   error_ = value;
 }
 
-// repeated .ProtoForTest.UserProfile user_profile_list = 5;
-inline int GetUserProfileResponse::user_profile_list_size() const {
-  return user_profile_list_.size();
+// repeated .ProtoForTest.UserProfile user_profile = 5;
+inline int BFToBB2Rsp::user_profile_size() const {
+  return user_profile_.size();
 }
-inline void GetUserProfileResponse::clear_user_profile_list() {
-  user_profile_list_.Clear();
+inline void BFToBB2Rsp::clear_user_profile() {
+  user_profile_.Clear();
 }
 inline const ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile >&
-GetUserProfileResponse::user_profile_list() const {
-  return user_profile_list_;
+BFToBB2Rsp::user_profile() const {
+  return user_profile_;
 }
 inline ::google::protobuf::RepeatedPtrField< ::ProtoForTest::UserProfile >*
-GetUserProfileResponse::mutable_user_profile_list() {
-  return &user_profile_list_;
+BFToBB2Rsp::mutable_user_profile() {
+  return &user_profile_;
 }
-inline const ::ProtoForTest::UserProfile& GetUserProfileResponse::user_profile_list(int index) const {
-  return user_profile_list_.Get(index);
+inline const ::ProtoForTest::UserProfile& BFToBB2Rsp::user_profile(int index) const {
+  return user_profile_.Get(index);
 }
-inline ::ProtoForTest::UserProfile* GetUserProfileResponse::mutable_user_profile_list(int index) {
-  return user_profile_list_.Mutable(index);
+inline ::ProtoForTest::UserProfile* BFToBB2Rsp::mutable_user_profile(int index) {
+  return user_profile_.Mutable(index);
 }
-inline ::ProtoForTest::UserProfile* GetUserProfileResponse::add_user_profile_list() {
-  return user_profile_list_.Add();
+inline ::ProtoForTest::UserProfile* BFToBB2Rsp::add_user_profile() {
+  return user_profile_.Add();
 }
 
 
@@ -1276,16 +1276,16 @@ namespace google {
 namespace protobuf {
 
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::ProtoForTest::SearchUserResponse_ErrorCode>() {
-  return ::ProtoForTest::SearchUserResponse_ErrorCode_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::ProtoForTest::CToBFRsp_ErrorCode>() {
+  return ::ProtoForTest::CToBFRsp_ErrorCode_descriptor();
 }
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::ProtoForTest::GetUserIDByKeywordResponse_ErrorCode>() {
-  return ::ProtoForTest::GetUserIDByKeywordResponse_ErrorCode_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::ProtoForTest::BFToBB1Rsp_ErrorCode>() {
+  return ::ProtoForTest::BFToBB1Rsp_ErrorCode_descriptor();
 }
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::ProtoForTest::GetUserProfileResponse_ErrorCode>() {
-  return ::ProtoForTest::GetUserProfileResponse_ErrorCode_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::ProtoForTest::BFToBB2Rsp_ErrorCode>() {
+  return ::ProtoForTest::BFToBB2Rsp_ErrorCode_descriptor();
 }
 
 }  // namespace google

@@ -66,9 +66,10 @@ int Skeleton::Init() {
     ret = InitListenSocket();
     if (ret < 0) {
         SLOG(LogLevel.L_INFO, "InitListenSocket() error!\n");
-        LEAVING;
-        return -2
+    } else {
+        listen_socket_ready_ = true;
     }
+    LEAVING;
     return 0;
 }
 

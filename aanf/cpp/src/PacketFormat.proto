@@ -5,6 +5,7 @@ message PacketFormat {
     required int32 service_id = 11; // 用来区分不同的业务，每类业务分配一个ID
     required int32 type = 12;      // 用来区分该业务ID下的报文类型
     required int32 version = 13;   // 报文的版本
+    required int64 seq = 14;
     extensions 100 to max;         // 该报文的具体格式
 }
 

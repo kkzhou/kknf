@@ -27,11 +27,12 @@ void protobuf_AssignDesc_PacketFormat_2eproto() {
       "PacketFormat.proto");
   GOOGLE_CHECK(file != NULL);
   PacketFormat_descriptor_ = file->message_type(0);
-  static const int PacketFormat_offsets_[4] = {
+  static const int PacketFormat_offsets_[5] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PacketFormat, length_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PacketFormat, service_id_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PacketFormat, type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PacketFormat, version_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PacketFormat, seq_),
   };
   PacketFormat_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -74,10 +75,10 @@ void protobuf_AddDesc_PacketFormat_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\022PacketFormat.proto\022\010Protocol\"[\n\014Packet"
+    "\n\022PacketFormat.proto\022\010Protocol\"h\n\014Packet"
     "Format\022\016\n\006length\030\001 \002(\007\022\022\n\nservice_id\030\013 \002"
-    "(\005\022\014\n\004type\030\014 \002(\005\022\017\n\007version\030\r \002(\005*\010\010d\020\200\200"
-    "\200\200\002", 123);
+    "(\005\022\014\n\004type\030\014 \002(\005\022\017\n\007version\030\r \002(\005\022\013\n\003seq"
+    "\030\016 \002(\003*\010\010d\020\200\200\200\200\002", 136);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "PacketFormat.proto", &protobuf_RegisterTypes);
   PacketFormat::default_instance_ = new PacketFormat();
@@ -100,6 +101,7 @@ const int PacketFormat::kLengthFieldNumber;
 const int PacketFormat::kServiceIdFieldNumber;
 const int PacketFormat::kTypeFieldNumber;
 const int PacketFormat::kVersionFieldNumber;
+const int PacketFormat::kSeqFieldNumber;
 #endif  // !_MSC_VER
 
 PacketFormat::PacketFormat() {
@@ -120,6 +122,7 @@ void PacketFormat::SharedCtor() {
   service_id_ = 0;
   type_ = 0;
   version_ = 0;
+  seq_ = GOOGLE_LONGLONG(0);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -154,6 +157,7 @@ void PacketFormat::Clear() {
     service_id_ = 0;
     type_ = 0;
     version_ = 0;
+    seq_ = GOOGLE_LONGLONG(0);
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -216,6 +220,20 @@ bool PacketFormat::MergePartialFromCodedStream(
         DO_(::google::protobuf::internal::WireFormatLite::ReadInt32(
               input, &version_));
         _set_bit(3);
+        if (input->ExpectTag(112)) goto parse_seq;
+        break;
+      }
+      
+      // required int64 seq = 14;
+      case 14: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          goto handle_uninterpreted;
+        }
+       parse_seq:
+        DO_(::google::protobuf::internal::WireFormatLite::ReadInt64(
+              input, &seq_));
+        _set_bit(4);
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -269,6 +287,11 @@ void PacketFormat::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt32(13, this->version(), output);
   }
   
+  // required int64 seq = 14;
+  if (_has_bit(4)) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt64(14, this->seq(), output);
+  }
+  
   // Extension range [100, 536870912)
   _extensions_.SerializeWithCachedSizes(
       100, 536870912, output);
@@ -299,6 +322,11 @@ void PacketFormat::SerializeWithCachedSizes(
   // required int32 version = 13;
   if (_has_bit(3)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(13, this->version(), target);
+  }
+  
+  // required int64 seq = 14;
+  if (_has_bit(4)) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(14, this->seq(), target);
   }
   
   // Extension range [100, 536870912)
@@ -342,6 +370,13 @@ int PacketFormat::ByteSize() const {
           this->version());
     }
     
+    // required int64 seq = 14;
+    if (has_seq()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int64Size(
+          this->seq());
+    }
+    
   }
   total_size += _extensions_.ByteSize();
   
@@ -381,6 +416,9 @@ void PacketFormat::MergeFrom(const PacketFormat& from) {
     if (from._has_bit(3)) {
       set_version(from.version());
     }
+    if (from._has_bit(4)) {
+      set_seq(from.seq());
+    }
   }
   _extensions_.MergeFrom(from._extensions_);
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -399,7 +437,7 @@ void PacketFormat::CopyFrom(const PacketFormat& from) {
 }
 
 bool PacketFormat::IsInitialized() const {
-  if ((_has_bits_[0] & 0x0000000f) != 0x0000000f) return false;
+  if ((_has_bits_[0] & 0x0000001f) != 0x0000001f) return false;
   
   
   if (!_extensions_.IsInitialized()) return false;  return true;
@@ -411,6 +449,7 @@ void PacketFormat::Swap(PacketFormat* other) {
     std::swap(service_id_, other->service_id_);
     std::swap(type_, other->type_);
     std::swap(version_, other->version_);
+    std::swap(seq_, other->seq_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

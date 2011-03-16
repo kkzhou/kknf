@@ -17,12 +17,30 @@
 
 #include <string>
 #include <iostream>
+#include <list>
 #include "server.h"
 #include "ProtoForTest.pb.h"
 
 using std;
 using namespace AANF;
 using namespace Protocol;
+
+class BFLocalData {
+public:
+    class UserProfile {
+    public:
+        uint64_t user_id_;
+        string user_name_;
+        string user_desc_;
+        int gender_;
+    };
+public:
+    list<uint64_t> userid_list_;
+    lise<UserProfile> userprofile_list_;
+    uint64_t seq_from_client_;
+    string client_ipstr_;
+    uint16_t client_port_;
+};
 
 class TestBF : public Skeleton {
 public:
@@ -31,7 +49,12 @@ private:
     int ProcessPacketFromClient(Packet &input_pkt);
     int ProcessPacketFromBB1(Packet &input_pkt);
     int ProcessPacketFromBB2(Packet &input_pkt);
+private:
+    map<uint64_t, BFLocalData*> ld_map_;
+    static uint64_t sequence_;
 };
+
+uint64_t TestBF::sequence_ = 0;
 
 int main(int argc, char **argv) {
 
@@ -68,22 +91,128 @@ int main(int argc, char **argv) {
     bf->Init();
     bf->Run();
     return 0;
-
 }
-
-
-
 
 int TestBF::ProcessPacket(Packet &input_pkt) {
 
-    PacketFormat req;
-    req.ParseFromArray(input_pkt.data_->start_, input_pkt.data_->used_);
-    if (req.type() == 1) {
-        SLOG(LogLevel.L_LOGICERR, "input packet is type=%d\n", req.type());
-        PacketFormat bb1req;
-        GetUserIDByKeywordRequest get_userid_by_keyword_req;
-        get_userid_by_keyword_req.set_user_name_keyword(req.cl);
+    ENTERING;
+    PacketFormat pkt;
+    pkt.ParseFromArray(input_pkt.data_->start_, input_pkt.data_->used_);
+
+    if (pkt.type() == 1) {
+        // 从C过来的请求
+        SLOG(LogLevel.L_INFO, "input packet is type=%d\n", pkt.type());
+        CToBFReq inner_pkt;
+        inner_pkt = req.GetExtension(c_to_bf_req);
+
+        BFLocalData *ld = new BFLocalData;
+        ld->seq_from_client_ = pkt.seq();
+        ld->client_ipstr_ = pkt.peer_ipstr_;
+        ld->client_port_ = pkt.peer_port_;
+        ld_map_.insert(pair<uint64_t, BFLocalData*>(sequence_++, ld));
+
+        // 构造发给BB1的报文
+        PacketFormat req;
+        BFToBB1Req inner_bf_to_bb1_req;
+        inner_bf_to_bb1_req.set_user_name_keyword(inner_pkt.query_string());
+        req.SetExtension(bf_to_bb1_req, inner_bf_to_bb1_req);
+
+        MemBlock *to_send = 0;
+        int ret = MemPool::GetMemPool()->GetMemBlock(req.length(), to_send);
+        req.SerializeToArray(to_send->start_, to_send->used_);
+
+        string to_ip = "127.0.0.1";
+        uint16_t to_port = 10001;
+
+        client->AsyncSend(to_ip, to_port, "127.0.0.1", 0,
+                        to_send, Socket::SocketType.T_TCP_CLIENT,
+                        Socket::DataFormat.DF_BIN, 0);
+        SLOG(LogLevel.L_INFO, "after AsyncSend() to BB1\n");
+
+    } else if (req.type() == 2) {
+        // 从BB1回来的报文
+        SLOG(LogLevel.L_INFO, "input packet is type=%d\n", req.type());
+        BFToBB1Rsp inner_pkt;
+        inner_pkt = req.GetExtension(bf_to_bb1_rsp);
+        BFLocalData *ld = ld_map_[pkt.seq()];
+
+        for (int i = 0; i < inner_pkt.user_id_size(); i++) {
+
+            ld->userid_list_.push_back(inner_rsp.user_id(i));
+        }
+
+        // 构造发给BB2的报文
+        PacketFormat req;
+        BFToBB2Req inner_bf_to_bb2_req;
+
+        list<uint64_t>::iterator it, endit = ld->userid_list_.end();
+
+
+        for (it = ld->userid_list_.begin(); it != endit; it++) {
+            uint64_t *userid = inner_bf_to_bb2_req.add_user_id();
+            *userid = *it;
+        }
+
+        req.SetExtension(bf_to_bb2_req, inner_bf_to_bb2_req);
+
+        MemBlock *to_send = 0;
+        int ret = MemPool::GetMemPool()->GetMemBlock(req.length(), to_send);
+        req.SerializeToArray(to_send->start_, to_send->used_);
+
+        string to_ip = "127.0.0.1";
+        uint16_t to_port = 10001;
+
+        client->AsyncSend(to_ip, to_port, "127.0.0.1", 0,
+                        to_send, Socket::SocketType.T_TCP_CLIENT,
+                        Socket::DataFormat.DF_BIN, 0);
+        SLOG(LogLevel.L_INFO, "after AsyncSend() to BB2\n");
+
+    } else if (pkt.type() == 3) {
+        // 从BB2回来的应答报文
+        SLOG(LogLevel.L_INFO, "input packet is type=%d\n", pkt.type());
+        BFToBB2Rsp inner_rsp;
+        inner_rsp = pkt.GetExtension(bf_to_bb2_rsp);
+        BFLocalData *ld = ld_map_[pkt.seq()];
+
+        for (int i = 0; i < inner_rsp.user_profile_size(); i++) {
+            BFLocalData::UserProfile new_user_profile;
+            UserProfile *user_profile_in_pkt = inner_rsp.user_profile(i);
+
+            new_user_profile.gender_ = user_profile_in_pkt->gender();
+            new_user_profile.user_name_ = user_profile_in_pkt->user_name();
+            new_user_profile.user_desc_ = user_profile_in_pkt->user_desc();
+            new_user_profile.user_id_ = user_profile_in_pkt->user_id();
+            ld->userprofile_list_.push_back(new_user_profile);
+        }
+
+        // 构造发给C的响应报文
+        PacketFormat rsp;
+        CToBFRsp inner_c_to_bf_rsp;
+
+        list<BFLocalData::UserProfile>::iterator it, endit = ld->userprofile_list_.end();
+
+        for (it = ld->userprofile_list_.begin(); it != endit; it++) {
+            UserProfile *tmp = inner_rsp.add_user_profile();
+            tmp->set_user_id(it->user_id());
+            tmp->set_gender(it->gender());
+            tmp->set_user_name(it->user_name());
+            tmp->set_user_desc(it->user_desc());
+        }
+
+        rsp.SetExtension(bf_to_bb2_req, inner_c_to_bf_rsp);
+
+        MemBlock *to_send = 0;
+        int ret = MemPool::GetMemPool()->GetMemBlock(req.length(), to_send);
+        rsp.SerializeToArray(to_send->start_, to_send->used_);
+
+        string to_ip = ld->client_ipstr_;
+        uint16_t to_port = ld->client_port_;
+
+        client->AsyncSend(to_ip, to_port, "127.0.0.1", 0,
+                        to_send, Socket::SocketType.T_TCP_SERVER,
+                        Socket::DataFormat.DF_BIN, 0);
+        SLOG(LogLevel.L_INFO, "after AsyncSend() to C\n");
     }
-
-
+    LEAVING;
+    return 0;
 }

@@ -10,58 +10,58 @@ message UserProfile {
 }
 
 // 客户端发给BF的报文，最好独立写在一个proto文件里
-message SearchUserRequest {
+message CToBFReq{
     required string query_string = 4;
 }
 
-message SearchUserResponse {
+message CToBFRsp{
     enum ErrorCode {
         OK = 0;
         NO_SUCH_USER = 1;
         ERROR = 2;
     }
     required ErrorCode error = 4;
-    repeated UserProfile user_profile_list = 5;
+    repeated UserProfile user_profile = 5;
 }
 
 // BF发给BB_1的报文，用于根据用户名的关键字得到用户ID列表，最好独立写在一个proto文件里
-message GetUserIDByKeywordRequest {
+message BFToBB1Req{
     repeated string user_name_keyword = 4;
 }
 
-message GetUserIDByKeywordResponse {
+message BFToBB1Rsp{
     enum ErrorCode {
         OK = 0;
         NO_SUCH_USER = 1;
         ERROR = 2;
     }
     required ErrorCode error = 4;
-    repeated int64 user_id_list = 5;
+    repeated int64 user_id = 5;
 }
 
 // BF发给BB_2的报文，用于根据用户ID列表，得到用户的详细信息(这里是UserDesc)，最好独立写在一个proto文件里
-message GetUserProfileRequest {
-    repeated int64 user_id_list = 4;
+message BFToBB2Req{
+    repeated int64 user_id = 4;
 }
 
-message GetUserProfileResponse {
+message BFToBB2Rsp{
     enum ErrorCode {
         OK = 0;
         NO_SUCH_USER = 1;
         ERROR = 2;
     }
     required ErrorCode error = 4;
-    repeated UserProfile user_profile_list = 5;
+    repeated UserProfile user_profile = 5;
 }
 
 extend Protocol.PacketFormat {
     // 客户端和BF之间的报文
-    optional SearchUserRequest client_search_user_req = 201;
-    optional SearchUserResponse client_search_user_rsp = 202;
+    optional CToBFReq c_to_bf_req = 201;
+    optional CToBFRsp c_to_bf_rsp = 202;
     // BF和BB1之间的报文
-    optional GetUserIDByKeywordRequest bb_get_user_id_by_keyword_req = 203;
-    optional GetUserIDByKeywordResponse bb_get_user_id_by_keyword_rsp = 204;
+    optional BFToBB1Req bf_to_bb1_req = 203;
+    optional BFToBB1Rsp bf_to_bb1_rsp = 204;
     // BF和BB2之间的报文
-    optional GetUserProfileRequest bb_get_user_profile_req = 205;
-    optional GetUserProfileResponse bb_get_user_profile_rsp = 206;
+    optional BFToBB2Req bf_to_bb2_req = 205;
+    optional BFToBB2Rsp bf_to_bb2_rsp = 206;
 }

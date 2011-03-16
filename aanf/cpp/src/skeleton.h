@@ -121,6 +121,7 @@ private:
     std::map<std::string, ListenSocketInfo> listen_socket_map_;
     string my_admin_ip_;    // 这两个变量是包含在上面的map里的，这里
     uint16_t my_admin_port_;// 重复存储是为了避免每次都查找map
+    bool listen_socket_ready_;
 
     // 当我主动去连接其他服务器时，使用的ip和端口，一般来说用any就行了
     std::string my_connect_ipstr_;

@@ -115,6 +115,13 @@ class PacketFormat : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 version() const;
   inline void set_version(::google::protobuf::int32 value);
   
+  // required int64 seq = 14;
+  inline bool has_seq() const;
+  inline void clear_seq();
+  static const int kSeqFieldNumber = 14;
+  inline ::google::protobuf::int64 seq() const;
+  inline void set_seq(::google::protobuf::int64 value);
+  
   GOOGLE_PROTOBUF_EXTENSION_ACCESSORS(PacketFormat)
  private:
   ::google::protobuf::internal::ExtensionSet _extensions_;
@@ -125,11 +132,12 @@ class PacketFormat : public ::google::protobuf::Message {
   ::google::protobuf::int32 service_id_;
   ::google::protobuf::int32 type_;
   ::google::protobuf::int32 version_;
+  ::google::protobuf::int64 seq_;
   friend void  protobuf_AddDesc_PacketFormat_2eproto();
   friend void protobuf_AssignDesc_PacketFormat_2eproto();
   friend void protobuf_ShutdownFile_PacketFormat_2eproto();
   
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
   
   // WHY DOES & HAVE LOWER PRECEDENCE THAN != !?
   inline bool _has_bit(int index) const {
@@ -217,6 +225,22 @@ inline ::google::protobuf::int32 PacketFormat::version() const {
 inline void PacketFormat::set_version(::google::protobuf::int32 value) {
   _set_bit(3);
   version_ = value;
+}
+
+// required int64 seq = 14;
+inline bool PacketFormat::has_seq() const {
+  return _has_bit(4);
+}
+inline void PacketFormat::clear_seq() {
+  seq_ = GOOGLE_LONGLONG(0);
+  _clear_bit(4);
+}
+inline ::google::protobuf::int64 PacketFormat::seq() const {
+  return seq_;
+}
+inline void PacketFormat::set_seq(::google::protobuf::int64 value) {
+  _set_bit(4);
+  seq_ = value;
 }
 
 
