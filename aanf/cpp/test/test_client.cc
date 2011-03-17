@@ -79,9 +79,9 @@ int main(int argc, char **argv) {
     inner_req.set_query_string("nihao");
     req.SetExtension(c_to_bf_req, inner_req);
 
-    req.set_service_id(11);
-    req.set_type(111);
-    req.set_version(111);
+    req.set_service_id(1001);
+    req.set_type(100001);
+    req.set_version(1001);
     req.set_length(req.ByteSize());
 
     MemBlock *to_send = 0;
@@ -108,7 +108,7 @@ int TestClient::ProcessPacket(Packet &input_pkt) {
     PacketFormat rsp;
     rsp.ParseFromArray(input_pkt.data_->start_, input_pkt.data_->used_);
 
-    if (rsp.type() != 101) {
+    if (rsp.type() != 10002) {
         SLOG(LogLevel.L_LOGICERR, "Response type error: %d\n", rsp.type());
         LEAVING;
         return 0;

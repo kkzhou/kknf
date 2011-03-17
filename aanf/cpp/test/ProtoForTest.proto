@@ -29,6 +29,7 @@ message BFToBB1Req{
     repeated string user_name_keyword = 4;
 }
 
+
 message BFToBB1Rsp{
     enum ErrorCode {
         OK = 0;

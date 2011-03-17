@@ -1,5 +1,6 @@
 import "PacketFormat.proto";
 
+// version = 1001
 package AANF_Protocol;
 
 message RemoteLogRequest {

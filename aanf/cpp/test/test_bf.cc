@@ -40,6 +40,7 @@ public:
     uint64_t seq_from_client_;
     string client_ipstr_;
     uint16_t client_port_;
+    uint64_t my_seq_;
 };
 
 class TestBF : public Skeleton {
@@ -99,7 +100,7 @@ int TestBF::ProcessPacket(Packet &input_pkt) {
     PacketFormat pkt;
     pkt.ParseFromArray(input_pkt.data_->start_, input_pkt.data_->used_);
 
-    if (pkt.type() == 1) {
+    if (pkt.type() == 100001) {
         // 从C过来的请求
         SLOG(LogLevel.L_INFO, "input packet is type=%d\n", pkt.type());
         CToBFReq inner_pkt;
@@ -109,27 +110,33 @@ int TestBF::ProcessPacket(Packet &input_pkt) {
         ld->seq_from_client_ = pkt.seq();
         ld->client_ipstr_ = pkt.peer_ipstr_;
         ld->client_port_ = pkt.peer_port_;
-        ld_map_.insert(pair<uint64_t, BFLocalData*>(sequence_++, ld));
+        ld->my_seq_ = sequence_++;
+        ld_map_.insert(pair<uint64_t, BFLocalData*>(ld->my_seq_, ld));
 
         // 构造发给BB1的报文
         PacketFormat req;
         BFToBB1Req inner_bf_to_bb1_req;
         inner_bf_to_bb1_req.set_user_name_keyword(inner_pkt.query_string());
         req.SetExtension(bf_to_bb1_req, inner_bf_to_bb1_req);
+        req.set_seq(ld->my_seq_);
+        req.set_service_id(1002);
+        req.set_type(10003);
+        req.set_version(1001);
+        req.set_length(req.ByteSize());
 
         MemBlock *to_send = 0;
         int ret = MemPool::GetMemPool()->GetMemBlock(req.length(), to_send);
         req.SerializeToArray(to_send->start_, to_send->used_);
 
         string to_ip = "127.0.0.1";
-        uint16_t to_port = 10001;
+        uint16_t to_port = 30001;
 
         client->AsyncSend(to_ip, to_port, "127.0.0.1", 0,
                         to_send, Socket::SocketType.T_TCP_CLIENT,
                         Socket::DataFormat.DF_BIN, 0);
         SLOG(LogLevel.L_INFO, "after AsyncSend() to BB1\n");
 
-    } else if (req.type() == 2) {
+    } else if (req.type() == 10004) {
         // 从BB1回来的报文
         SLOG(LogLevel.L_INFO, "input packet is type=%d\n", req.type());
         BFToBB1Rsp inner_pkt;
@@ -154,20 +161,25 @@ int TestBF::ProcessPacket(Packet &input_pkt) {
         }
 
         req.SetExtension(bf_to_bb2_req, inner_bf_to_bb2_req);
+        req.set_seq(ld->my_seq_);
+        req.set_service_id(1003);
+        req.set_type(10005);
+        req.set_version(1001);
+        req.set_length(req.ByteSize());
 
         MemBlock *to_send = 0;
         int ret = MemPool::GetMemPool()->GetMemBlock(req.length(), to_send);
         req.SerializeToArray(to_send->start_, to_send->used_);
 
         string to_ip = "127.0.0.1";
-        uint16_t to_port = 10001;
+        uint16_t to_port = 30002;
 
         client->AsyncSend(to_ip, to_port, "127.0.0.1", 0,
                         to_send, Socket::SocketType.T_TCP_CLIENT,
                         Socket::DataFormat.DF_BIN, 0);
         SLOG(LogLevel.L_INFO, "after AsyncSend() to BB2\n");
 
-    } else if (pkt.type() == 3) {
+    } else if (pkt.type() == 10004) {
         // 从BB2回来的应答报文
         SLOG(LogLevel.L_INFO, "input packet is type=%d\n", pkt.type());
         BFToBB2Rsp inner_rsp;
@@ -200,6 +212,11 @@ int TestBF::ProcessPacket(Packet &input_pkt) {
         }
 
         rsp.SetExtension(bf_to_bb2_req, inner_c_to_bf_rsp);
+        req.set_seq(ld->seq_from_client_);
+        req.set_service_id(1001);
+        req.set_type(10002);
+        req.set_version(1001);
+        req.set_length(req.ByteSize());
 
         MemBlock *to_send = 0;
         int ret = MemPool::GetMemPool()->GetMemBlock(req.length(), to_send);
@@ -212,6 +229,7 @@ int TestBF::ProcessPacket(Packet &input_pkt) {
                         to_send, Socket::SocketType.T_TCP_SERVER,
                         Socket::DataFormat.DF_BIN, 0);
         SLOG(LogLevel.L_INFO, "after AsyncSend() to C\n");
+        ld_map_.remove(ld->my_seq_);
     }
     LEAVING;
     return 0;

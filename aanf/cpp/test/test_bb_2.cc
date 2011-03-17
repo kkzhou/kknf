@@ -24,9 +24,7 @@ using namespace AANF;
 
 class TestBB2 : public Skeleton {
 public:
-    virtual int ProcessPacket(Packet &input_pkt) {
-
-    };
+    virtual int ProcessPacket(Packet &input_pkt);
 };
 
 int main(int argc, char **argv) {
@@ -65,4 +63,63 @@ int main(int argc, char **argv) {
     server->Run();
     return 0;
 
+}
+int TestBB2::ProcessPacket(Packet &input_pkt) {
+
+    ENTERING;
+    PacketFormat pkt;
+    pkt.ParseFromArray(input_pkt.data_->start_, input_pkt.data_->used_);
+
+    if (pkt.type() != 100005) {
+        SLOG(LogLevel.L_LOGICERR, "packet type error: %d\n", pkt.type());
+        LEAVING;
+        return 0;
+    }
+    // 从BF过来的请求
+    SLOG(LogLevel.L_INFO, "input packet is type=%d\n", pkt.type());
+    BFToBB1Req inner_pkt;
+    inner_pkt = pkt.GetExtension(bf_to_bb2_req);
+
+    // 构造发给BF的报文
+    PacketFormat rsp;
+    BFToBB2Rsp inner_bf_to_bb2_rsp;
+    inner_bf_to_bb2_rsp.set_error(BFToBB2Rsp::ErrorCode.OK);
+    UserProfile *tmp = inner_bf_to_bb2_rsp.add_user_profile();
+    tmp->set_user_id(1);
+    tmp->set_user_desc("user No.1");
+    tmp->set_gender(1);
+    tmp->set_user_name("user name No.1");
+
+    tmp = inner_bf_to_bb2_rsp.add_user_id();
+    tmp->set_user_id(2);
+    tmp->set_user_desc("user No.2");
+    tmp->set_gender(2);
+    tmp->set_user_name("user name No.2");
+
+    tmp = inner_bf_to_bb2_rsp.add_user_id();
+    tmp->set_user_id(3);
+    tmp->set_user_desc("user No.3");
+    tmp->set_gender(3);
+    tmp->set_user_name("user name No.3");
+
+    rsp.SetExtension(rsp, inner_bf_to_bb2_rsp);
+    rsp.set_seq(pkt.seq());
+    rsp.set_service_id(1001);
+    rsp.set_type(10006);
+    rsp.set_version(1001);
+    rsp.set_length(rsp.ByteSize());
+
+    MemBlock *to_send = 0;
+    int ret = MemPool::GetMemPool()->GetMemBlock(rsp.length(), to_send);
+    rsp.SerializeToArray(to_send->start_, to_send->used_);
+
+    string to_ip = "127.0.0.1";
+    uint16_t to_port = 20001;
+
+    client->AsyncSend(to_ip, to_port, "127.0.0.1", 0,
+                    to_send, Socket::SocketType.T_TCP_SERVER,
+                    Socket::DataFormat.DF_BIN, 0);
+    SLOG(LogLevel.L_INFO, "after AsyncSend() to BF\n");
+    LEAVING;
+    return 0;
 }

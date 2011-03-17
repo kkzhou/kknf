@@ -1,5 +1,6 @@
 import "PacketFormat.proto";
 
+// version = 1001
 package AANF_Protocol;
 
 message ReportRequest {
@@ -22,6 +23,6 @@ message ReportResponse {
 
 // 在Report协议中的PacketFormat具体内容
 extend Protocol.PacketFormat {
-    optional ReportRequest report_req = 101;
-    optional ReportResponse report_rsp = 102;
+    optional ReportRequest report_req = 103;
+    optional ReportResponse report_rsp = 104;
 }
