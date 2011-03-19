@@ -45,11 +45,11 @@ public:
 
 class TestBF : public Skeleton {
 public:
-    virtual int ProcessPacket(Packet &input_pkt);
+    virtual int ProcessMessage(Message &input_pkt);
 private:
-    int ProcessPacketFromClient(Packet &input_pkt);
-    int ProcessPacketFromBB1(Packet &input_pkt);
-    int ProcessPacketFromBB2(Packet &input_pkt);
+    int ProcessMessageFromClient(Message &input_pkt);
+    int ProcessMessageFromBB1(Message &input_pkt);
+    int ProcessMessageFromBB2(Message &input_pkt);
 private:
     map<uint64_t, BFLocalData*> ld_map_;
     static uint64_t sequence_;
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-int TestBF::ProcessPacket(Packet &input_pkt) {
+int TestBF::ProcessMessage(Message &input_pkt) {
 
     ENTERING;
     PacketFormat pkt;
@@ -102,7 +102,7 @@ int TestBF::ProcessPacket(Packet &input_pkt) {
 
     if (pkt.type() == 100001) {
         // 从C过来的请求
-        SLOG(LogLevel.L_INFO, "input packet is type=%d\n", pkt.type());
+        SLOG(LogLevel.L_INFO, "input Message is type=%d\n", pkt.type());
         CToBFReq inner_pkt;
         inner_pkt = req.GetExtension(c_to_bf_req);
 
@@ -138,7 +138,7 @@ int TestBF::ProcessPacket(Packet &input_pkt) {
 
     } else if (req.type() == 10004) {
         // 从BB1回来的报文
-        SLOG(LogLevel.L_INFO, "input packet is type=%d\n", req.type());
+        SLOG(LogLevel.L_INFO, "input Message is type=%d\n", req.type());
         BFToBB1Rsp inner_pkt;
         inner_pkt = req.GetExtension(bf_to_bb1_rsp);
         BFLocalData *ld = ld_map_[pkt.seq()];
@@ -181,7 +181,7 @@ int TestBF::ProcessPacket(Packet &input_pkt) {
 
     } else if (pkt.type() == 10004) {
         // 从BB2回来的应答报文
-        SLOG(LogLevel.L_INFO, "input packet is type=%d\n", pkt.type());
+        SLOG(LogLevel.L_INFO, "input Message is type=%d\n", pkt.type());
         BFToBB2Rsp inner_rsp;
         inner_rsp = pkt.GetExtension(bf_to_bb2_rsp);
         BFLocalData *ld = ld_map_[pkt.seq()];

@@ -22,9 +22,9 @@
 #include <google/protobuf/repeated_field.h>
 #include <google/protobuf/extension_set.h>
 #include <google/protobuf/generated_message_reflection.h>
-#include "PacketFormat.pb.h"
+#include "MessageFormat.pb.h"
 
-namespace AANF_Protocol {
+namespace AANF_Message {
 
 // Internal implementation detail -- do not call these.
 void  protobuf_AddDesc_RemoteLog_2eproto();
@@ -220,12 +220,12 @@ class RemoteLogResponse : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // required .AANF_Protocol.RemoteLogResponse.ErrorCode error = 4;
+  // required .AANF_Message.RemoteLogResponse.ErrorCode error = 4;
   inline bool has_error() const;
   inline void clear_error();
   static const int kErrorFieldNumber = 4;
-  inline ::AANF_Protocol::RemoteLogResponse_ErrorCode error() const;
-  inline void set_error(::AANF_Protocol::RemoteLogResponse_ErrorCode value);
+  inline ::AANF_Message::RemoteLogResponse_ErrorCode error() const;
+  inline void set_error(::AANF_Message::RemoteLogResponse_ErrorCode value);
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
@@ -258,12 +258,12 @@ class RemoteLogResponse : public ::google::protobuf::Message {
 // ===================================================================
 
 static const int kRemoteLogReqFieldNumber = 101;
-extern ::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Protocol::RemoteLogRequest >, 11, false >
+extern ::google::protobuf::internal::ExtensionIdentifier< ::AANF_Message::MessageFormat,
+    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Message::RemoteLogRequest >, 11, false >
   remote_log_req;
 static const int kRemoteLogRspFieldNumber = 102;
-extern ::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Protocol::RemoteLogResponse >, 11, false >
+extern ::google::protobuf::internal::ExtensionIdentifier< ::AANF_Message::MessageFormat,
+    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Message::RemoteLogResponse >, 11, false >
   remote_log_rsp;
 
 // ===================================================================
@@ -316,7 +316,7 @@ inline ::std::string* RemoteLogRequest::mutable_log_data() {
 
 // RemoteLogResponse
 
-// required .AANF_Protocol.RemoteLogResponse.ErrorCode error = 4;
+// required .AANF_Message.RemoteLogResponse.ErrorCode error = 4;
 inline bool RemoteLogResponse::has_error() const {
   return _has_bit(0);
 }
@@ -324,25 +324,25 @@ inline void RemoteLogResponse::clear_error() {
   error_ = 0;
   _clear_bit(0);
 }
-inline ::AANF_Protocol::RemoteLogResponse_ErrorCode RemoteLogResponse::error() const {
-  return static_cast< ::AANF_Protocol::RemoteLogResponse_ErrorCode >(error_);
+inline ::AANF_Message::RemoteLogResponse_ErrorCode RemoteLogResponse::error() const {
+  return static_cast< ::AANF_Message::RemoteLogResponse_ErrorCode >(error_);
 }
-inline void RemoteLogResponse::set_error(::AANF_Protocol::RemoteLogResponse_ErrorCode value) {
-  GOOGLE_DCHECK(::AANF_Protocol::RemoteLogResponse_ErrorCode_IsValid(value));
+inline void RemoteLogResponse::set_error(::AANF_Message::RemoteLogResponse_ErrorCode value) {
+  GOOGLE_DCHECK(::AANF_Message::RemoteLogResponse_ErrorCode_IsValid(value));
   _set_bit(0);
   error_ = value;
 }
 
 
-}  // namespace AANF_Protocol
+}  // namespace AANF_Message
 
 #ifndef SWIG
 namespace google {
 namespace protobuf {
 
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::AANF_Protocol::RemoteLogResponse_ErrorCode>() {
-  return ::AANF_Protocol::RemoteLogResponse_ErrorCode_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::AANF_Message::RemoteLogResponse_ErrorCode>() {
+  return ::AANF_Message::RemoteLogResponse_ErrorCode_descriptor();
 }
 
 }  // namespace google

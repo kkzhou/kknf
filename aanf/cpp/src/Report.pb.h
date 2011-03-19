@@ -22,9 +22,9 @@
 #include <google/protobuf/repeated_field.h>
 #include <google/protobuf/extension_set.h>
 #include <google/protobuf/generated_message_reflection.h>
-#include "PacketFormat.pb.h"
+#include "MessageFormat.pb.h"
 
-namespace AANF_Protocol {
+namespace AANF_Message {
 
 // Internal implementation detail -- do not call these.
 void  protobuf_AddDesc_Report_2eproto();
@@ -263,12 +263,12 @@ class ReportResponse : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 report_id() const;
   inline void set_report_id(::google::protobuf::int32 value);
   
-  // required .AANF_Protocol.ReportResponse.ErrorCode error = 4;
+  // required .AANF_Message.ReportResponse.ErrorCode error = 4;
   inline bool has_error() const;
   inline void clear_error();
   static const int kErrorFieldNumber = 4;
-  inline ::AANF_Protocol::ReportResponse_ErrorCode error() const;
-  inline void set_error(::AANF_Protocol::ReportResponse_ErrorCode value);
+  inline ::AANF_Message::ReportResponse_ErrorCode error() const;
+  inline void set_error(::AANF_Message::ReportResponse_ErrorCode value);
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
@@ -301,13 +301,13 @@ class ReportResponse : public ::google::protobuf::Message {
 
 // ===================================================================
 
-static const int kReportReqFieldNumber = 101;
-extern ::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Protocol::ReportRequest >, 11, false >
+static const int kReportReqFieldNumber = 103;
+extern ::google::protobuf::internal::ExtensionIdentifier< ::AANF_Message::MessageFormat,
+    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Message::ReportRequest >, 11, false >
   report_req;
-static const int kReportRspFieldNumber = 102;
-extern ::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Protocol::ReportResponse >, 11, false >
+static const int kReportRspFieldNumber = 104;
+extern ::google::protobuf::internal::ExtensionIdentifier< ::AANF_Message::MessageFormat,
+    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Message::ReportResponse >, 11, false >
   report_rsp;
 
 // ===================================================================
@@ -430,7 +430,7 @@ inline void ReportResponse::set_report_id(::google::protobuf::int32 value) {
   report_id_ = value;
 }
 
-// required .AANF_Protocol.ReportResponse.ErrorCode error = 4;
+// required .AANF_Message.ReportResponse.ErrorCode error = 4;
 inline bool ReportResponse::has_error() const {
   return _has_bit(1);
 }
@@ -438,25 +438,25 @@ inline void ReportResponse::clear_error() {
   error_ = 0;
   _clear_bit(1);
 }
-inline ::AANF_Protocol::ReportResponse_ErrorCode ReportResponse::error() const {
-  return static_cast< ::AANF_Protocol::ReportResponse_ErrorCode >(error_);
+inline ::AANF_Message::ReportResponse_ErrorCode ReportResponse::error() const {
+  return static_cast< ::AANF_Message::ReportResponse_ErrorCode >(error_);
 }
-inline void ReportResponse::set_error(::AANF_Protocol::ReportResponse_ErrorCode value) {
-  GOOGLE_DCHECK(::AANF_Protocol::ReportResponse_ErrorCode_IsValid(value));
+inline void ReportResponse::set_error(::AANF_Message::ReportResponse_ErrorCode value) {
+  GOOGLE_DCHECK(::AANF_Message::ReportResponse_ErrorCode_IsValid(value));
   _set_bit(1);
   error_ = value;
 }
 
 
-}  // namespace AANF_Protocol
+}  // namespace AANF_Message
 
 #ifndef SWIG
 namespace google {
 namespace protobuf {
 
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::AANF_Protocol::ReportResponse_ErrorCode>() {
-  return ::AANF_Protocol::ReportResponse_ErrorCode_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::AANF_Message::ReportResponse_ErrorCode>() {
+  return ::AANF_Message::ReportResponse_ErrorCode_descriptor();
 }
 
 }  // namespace google

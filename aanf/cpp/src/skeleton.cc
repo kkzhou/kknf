@@ -349,8 +349,8 @@ void Skeleton::WorkderThreadProc(ThreadProcArg *arg) {
     Skeleton *skeleton = arg->skeleton_;
 
     while (!skeleton->cancel_) {
-        Packet *pkt = 0;
-        int ret - skeleton->netframe_->GetPacketFromRecvQueue(arg->id_, ptk);
+        Message *pkt = 0;
+        int ret - skeleton->netframe_->GetMessageFromRecvQueue(arg->id_, ptk);
         if (ret < 0) {
             break;
         }
@@ -358,13 +358,13 @@ void Skeleton::WorkderThreadProc(ThreadProcArg *arg) {
 
         if (skeleton->my_admin_ip_ == pkt->my_ipstr_ && skeleton->my_admin_port_ == pkt->my_port_) {
             // 这是一个命令通道的数据
-            ret = skeleton->ProcessAdminPacket(pkt);
+            ret = skeleton->ProcessAdminMessage(pkt);
             if (ret < 0) {
                 //
             }
         } else {
             // 这是普通数据包
-            ret = skeleton->ProcessPacket(pkt);
+            ret = skeleton->ProcessMessage(pkt);
             if (ret < 0) {
                 //
             }
@@ -441,7 +441,7 @@ int Skeleton::RegisterAdminCommand(std::string &cmd, AdminCmdFunc func) {
     return 0;
 }
 
-int Skeleton::ProcessAdminCmdPacket(Packet &input_pkt) {
+int Skeleton::ProcessAdminCmdMessage(Message &input_pkt) {
 
     ENTERING;
     if (input_pkt->data_format_ != Socket::DF_LINE) {

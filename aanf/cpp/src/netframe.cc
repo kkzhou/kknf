@@ -60,7 +60,7 @@ NetFrame::NetFrame(int send_queue_num, int recv_queue_num) {
 
     for (int i = 0; i < recv_queue_num; i++) {
 
-        recv_queues_.push_back(list<Packet*>(0));
+        recv_queues_.push_back(list<Message*>(0));
 
         pthread_mutex_t *new_mutex = new pthread_mutex_t;
         pthread_mutex_init(new_mutex, NULL);
@@ -258,16 +258,16 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
             return;
 
         } else if (read_result == 1) {
-            // A complete packet has been read
+            // A complete Message has been read
             // process it
             struct timeval nowtime;
             gettimeofday(&nowtime);
 
-            Packet *pkt_read = new Packet(nowtime, sk->peer_ipstr_, sk->peer_port_,
+            Message *pkt_read = new Message(nowtime, sk->peer_ipstr_, sk->peer_port_,
                                          sk->my_ipstr_, sk->my_port_,
                                          sk->type_, sk->data_format_, sk->recv_mb_);
             sk->recv_mb_ = 0;
-            process_result = cb_arg->nf_->PushPacketToRecvQueue(pkt_read);
+            process_result = cb_arg->nf_->PushMessageToRecvQueue(pkt_read);
             if (process_result == -1) {
                 // receive queue(s) is full
                 SLOG(LogLevel::L_FATAL, "ReadHandler() error\n")
@@ -352,7 +352,7 @@ void NetFrame::SocketCallback(int fd, short events, void *arg) {
     return;
 }
 
-int NetFrame::PushPacketToRecvQueue(Packet *in_pack) {
+int NetFrame::PushMessageToRecvQueue(Message *in_pack) {
 
     ENTERING;
     if (!in_pack) {
@@ -386,7 +386,7 @@ int NetFrame::PushPacketToRecvQueue(Packet *in_pack) {
     return 0;
 }
 
-int NetFrame::GetPacketFromRecvQueue(int which_queue, Packet *&pack) {
+int NetFrame::GetMessageFromRecvQueue(int which_queue, Message *&pack) {
 
     ENTERING;
     if (which_queue < 0 || which_queue >= recv_queues_.size()) {
@@ -425,7 +425,7 @@ int NetFrame::AsyncSend(std::string &to_ipstr, uint16_t to_port,
         Locker Locker(send_queue_locks_[which_queue]);
         struct timeval nowtime;
         gettimeofday(&nowtime);
-        Packet *pkt = new Packet(nowtime, to_ipstr, to_port,
+        Message *pkt = new Message(nowtime, to_ipstr, to_port,
                                  my_ipstr, my_port, type, data_format, data);
         send_queues_[which_queue].push_back(pkt);
     }
@@ -450,7 +450,7 @@ void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
         Locker locker(send_queue_locks_[i]);
         while (send_queues_[i].size() > 0) {
 
-            Packet *pkt = send_queues_[i].front();
+            Message *pkt = send_queues_[i].front();
             send_queues_[i].pop_front();
 
             Socket *sk = SocketPool::GetSocketPool()->FindSocket(pkt->peer_ipstr_, pkt->peer_port_, pkt->sk_type_);
@@ -519,7 +519,7 @@ void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
             // 成功创建新的套接口，并把数据交给它了。
         }// while
     } // for
-    SLOG(LogLevel::L_DEBUG, "all packets in send_queue are put into the socket send buffer\n");
+    SLOG(LogLevel::L_DEBUG, "all Messages in send_queue are put into the socket send buffer\n");
     LEAVING;
 }
 

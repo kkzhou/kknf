@@ -9,7 +9,7 @@
 #include <google/protobuf/reflection_ops.h>
 #include <google/protobuf/wire_format.h>
 
-namespace AANF_Protocol {
+namespace AANF_Message {
 
 namespace {
 
@@ -96,31 +96,31 @@ void protobuf_AddDesc_UpdateConfig_2eproto() {
   already_here = true;
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  ::Protocol::protobuf_AddDesc_PacketFormat_2eproto();
+  ::AANF_Message::protobuf_AddDesc_MessageFormat_2eproto();
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\022UpdateConfig.proto\022\rAANF_Protocol\032\022Pac"
-    "ketFormat.proto\"\"\n\023UpdateConfigRequest\022\013"
-    "\n\003md5\030\004 \002(\t\"\242\001\n\024UpdateConfigResponse\022<\n\005"
-    "error\030\004 \002(\0162-.AANF_Protocol.UpdateConfig"
-    "Response.ErrorCode\022\013\n\003md5\030\005 \002(\t\022\026\n\016confi"
-    "g_content\030\006 \002(\t\"\'\n\tErrorCode\022\r\n\tNO_UPDAT"
-    "E\020\000\022\013\n\007UPDATED\020\001:U\n\021update_config_req\022\026."
-    "Protocol.PacketFormat\030e \001(\0132\".AANF_Proto"
-    "col.UpdateConfigRequest:V\n\021update_config"
-    "_rsp\022\026.Protocol.PacketFormat\030f \001(\0132#.AAN"
-    "F_Protocol.UpdateConfigResponse", 431);
+    "\n\022UpdateConfig.proto\022\014AANF_Message\032\023Mess"
+    "ageFormat.proto\"\"\n\023UpdateConfigRequest\022\013"
+    "\n\003md5\030\004 \002(\t\"\241\001\n\024UpdateConfigResponse\022;\n\005"
+    "error\030\004 \002(\0162,.AANF_Message.UpdateConfigR"
+    "esponse.ErrorCode\022\013\n\003md5\030\005 \002(\t\022\026\n\016config"
+    "_content\030\006 \002(\t\"\'\n\tErrorCode\022\r\n\tNO_UPDATE"
+    "\020\000\022\013\n\007UPDATED\020\001:Y\n\021update_config_req\022\033.A"
+    "ANF_Message.MessageFormat\030e \001(\0132!.AANF_M"
+    "essage.UpdateConfigRequest:Z\n\021update_con"
+    "fig_rsp\022\033.AANF_Message.MessageFormat\030f \001"
+    "(\0132\".AANF_Message.UpdateConfigResponse", 438);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "UpdateConfig.proto", &protobuf_RegisterTypes);
   UpdateConfigRequest::default_instance_ = new UpdateConfigRequest();
   UpdateConfigResponse::default_instance_ = new UpdateConfigResponse();
   ::google::protobuf::internal::ExtensionSet::RegisterMessageExtension(
-    &::Protocol::PacketFormat::default_instance(),
+    &::AANF_Message::MessageFormat::default_instance(),
     101, 11, false, false,
-    &::AANF_Protocol::UpdateConfigRequest::default_instance());
+    &::AANF_Message::UpdateConfigRequest::default_instance());
   ::google::protobuf::internal::ExtensionSet::RegisterMessageExtension(
-    &::Protocol::PacketFormat::default_instance(),
+    &::AANF_Message::MessageFormat::default_instance(),
     102, 11, false, false,
-    &::AANF_Protocol::UpdateConfigResponse::default_instance());
+    &::AANF_Message::UpdateConfigResponse::default_instance());
   UpdateConfigRequest::default_instance_->InitAsDefaultInstance();
   UpdateConfigResponse::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_UpdateConfig_2eproto);
@@ -460,7 +460,7 @@ bool UpdateConfigResponse::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .AANF_Protocol.UpdateConfigResponse.ErrorCode error = 4;
+      // required .AANF_Message.UpdateConfigResponse.ErrorCode error = 4;
       case 4: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -468,8 +468,8 @@ bool UpdateConfigResponse::MergePartialFromCodedStream(
         }
         int value;
         DO_(::google::protobuf::internal::WireFormatLite::ReadEnum(input, &value));
-        if (::AANF_Protocol::UpdateConfigResponse_ErrorCode_IsValid(value)) {
-          set_error(static_cast< ::AANF_Protocol::UpdateConfigResponse_ErrorCode >(value));
+        if (::AANF_Message::UpdateConfigResponse_ErrorCode_IsValid(value)) {
+          set_error(static_cast< ::AANF_Message::UpdateConfigResponse_ErrorCode >(value));
         } else {
           mutable_unknown_fields()->AddVarint(4, value);
         }
@@ -533,7 +533,7 @@ void UpdateConfigResponse::SerializeWithCachedSizes(
     return;
   }
   
-  // required .AANF_Protocol.UpdateConfigResponse.ErrorCode error = 4;
+  // required .AANF_Message.UpdateConfigResponse.ErrorCode error = 4;
   if (_has_bit(0)) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       4, this->error(), output);
@@ -565,7 +565,7 @@ void UpdateConfigResponse::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* UpdateConfigResponse::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required .AANF_Protocol.UpdateConfigResponse.ErrorCode error = 4;
+  // required .AANF_Message.UpdateConfigResponse.ErrorCode error = 4;
   if (_has_bit(0)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
       4, this->error(), target);
@@ -602,7 +602,7 @@ int UpdateConfigResponse::ByteSize() const {
   int total_size = 0;
   
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .AANF_Protocol.UpdateConfigResponse.ErrorCode error = 4;
+    // required .AANF_Message.UpdateConfigResponse.ErrorCode error = 4;
     if (has_error()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->error());
@@ -697,11 +697,11 @@ void UpdateConfigResponse::Swap(UpdateConfigResponse* other) {
   return metadata;
 }
 
-::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Protocol::UpdateConfigRequest >, 11, false >
-  update_config_req(kUpdateConfigReqFieldNumber, ::AANF_Protocol::UpdateConfigRequest::default_instance());
-::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Protocol::UpdateConfigResponse >, 11, false >
-  update_config_rsp(kUpdateConfigRspFieldNumber, ::AANF_Protocol::UpdateConfigResponse::default_instance());
+::google::protobuf::internal::ExtensionIdentifier< ::AANF_Message::MessageFormat,
+    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Message::UpdateConfigRequest >, 11, false >
+  update_config_req(kUpdateConfigReqFieldNumber, ::AANF_Message::UpdateConfigRequest::default_instance());
+::google::protobuf::internal::ExtensionIdentifier< ::AANF_Message::MessageFormat,
+    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Message::UpdateConfigResponse >, 11, false >
+  update_config_rsp(kUpdateConfigRspFieldNumber, ::AANF_Message::UpdateConfigResponse::default_instance());
 
-}  // namespace AANF_Protocol
+}  // namespace AANF_Message

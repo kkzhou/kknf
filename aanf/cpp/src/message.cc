@@ -15,12 +15,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#include "packet.h"
+#include "message.h"
 #include "memblock.h"
 
 namespace AANF {
 
-Packet::Packet(struct timeval create_time,
+Message::Message(struct timeval create_time,
                std::string &peer_ipstr, uint16_t peer_port,
                std::string &my_ipstr, uint16_t my_port,
                Socket::SocketType type, Socket::DataFormat df,
@@ -38,11 +38,11 @@ Packet::Packet(struct timeval create_time,
     LEAVING;
 }
 
-~Packet() {
+~Message() {
 
     ENTERING;
     if (data_) {
-        SLOG(LogLevel::L_DEBUG, "this packet contains data");
+        SLOG(LogLevel::L_DEBUG, "this Message contains data");
         MemPool::GetMemPool()->ReturnMemBlock(data_);
     }
 

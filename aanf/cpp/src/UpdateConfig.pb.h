@@ -22,9 +22,9 @@
 #include <google/protobuf/repeated_field.h>
 #include <google/protobuf/extension_set.h>
 #include <google/protobuf/generated_message_reflection.h>
-#include "PacketFormat.pb.h"
+#include "MessageFormat.pb.h"
 
-namespace AANF_Protocol {
+namespace AANF_Message {
 
 // Internal implementation detail -- do not call these.
 void  protobuf_AddDesc_UpdateConfig_2eproto();
@@ -220,12 +220,12 @@ class UpdateConfigResponse : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // required .AANF_Protocol.UpdateConfigResponse.ErrorCode error = 4;
+  // required .AANF_Message.UpdateConfigResponse.ErrorCode error = 4;
   inline bool has_error() const;
   inline void clear_error();
   static const int kErrorFieldNumber = 4;
-  inline ::AANF_Protocol::UpdateConfigResponse_ErrorCode error() const;
-  inline void set_error(::AANF_Protocol::UpdateConfigResponse_ErrorCode value);
+  inline ::AANF_Message::UpdateConfigResponse_ErrorCode error() const;
+  inline void set_error(::AANF_Message::UpdateConfigResponse_ErrorCode value);
   
   // required string md5 = 5;
   inline bool has_md5() const;
@@ -282,12 +282,12 @@ class UpdateConfigResponse : public ::google::protobuf::Message {
 // ===================================================================
 
 static const int kUpdateConfigReqFieldNumber = 101;
-extern ::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Protocol::UpdateConfigRequest >, 11, false >
+extern ::google::protobuf::internal::ExtensionIdentifier< ::AANF_Message::MessageFormat,
+    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Message::UpdateConfigRequest >, 11, false >
   update_config_req;
 static const int kUpdateConfigRspFieldNumber = 102;
-extern ::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Protocol::UpdateConfigResponse >, 11, false >
+extern ::google::protobuf::internal::ExtensionIdentifier< ::AANF_Message::MessageFormat,
+    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Message::UpdateConfigResponse >, 11, false >
   update_config_rsp;
 
 // ===================================================================
@@ -340,7 +340,7 @@ inline ::std::string* UpdateConfigRequest::mutable_md5() {
 
 // UpdateConfigResponse
 
-// required .AANF_Protocol.UpdateConfigResponse.ErrorCode error = 4;
+// required .AANF_Message.UpdateConfigResponse.ErrorCode error = 4;
 inline bool UpdateConfigResponse::has_error() const {
   return _has_bit(0);
 }
@@ -348,11 +348,11 @@ inline void UpdateConfigResponse::clear_error() {
   error_ = 0;
   _clear_bit(0);
 }
-inline ::AANF_Protocol::UpdateConfigResponse_ErrorCode UpdateConfigResponse::error() const {
-  return static_cast< ::AANF_Protocol::UpdateConfigResponse_ErrorCode >(error_);
+inline ::AANF_Message::UpdateConfigResponse_ErrorCode UpdateConfigResponse::error() const {
+  return static_cast< ::AANF_Message::UpdateConfigResponse_ErrorCode >(error_);
 }
-inline void UpdateConfigResponse::set_error(::AANF_Protocol::UpdateConfigResponse_ErrorCode value) {
-  GOOGLE_DCHECK(::AANF_Protocol::UpdateConfigResponse_ErrorCode_IsValid(value));
+inline void UpdateConfigResponse::set_error(::AANF_Message::UpdateConfigResponse_ErrorCode value) {
+  GOOGLE_DCHECK(::AANF_Message::UpdateConfigResponse_ErrorCode_IsValid(value));
   _set_bit(0);
   error_ = value;
 }
@@ -442,15 +442,15 @@ inline ::std::string* UpdateConfigResponse::mutable_config_content() {
 }
 
 
-}  // namespace AANF_Protocol
+}  // namespace AANF_Message
 
 #ifndef SWIG
 namespace google {
 namespace protobuf {
 
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::AANF_Protocol::UpdateConfigResponse_ErrorCode>() {
-  return ::AANF_Protocol::UpdateConfigResponse_ErrorCode_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::AANF_Message::UpdateConfigResponse_ErrorCode>() {
+  return ::AANF_Message::UpdateConfigResponse_ErrorCode_descriptor();
 }
 
 }  // namespace google

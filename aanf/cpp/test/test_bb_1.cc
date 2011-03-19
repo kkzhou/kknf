@@ -24,7 +24,7 @@ using namespace AANF;
 
 class TestBB1 : public Skeleton {
 public:
-    virtual int ProcessPacket(Packet &input_pkt);
+    virtual int ProcessMessage(Message &input_pkt);
 };
 
 int main(int argc, char **argv) {
@@ -66,19 +66,19 @@ int main(int argc, char **argv) {
 
 }
 
-int TestBB1::ProcessPacket(Packet &input_pkt) {
+int TestBB1::ProcessMessage(Message &input_pkt) {
 
     ENTERING;
     PacketFormat pkt;
     pkt.ParseFromArray(input_pkt.data_->start_, input_pkt.data_->used_);
 
     if (pkt.type() != 10003) {
-        SLOG(LogLevel.L_LOGICERR, "packet type error: %d\n", pkt.type());
+        SLOG(LogLevel.L_LOGICERR, "Message type error: %d\n", pkt.type());
         LEAVING;
         return 0;
     }
     // 从BF过来的请求
-    SLOG(LogLevel.L_INFO, "input packet is type=%d\n", pkt.type());
+    SLOG(LogLevel.L_INFO, "input Message is type=%d\n", pkt.type());
     BFToBB1Req inner_pkt;
     inner_pkt = pkt.GetExtension(bf_to_bb1_req);
 

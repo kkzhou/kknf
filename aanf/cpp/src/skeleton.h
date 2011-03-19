@@ -101,15 +101,15 @@ public:
     // 返回值：
     // 0: 成功
     // <0: 失败
-    int ProcessAdminCmdPacket(Packet &input_pkt);
+    int ProcessAdminCmdMessage(Message &input_pkt);
     int RegisterAdminCmd(std::string &cmd, AdminCmdFunc func);
     // 实际处理业务逻辑的接口，如果是Line格式，则input_pkt里装的可能是多个报文，
     // 其它格式都是一个报文。UGLY design
     // 返回值：
     // 0: 成功
     // <0: 失败
-    int ProcessPacket(Packet &input_pkt) = 0;
-    // 线程函数，通过调用Skeleton::ProcessPacket函数实现业务逻辑
+    int ProcessMessage(Message &input_pkt) = 0;
+    // 线程函数，通过调用Skeleton::ProcessMessage函数实现业务逻辑
     static void WorkerThreadProc(ThreadProcArg *arg);
 
 public:

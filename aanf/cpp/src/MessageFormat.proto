@@ -1,6 +1,6 @@
 // 唯一确定一个报文依靠：ServiceID:Type:Version
-package Protocol;
-message PacketFormat {
+package AANF_Message;
+message MessageFormat {
     required fixed32 length = 1;      // 用来确定报文边界，必须是fixed，必须是第一个
     required int32 service_id = 11; // 用来区分不同的业务，每类业务分配一个ID
     required int32 type = 12;      // 用来区分该业务ID下的报文类型

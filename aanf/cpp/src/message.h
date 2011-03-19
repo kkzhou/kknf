@@ -15,8 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef _PACKET_H_
-#define _PACKET_H_
+#ifndef _MESSAGE_H_
+#define _MESSAGE_H_
 
 #include "socket.h"
 
@@ -24,11 +24,11 @@ namespace AANF {
 
 class MemBlock;
 
-// Packet类只是用来存储一些信息，没有操作函数。
+// Message类只是用来存储一些信息，没有操作函数。
 //
-class Packet {
+class Message {
 public:
-    Packet(struct timeval &create_time,
+    Message(struct timeval &create_time,
            std::string &peer_ipstr, uint16_t peer_port,
            std::string &my_ipstr, uint16_t my_port,
            Socket::SocketType type, Socket::DataFormat df,
@@ -42,7 +42,7 @@ public:
                 type_ = type;
                 data_ = data;
            };
-    ~Packet();
+    ~Message();
 
 public:
     struct timeval create_time_;
@@ -56,9 +56,9 @@ public:
 
 private:
     // Prohibits
-    Packet();
-    Packet(Packet&);
-    Packet& operator=(Packet&);
+    Message();
+    Message(Message&);
+    Message& operator=(Message&);
 
 };
 

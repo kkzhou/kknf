@@ -93,9 +93,9 @@ public:
     int Run();// Loop
 
     // 主线程调用该函数把数据包放到接收队列，worker线程从中去取
-    int PushPacketToRecvQueue(Packet *in_pack);
+    int PushMessageToRecvQueue(Message *in_pack);
     // worker线程调用该函数把数据包从接收线程里取出来
-    int GetPacketFromRecvQueue(int which_queue, Packet *&pack);
+    int GetMessageFromRecvQueue(int which_queue, Message *&pack);
     // worker线程在处理数据包时，如果需要异步发送数据包，则调用该函数；
     // 该函数只是把数据包放到发送队列
     int AsyncSend(std::string &to_ipstr, uint16_t to_port,
@@ -111,12 +111,12 @@ private:
     SocketPool *socket_pool_;
 
     // receive queues
-    std::vector<std::list<Packet*> > recv_queues_;
+    std::vector<std::list<Message*> > recv_queues_;
     std::vector<pthread_mutex_t*> recv_queue_locks_;// It's dangerous to copy a pthread_mutex_t so we use pointer
     std::vector<pthread_cond_t*> recv_queue_conds_;
     int max_recv_queue_size_;
     // send queues
-    std::vector<std::list<Packet*> > send_queues_;
+    std::vector<std::list<Message*> > send_queues_;
     std::vector<pthread_mutex_t*> send_queue_locks_;// It's dangerous to copy a pthread_mutex_t so we use pointer
     int max_send_queue_size_;
     // Prohibits

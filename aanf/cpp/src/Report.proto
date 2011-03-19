@@ -1,7 +1,7 @@
-import "PacketFormat.proto";
+import "MessageFormat.proto";
 
 // version = 1001
-package AANF_Protocol;
+package AANF_Message;
 
 message ReportRequest {
     required int32 report_id = 3;
@@ -21,8 +21,8 @@ message ReportResponse {
     required ErrorCode error = 4;
 }
 
-// 在Report协议中的PacketFormat具体内容
-extend Protocol.PacketFormat {
+// 在Report协议中的MessageFormat具体内容
+extend AANF_Message.MessageFormat {
     optional ReportRequest report_req = 103;
     optional ReportResponse report_rsp = 104;
 }

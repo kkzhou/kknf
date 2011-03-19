@@ -1,6 +1,6 @@
-import "PacketFormat.proto";
+import "MessageFormat.proto";
 
-package ProtoForTest;
+package MessageForTest;
 
 message UserProfile {
     required int64 user_id = 1;
@@ -55,7 +55,7 @@ message BFToBB2Rsp{
     repeated UserProfile user_profile = 5;
 }
 
-extend Protocol.PacketFormat {
+extend AANF_Message.MessageFormat {
     // 客户端和BF之间的报文
     optional CToBFReq c_to_bf_req = 201;
     optional CToBFRsp c_to_bf_rsp = 202;

@@ -32,7 +32,7 @@ public:
     };
 public:
     // 处理回应报文的，因为是Client，是请求的发起者，接收的是应答
-    virtual int ProcessPacket(Packet &input_pkt);
+    virtual int ProcessMessage(Message &input_pkt);
     static void TestClientThreadProc(TestClientThreadArg *arg);
 };
 
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
 
 }
 
-int TestClient::ProcessPacket(Packet &input_pkt) {
+int TestClient::ProcessMessage(Message &input_pkt) {
 
     ENTERING;
     SLOG(LogLevel.L_INFO, "Response recved!\n");

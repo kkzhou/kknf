@@ -9,7 +9,7 @@
 #include <google/protobuf/reflection_ops.h>
 #include <google/protobuf/wire_format.h>
 
-namespace AANF_Protocol {
+namespace AANF_Message {
 
 namespace {
 
@@ -100,31 +100,32 @@ void protobuf_AddDesc_Report_2eproto() {
   already_here = true;
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  ::Protocol::protobuf_AddDesc_PacketFormat_2eproto();
+  ::AANF_Message::protobuf_AddDesc_MessageFormat_2eproto();
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\014Report.proto\022\rAANF_Protocol\032\022PacketFor"
+    "\n\014Report.proto\022\014AANF_Message\032\023MessageFor"
     "mat.proto\"c\n\rReportRequest\022\021\n\treport_id\030"
     "\003 \002(\005\022\013\n\003max\030\004 \002(\003\022\013\n\003min\030\005 \002(\003\022\013\n\003avg\030\006"
-    " \002(\003\022\013\n\003dev\030\007 \002(\003\022\013\n\003cnt\030\010 \002(\003\"\207\001\n\016Repor"
-    "tResponse\022\021\n\treport_id\030\003 \002(\005\0226\n\005error\030\004 "
-    "\002(\0162\'.AANF_Protocol.ReportResponse.Error"
-    "Code\"*\n\tErrorCode\022\006\n\002OK\020\000\022\025\n\021NO_SUCH_REP"
-    "ORT_ID\020\001:H\n\nreport_req\022\026.Protocol.Packet"
-    "Format\030e \001(\0132\034.AANF_Protocol.ReportReque"
-    "st:I\n\nreport_rsp\022\026.Protocol.PacketFormat"
-    "\030f \001(\0132\035.AANF_Protocol.ReportResponse", 437);
+    " \002(\003\022\013\n\003dev\030\007 \002(\003\022\013\n\003cnt\030\010 \002(\003\"\206\001\n\016Repor"
+    "tResponse\022\021\n\treport_id\030\003 \002(\005\0225\n\005error\030\004 "
+    "\002(\0162&.AANF_Message.ReportResponse.ErrorC"
+    "ode\"*\n\tErrorCode\022\006\n\002OK\020\000\022\025\n\021NO_SUCH_REPO"
+    "RT_ID\020\001:L\n\nreport_req\022\033.AANF_Message.Mes"
+    "sageFormat\030g \001(\0132\033.AANF_Message.ReportRe"
+    "quest:M\n\nreport_rsp\022\033.AANF_Message.Messa"
+    "geFormat\030h \001(\0132\034.AANF_Message.ReportResp"
+    "onse", 444);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "Report.proto", &protobuf_RegisterTypes);
   ReportRequest::default_instance_ = new ReportRequest();
   ReportResponse::default_instance_ = new ReportResponse();
   ::google::protobuf::internal::ExtensionSet::RegisterMessageExtension(
-    &::Protocol::PacketFormat::default_instance(),
-    101, 11, false, false,
-    &::AANF_Protocol::ReportRequest::default_instance());
+    &::AANF_Message::MessageFormat::default_instance(),
+    103, 11, false, false,
+    &::AANF_Message::ReportRequest::default_instance());
   ::google::protobuf::internal::ExtensionSet::RegisterMessageExtension(
-    &::Protocol::PacketFormat::default_instance(),
-    102, 11, false, false,
-    &::AANF_Protocol::ReportResponse::default_instance());
+    &::AANF_Message::MessageFormat::default_instance(),
+    104, 11, false, false,
+    &::AANF_Message::ReportResponse::default_instance());
   ReportRequest::default_instance_->InitAsDefaultInstance();
   ReportResponse::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_Report_2eproto);
@@ -629,7 +630,7 @@ bool ReportResponse::MergePartialFromCodedStream(
         break;
       }
       
-      // required .AANF_Protocol.ReportResponse.ErrorCode error = 4;
+      // required .AANF_Message.ReportResponse.ErrorCode error = 4;
       case 4: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -638,8 +639,8 @@ bool ReportResponse::MergePartialFromCodedStream(
        parse_error:
         int value;
         DO_(::google::protobuf::internal::WireFormatLite::ReadEnum(input, &value));
-        if (::AANF_Protocol::ReportResponse_ErrorCode_IsValid(value)) {
-          set_error(static_cast< ::AANF_Protocol::ReportResponse_ErrorCode >(value));
+        if (::AANF_Message::ReportResponse_ErrorCode_IsValid(value)) {
+          set_error(static_cast< ::AANF_Message::ReportResponse_ErrorCode >(value));
         } else {
           mutable_unknown_fields()->AddVarint(4, value);
         }
@@ -676,7 +677,7 @@ void ReportResponse::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->report_id(), output);
   }
   
-  // required .AANF_Protocol.ReportResponse.ErrorCode error = 4;
+  // required .AANF_Message.ReportResponse.ErrorCode error = 4;
   if (_has_bit(1)) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       4, this->error(), output);
@@ -695,7 +696,7 @@ void ReportResponse::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->report_id(), target);
   }
   
-  // required .AANF_Protocol.ReportResponse.ErrorCode error = 4;
+  // required .AANF_Message.ReportResponse.ErrorCode error = 4;
   if (_has_bit(1)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
       4, this->error(), target);
@@ -719,7 +720,7 @@ int ReportResponse::ByteSize() const {
           this->report_id());
     }
     
-    // required .AANF_Protocol.ReportResponse.ErrorCode error = 4;
+    // required .AANF_Message.ReportResponse.ErrorCode error = 4;
     if (has_error()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->error());
@@ -796,11 +797,11 @@ void ReportResponse::Swap(ReportResponse* other) {
   return metadata;
 }
 
-::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Protocol::ReportRequest >, 11, false >
-  report_req(kReportReqFieldNumber, ::AANF_Protocol::ReportRequest::default_instance());
-::google::protobuf::internal::ExtensionIdentifier< ::Protocol::PacketFormat,
-    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Protocol::ReportResponse >, 11, false >
-  report_rsp(kReportRspFieldNumber, ::AANF_Protocol::ReportResponse::default_instance());
+::google::protobuf::internal::ExtensionIdentifier< ::AANF_Message::MessageFormat,
+    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Message::ReportRequest >, 11, false >
+  report_req(kReportReqFieldNumber, ::AANF_Message::ReportRequest::default_instance());
+::google::protobuf::internal::ExtensionIdentifier< ::AANF_Message::MessageFormat,
+    ::google::protobuf::internal::MessageTypeTraits< ::AANF_Message::ReportResponse >, 11, false >
+  report_rsp(kReportRspFieldNumber, ::AANF_Message::ReportResponse::default_instance());
 
-}  // namespace AANF_Protocol
+}  // namespace AANF_Message

@@ -20,9 +20,9 @@
 			<Add option="-Wall" />
 		</Compiler>
 		<Unit filename="..\..\Makefile" />
-		<Unit filename="..\..\src\PacketFormat.pb.cc" />
-		<Unit filename="..\..\src\PacketFormat.pb.h" />
-		<Unit filename="..\..\src\PacketFormat.proto" />
+		<Unit filename="..\..\src\MessageFormat.pb.cc" />
+		<Unit filename="..\..\src\MessageFormat.pb.h" />
+		<Unit filename="..\..\src\MessageFormat.proto" />
 		<Unit filename="..\..\src\RemoteLog.pb.cc" />
 		<Unit filename="..\..\src\RemoteLog.pb.h" />
 		<Unit filename="..\..\src\RemoteLog.proto" />
@@ -40,10 +40,10 @@
 		<Unit filename="..\..\src\line_tcp_socket.h" />
 		<Unit filename="..\..\src\memblock.cc" />
 		<Unit filename="..\..\src\memblock.h" />
+		<Unit filename="..\..\src\message.cc" />
+		<Unit filename="..\..\src\message.h" />
 		<Unit filename="..\..\src\netframe.cc" />
 		<Unit filename="..\..\src\netframe.h" />
-		<Unit filename="..\..\src\packet.cc" />
-		<Unit filename="..\..\src\packet.h" />
 		<Unit filename="..\..\src\skeleton.cc" />
 		<Unit filename="..\..\src\skeleton.h" />
 		<Unit filename="..\..\src\socket.cc" />
@@ -56,11 +56,11 @@
 		<Unit filename="..\..\src\tcp_socket.h" />
 		<Unit filename="..\..\src\utils.cc" />
 		<Unit filename="..\..\src\utils.h" />
-		<Unit filename="..\..\test\PacketFormat.pb.cc" />
-		<Unit filename="..\..\test\PacketFormat.pb.h" />
-		<Unit filename="..\..\test\ProtoForTest.pb.cc" />
-		<Unit filename="..\..\test\ProtoForTest.pb.h" />
-		<Unit filename="..\..\test\ProtoForTest.proto" />
+		<Unit filename="..\..\test\MessageForTest.pb.cc" />
+		<Unit filename="..\..\test\MessageForTest.pb.h" />
+		<Unit filename="..\..\test\MessageForTest.proto" />
+		<Unit filename="..\..\test\MessageFormat.pb.cc" />
+		<Unit filename="..\..\test\MessageFormat.pb.h" />
 		<Unit filename="..\..\test\example.cfg" />
 		<Unit filename="..\..\test\test_bb_1.cc" />
 		<Unit filename="..\..\test\test_bb_2.cc" />
