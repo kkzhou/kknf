@@ -23,15 +23,6 @@
 		<Unit filename="..\..\src\MessageFormat.pb.cc" />
 		<Unit filename="..\..\src\MessageFormat.pb.h" />
 		<Unit filename="..\..\src\MessageFormat.proto" />
-		<Unit filename="..\..\src\RemoteLog.pb.cc" />
-		<Unit filename="..\..\src\RemoteLog.pb.h" />
-		<Unit filename="..\..\src\RemoteLog.proto" />
-		<Unit filename="..\..\src\Report.pb.cc" />
-		<Unit filename="..\..\src\Report.pb.h" />
-		<Unit filename="..\..\src\Report.proto" />
-		<Unit filename="..\..\src\UpdateConfig.pb.cc" />
-		<Unit filename="..\..\src\UpdateConfig.pb.h" />
-		<Unit filename="..\..\src\UpdateConfig.proto" />
 		<Unit filename="..\..\src\bin_tcp_socket.cc" />
 		<Unit filename="..\..\src\bin_tcp_socket.h" />
 		<Unit filename="..\..\src\http_tcp_socket.cc" />

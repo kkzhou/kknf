@@ -24,7 +24,7 @@ class Skeleton {
 public:
     class SignalCallBackArg : public CallBackArg {
     public:
-        Skeleton *skeletion_;
+        Skeleton *skeleton_;
     };
     // 传递给线程函数的参数
     class ThreadProcArg {
@@ -43,50 +43,12 @@ public:
         Socket::SocketType type_;
         Socket::DataFormat data_format_;
     };
-    enum LogType {
-        T_ROLL_BY_SIZE = 1,
-        T_ROLL_BY_DAY,
-        T_ROLL_BY_DAY_AND_SIZE
-    };
 
     typedef (int)(*AdminCmdFunc)(std::string&);
 
 public:
     Skeleton();
     ~Skeleton();
-    // 线程函数，用来获取最新的配置文件
-    static void GetConfigThreadProc(ThreadProcArg *arg);
-    int SyncGetConfigFile();
-    // 加载/重新加载配置文件，因为不是所有配置项都是可重新加载的，因此要区分。
-    // 返回值：
-    // 0: 成功
-    // -1: 参数错误
-    // <-1: 其他错误
-    int LoadConfig(bool first_time, std::string &config_file);
-    // 通过发送信号来触发配置文件的重新加载
-    static void LoadConfigSignalHandler(int signo, short events, void *arg);
-    // 检查配置文件是否发生变化，只是检查本地配置文件，
-    // 至于如何从远程拉取配置文件，是另外的进程的任务。
-    bool IsConfigFileChanged();
-
-    // 初始化能写到远程日志服务器的logger，这个logger可写到远端，也可写在本地，如果
-    // 不进行初始化，则默认写在本地
-    // 返回值:
-    // 0: 成功
-    // -1: 参数错误
-    // <-1: 其他错误
-    int InitRemoteLogger();
-
-    // 初始化能把数据上报到远端服务器的的reporter
-    // 0: 成功
-    // -1: 参数错误
-    // <-1: 其他错误
-    int InitReporter();
-    // 初始化定期更新配置文件的服务，需要用独立线程去实现。
-    // 0: 成功
-    // -1: 参数错误
-    // <-1: 其他错误
-    int InitConfigUpdater();
 
     // 初始化所有侦听套接口
     int InitListenSocket();
@@ -112,10 +74,6 @@ public:
     // 线程函数，通过调用Skeleton::ProcessMessage函数实现业务逻辑
     static void WorkerThreadProc(ThreadProcArg *arg);
 
-public:
-    // 辅助接口
-    int Log(bool remote, uint32_t logid, uint32_t level, const char *format, ...);
-    int Report(uint32_t report_id, std::string &property, int value);
 private:
     // 我用于侦听的ip和端口们
     std::map<std::string, ListenSocketInfo> listen_socket_map_;
@@ -130,32 +88,11 @@ private:
     int worker_num_;    // worker线程的数目
     int send_queue_num_;
 
-    // 配置文件相关（远程配置服务器，定期拉取配置文件，如果有变化则重新加载）
+    // 配置文件相关
     std::string config_file_;
-    std::string log_server_ip_;
-    uint16_t log_server_port_;
-    bool config_server_ready_;
-    BinSyncSR *config_sr_;
-    bool config_file_changed_;
-
-    // 上报服务器
-    std::string report_server_ip_;
-    uint16_t report_server_port_;
-    int report_interval_;
-    Socket::SocketType report_server_type_;
-    Socket::DataFormat report_server_data_format_;
-    bool report_server_ready_;
-    uint32_t report_id_;
 
     // 远程日志服务器
     std::string log_file_;
-    std::string config_server_ip_;
-    uint16_t config_server_port_;
-    Socket::SocketType log_server_type_;
-    Socket::DataFormat log_server_data_format_;
-    int config_check_interval_;
-    bool log_server_ready_;
-    uint32_t log_id_;
     LogType log_type_;
     uint32_t log_level_;
 
