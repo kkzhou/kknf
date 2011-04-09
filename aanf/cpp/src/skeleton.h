@@ -32,10 +32,7 @@ public:
         Skeleton *skeleton_;
         int id_;
     };
-    class ConfigUpdateThreadProcArg : public ThreadProcArg {
-    public:
-        int check_interval_;
-    };
+
     class ListenSocketInfo {
     public:
         std::string ip_;

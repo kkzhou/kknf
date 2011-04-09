@@ -33,16 +33,26 @@ public:
            std::string &my_ipstr, uint16_t my_port,
            Socket::SocketType type, Socket::DataFormat df,
            MemBlock *data) {
-                create_time_ = create_time;
-                peer_ipstr_ = peer_ipstr;
-                peer_port_ = peer_port;
-                my_ipstr_ = my_ipstr;
-                my_port_ = my_port;
-                data_format_ = fd;
-                type_ = type;
-                data_ = data;
-           };
-    ~Message();
+        ENTERING;
+        create_time_ = create_time;
+        peer_ipstr_ = peer_ipstr;
+        peer_port_ = peer_port;
+        my_ipstr_ = my_ipstr;
+        my_port_ = my_port;
+        data_format_ = fd;
+        type_ = type;
+        data_ = data;
+        LEAVING;
+        };
+    ~Message() {
+        ENTERING;
+        if (data_) {
+            SLOG(LogLevel::L_DEBUG, "this Message contains data");
+            MemPool::GetMemPool()->ReturnMemBlock(data_);
+        }
+
+        LEAVING;
+    };
 
 public:
     struct timeval create_time_;

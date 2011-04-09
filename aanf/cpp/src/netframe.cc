@@ -459,8 +459,14 @@ void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
                 sk->PushDataToSend(pkt->data_);
                 continue;
             }
-            // 如果不存在这个套接口，则要先创建，并且添加到libevent的侦听事件中。
+            // 如果不存在，并且是CLIENT的时候，才创建，并且添加到libevent的侦听事件中。
             // Create a new one which should act as CLINET
+            if (pkt->sk_type_ != Socket::SocketType.T_TCP_CLIENT) {
+                MemBlock *tmp = pkt->data_;
+                delete pkt;
+                MemPool::GetMemPool->ReturnMemBlock(tmp);
+                continue;
+            }
             sk = SocketPool::GetSocketPool()->CreateClientSocket(pkt->peer_ipstr_,
                                                                  pkt->peer_port_, pkt->sk_type_, pkt->data_format_);
             // 把数据放到该socket的发送缓存里，所有权就交给这个socket了，
@@ -470,7 +476,9 @@ void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
             if (sk->fd_ = socket(PF_INET, SOCK_STREAM, 0) < 0) {
                 perror("socket() error: ");
                 SocketPool::GetSocketPool()->DestroySocket(sk);
+                MemBlock *tmp = pkt->data_;
                 delete pkt;
+                MemPool::GetMemPool->ReturnMemBlock(tmp);
                 continue;
             }
 
@@ -479,14 +487,18 @@ void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
             if (val == -1) {
                 perror("Get socket flags error: ");
                 SocketPool::GetSocketPool()->DestroySocket(sk);
+                MemBlock *tmp = pkt->data_;
                 delete pkt;
+                MemPool::GetMemPool->ReturnMemBlock(tmp);
                 continue;
             }
 
             if (fcntl(sk->fd_, F_SETFL, val | O_NONBLOCK | O_NDELAY) == -1) {
                 perror("Set socket flags error: ");
                 SocketPool::GetSocketPool()->DestroySocket(sk);
+                MemBlock *tmp = pkt->data_;
                 delete pkt;
+                MemPool::GetMemPool->ReturnMemBlock(tmp);
                 continue;
             }
 
@@ -496,7 +508,9 @@ void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
             to_addr.sin_port = htons(to_port);
             if (inet_aton(to_ipstr.c_str(), &to_addr.sin_addr) == 0) {
                 SocketPool::GetSocketPool()->DestroySocket(sk);
+                MemBlock *tmp = pkt->data_;
                 delete pkt;
+                MemPool::GetMemPool->ReturnMemBlock(tmp);
                 continue;
             }
             // connect
@@ -504,7 +518,9 @@ void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
                 if (errno != EINPROGRESS) {
                     perror("Connect error: ");
                     SocketPool::GetSocketPool()->DestroySocket(sk);
+                    MemBlock *tmp = pkt->data_;
                     delete pkt;
+                    MemPool::GetMemPool->ReturnMemBlock(tmp);
                     continue;
                 }
             }
@@ -513,7 +529,9 @@ void NetFrame::SendQueuesHandler(int signo, short events, void *arg) {
             // 添加到一个libevent的事件
             if (AddSocketToMonitor(sk) < 0) {
                 SocketPool::GetSocketPool()->DestroySocket(sk);
+                MemBlock *tmp = pkt->data_;
                 delete pkt;
+                MemPool::GetMemPool->ReturnMemBlock(tmp);
                 continue;
             }
             // 成功创建新的套接口，并把数据交给它了。

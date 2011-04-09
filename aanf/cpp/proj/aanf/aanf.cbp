@@ -31,7 +31,6 @@
 		<Unit filename="..\..\src\line_tcp_socket.h" />
 		<Unit filename="..\..\src\memblock.cc" />
 		<Unit filename="..\..\src\memblock.h" />
-		<Unit filename="..\..\src\message.cc" />
 		<Unit filename="..\..\src\message.h" />
 		<Unit filename="..\..\src\netframe.cc" />
 		<Unit filename="..\..\src\netframe.h" />

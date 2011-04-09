@@ -40,27 +40,6 @@ int Skeleton::Init() {
         return -2;
     }
     SLOG(LogLevel.L_INFO, "SLog is ready\n");
-    ret = InitRemoteLogger();
-    if (ret < 0) {
-        SLOG(LogLevel.L_INFO, "InitRemoteLogger() error!\n");
-    } else {
-        log_server_ready_ = true;
-    }
-
-    // 初始化远程数据上报服务
-    ret = InitReporter();
-    if (ret < 0) {
-        SLOG(LogLevel.L_INFO, "InitReporter() error!\n");
-    } else {
-        report_server_ready_ = true;
-    }
-    // 初始化配置服务
-    ret = InitConfigUpdater();
-    if (ret < 0) {
-        SLOG(LogLevel.L_INFO, "InitConfigUpdater() error!\n");
-    } else {
-        config_server_ready_ = true;
-    }
 
     // 初始化侦听套接口
     ret = InitListenSocket();
@@ -69,6 +48,7 @@ int Skeleton::Init() {
     } else {
         listen_socket_ready_ = true;
     }
+
     LEAVING;
     return 0;
 }
@@ -169,149 +149,6 @@ int Skeleton::LoadConfig(bool first_time, std::string &config_file) {
     LEAVING;
     return 0;
 
-}
-
-void Skeleton::LoadConfigSignalHandler(int signo, short events, CallBackArg *arg) {
-
-    ENTERING
-    SignalCallBackArg *cb_arg = reinterpret_cast<SignalCallBackArg*>(arg);
-    Skeleton *skeleton = cb_arg->skeleton_;
-    int ret = skeleton->LoadConfig(false, srv->config_file_);
-    if (ret < 0) {
-        SLOG(LogLevel.L_SYSERR, "LoadConfig() error: %d\n", ret);
-    }
-    LEAVING;
-    return;
-}
-
-int Skeleton::InitRemoteLogger() {
-
-    ENTERING;
-    Socket *sk = netframe_->socket_pool()->CreateClientSocket(log_server_ip_,
-                                                              log_server_port_,
-                                                              log_server_type_,
-                                                              log_server_data_format_);
-    if (sk == 0) {
-        SLOG(LogLevel.L_SYSERR, "CreateClientSocket() for remote log error!\n");
-        LEAVING;
-        return -2;
-    }
-    netframe_->AddSocketToMonitor(sk);
-    log_server_ready_ = true;
-    LEAVING;
-    return 0;
-}
-
-int Skeleton::InitReporter() {
-
-    ENTERING;
-    Socket *sk = netframe_->socket_pool()->CreateClientSocket(report_server_ip_,
-                                                              report_server_port_,
-                                                              report_server_type_,
-                                                              report_server_data_format_);
-    if (sk == 0) {
-        SLOG(LogLevel.L_SYSERR, "CreateClientSocket() for reporter error!\n");
-        LEAVING;
-        return -2;
-    }
-
-    netframe_->AddSocketToMonitor(sk);
-    log_server_ready_ = true;
-    LEAVING;
-    return 0;
-}
-
-bool Skeleton::IsConfigFileChanged() {
-    ENTERING;
-    LEAVING;
-    return config_file_changed_;
-}
-
-int Skeleton::SyncGetConfigFile() {
-
-    MemBlock *send_buf;
-    MemPool::GetMemPool()->GetMemBlock(1024, send_buf);
-
-    PacketFormat req, rsp;
-
-    // 构造请求
-    req.set_version(1000);
-    req.set_service_id(11);
-    req.set_type(111);
-    req.set_md5("aaa");
-    req.set_length(req.ByteSize());
-
-    MemBlock *send_buf;
-    int ret = 0;
-    ret = MemPool::GetMemPool()->GetMemBlock(req.length());
-    if (ret < 0) {
-        SLOG(LogLevel.L_SYSERR, "GetMemBlock() error: %d\n", ret);
-        LEAVING;
-    }
-    req.SerializeToArray(send_buf.start_, req.length());
-
-    // 发送请求并接收应答
-    MemBlock *recv_buf;
-    ret = config_sr_->SyncSendRecv(send_buf, recv_buf);
-    if (ret < 0) {
-        MemPool::GetMemPool()->ReturnMemBlock(send_buf);
-        MemPool::GetMemPool()->ReturnMemBlock(recv_buf);
-        SLOG(LogLevel.L_SYSERR, "SyncSendRecv() error: %d\n", ret);
-        LEAVING;
-        return -2;
-    }
-
-    istream is;
-    is.rdbuf()->pubsetbuf(recv_buf->start_, recv_buf->used_);
-    rsp.ParseFromString(is);
-
-    fstream fs;
-    fs.open(server->config_file_, ios_base::in | ios_base::out | ios_base::binary);
-    fs.write(rsp.ConfigFile.c_str(), rsp.ConfigFile.length());
-    config_file_changed_ = true;
-    MemPool::GetMemPool()->ReturnMemBlock(send_buf);
-    MemPool::GetMemPool()->ReturnMemBlock(recv_buf);
-    LEAVING;
-
-    return 0;
-}
-
-void Skeleton::GetConfigThreadProc(ConfigUpdateThreadProcArg *arg) {
-
-    ENTERING;
-    Skeleton *skeleton = arg->skeleton_;
-
-    while (!skeleton->cancel_) {
-        int ret = SyncGetConfigFile();
-        if (ret < 0) {
-            SLOG(LogLevel.L_SYSERR, "SyncGetConfigfile() error: %d\n", ret);
-        }
-
-        if (config_file_changed_) {
-            pthread_(NetFrame::SignalNo.SN_USR_1);
-        }
-        // sleep
-        sleep(skeleton->config_check_interval_);
-    } // while
-    LEAVING;
-}
-
-int Server::InitConfigUpdater() {
-
-    ENTERING;
-    int ret = SyncGetConfigFile();
-    if (ret < 0) {
-        return -2;
-    }
-    pthread_t id;
-    ConfigUpdateThreadProcArg *arg = new ConfigUpdateThreadProcArg;
-    arg->id_ = 0;
-    arg->check_interval_ = config_check_interval_;
-    arg->skeleton_ = this;
-    pthread_create(&id, NULL, GetConfigThreadProc, arg);
-    config_server_ready_ = true;
-    LEAVING;
-    return 0;
 }
 
 int Server::InitListenSocket() {
