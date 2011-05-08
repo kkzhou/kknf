@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="aanf" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin\Debug\aanf" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj\Debug\" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Unit filename="..\..\src\basic_connection.hpp" />
+		<Unit filename="..\..\src\bin_connection.hpp" />
+		<Unit filename="..\..\src\client_skeleton.hpp" />
+		<Unit filename="..\..\src\connection_pool.hpp" />
+		<Unit filename="..\..\src\message_info.hpp" />
+		<Unit filename="..\..\src\server_skeleton.hpp" />
+		<Unit filename="..\..\src\test\test_bb1_connection.hpp" />
+		<Unit filename="..\..\src\test\test_bb1_server.cc" />
+		<Unit filename="..\..\src\test\test_bb2_connection.hpp" />
+		<Unit filename="..\..\src\test\test_bb2_server.cc" />
+		<Unit filename="..\..\src\test\test_bb_connection.hpp" />
+		<Unit filename="..\..\src\test\test_bb_server.cc" />
+		<Unit filename="..\..\src\test\test_bf_connection.hpp" />
+		<Unit filename="..\..\src\test\test_bf_server.cc" />
+		<Unit filename="..\..\src\test\test_client.cc" />
+		<Unit filename="..\..\src\test\test_client_connection.hpp" />
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

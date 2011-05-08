@@ -2,115 +2,51 @@
 #define _BASIC_CONNECTION_HPP_
 
 #include <boost/noncopyable.hpp>
+#include <boost/enable_shared_from_this.hpp>
 #include <boost/assert.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/thread.hpp>
+#include <vector>
 
 namespace AANF {
 
-class ConnectionPool;
-
-class BasicConnection : public enable_shared_from_this, private noncopyable {
+class BasicConnection : public boost::enable_shared_from_this, private boost::noncopyable {
 public:
     typedef boost::asio::ip::tcp::socket TCP_Socket;
     typedef boost::asio::ip::address IP_Address;
 public:
-    BasicConnection(boost::asio::io_service &io_serv) 
-        :socket_(io_serv), 
+    BasicConnection(boost::asio::io_service &io_serv, uint32_t init_recv_buffer_size, uint32_t max_recv_buffer_size)
+        :socket_(io_serv),
         strand_(io_serv),
+        recv_buffer_(new std::vector<char>(init_recv_buffer_size)),
+        max_recv_buffer_size_(max_recv_buffer_size),
         in_use_(false) {
-        
+
     };
 
     TCP_Socket& socket() { return socket_; };
 
     bool in_use() { return in_use_; };
-    void Use() {BOOST_ASSERT(in_use_ == false); in_use_ = true;}; 
+    uint32_t max_recv_buffer_size() {return max_recv_buffer_size_;};
+    boost::shared_ptr<std::vector<char> > recv_buffer() {return recv_buffer_;};
+    boost::asio::io_service::strand& strand() {return strand_;};
+    void Use() {BOOST_ASSERT(in_use_ == false); in_use_ = true;};
     void HandleWrite(const boost::system::error_code &ec) {
         return;
     };
-    void HandleRead(const boost::system::error_code &ec, std::size_t byte_num) = 0;
+    void Start() = 0;
 
 private:
     TCP_Socket socket_;
     volatile bool in_use_;
+    boost::shared_ptr<std::vector<char> > recv_buffer_;
+    uint32_t max_recv_buffer_size_;
 
     boost::asio::io_service::strand strand_;
 
 
 };
 
-class ConnectionKey {
-public:
-    BasicConnection::IP_Address addr_;
-    uint16_t port_;
-};
-
-class ConnectionPool {
-public:
-
-    ConnectionPool* CreateConnectionPool() {
-        static ConnectionPool *inst = 0;
-        if (!inst) {
-            inst = new ConnectionPool;
-        }
-        return inst;
-    };
-
-    boost::shared_ptr<BasicConnection> GetIdleConnection(ConnectionKey &key) {
-
-        boost::mutex::scoped_lock locker(mutex_);
-        ConnectionListMap::iterator map_it;
-        map_it = connection_pool_.find(key);
-        if (map_it == connection_pool_.end()) {
-            return boost::shared_ptr(0);
-        }
-
-        ConnectionList::iterator list_it = map_it->second.begin();
-        for (; list_it != map_it->second.end(); list_it++) {
-            if (!(*list_it)->in_use()) {
-                (*list_it)->Use();
-                return *list_it;
-            }
-        }
-    };
-
-    void InsertConnection(boost::shared_ptr<BasicConnection> new_connection) {
-
-        boost::mutex::scoped_lock locker(mutex_);
-        ConnectionKey key;
-        key.addr_ = new_connection.address();
-        key.port_ = new_connection.port();
-
-        ConnectionListMap::iterator it;
-        it = connection_pool_.find(key);
-
-        if (it != connection_map_.end()) {
-            it->second.push_back(new_connection);
-        } else {
-            ConnectionList new_list;
-            new_list.push_back(new_connection);
-            pair<ConnectionListMap::iterator, bool> ret;
-            ret = connection_map_.insert(
-                    pair<ConnectionKey, ConnectionList> > >(key, new_list) );
-            if (!ret.second) {
-            }
-        }
-    };
-
-private:
-    boost::mutex mutex_;
-
-    typedef std::map<ConnectionKey, 
-        std::list<boost::shared_ptr<BasicConnection> > > ConnectionListMap;
-    typedef std::list<boost::shared_ptr<BasicConnection> > ConnectionList;
-
-    ConnectionListMap connection_pool_;
-private:
-    ConnectionPool(){};
-    ConnectionPool(ConnectionPool&);
-    ConnectionPool& operator=(ConnectionPool&);
-};
 
 };
 #endif
