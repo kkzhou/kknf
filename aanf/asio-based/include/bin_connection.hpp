@@ -10,14 +10,16 @@
 class BinConnection : public BasicConnection {
 public:
     void Start() {
-        boost::asio::async_read(socket(), boost::asio::buffer(&((recv_buffer()->at(0)), 4),
-                                boost::asio::transfer_all(),
-                                strand().wrap(
-                                              boost::bind(&BinConnection::HandleLengthRead, shared_from_this(),
-                                                          boost::asio::placeholders::error_code,
-                                                          boost::asio::placeholders::bytes_transferred)
-                                              )
-                                );
+        boost::asio::async_read(
+            socket(),
+            boost::asio::buffer(&((recv_buffer()->at(0)), 4)),
+            boost::asio::transfer_all(),
+            strand().wrap(
+                boost::bind(
+                    &BinConnection::HandleLengthRead,
+                    shared_from_this(),
+                    boost::asio::placeholders::error_code,
+                    boost::asio::placeholders::bytes_transferred)));
     };
 
     // 长度域被读出后的处理函数
@@ -36,14 +38,16 @@ public:
                 recv_buffer()->swap(new_buffer);
             }
             // 开始读剩余的内容
-            boost::asio::async_read(socket(), boost::asio::buffer(&((recv_buffer()->at(4)), recv_buffer()->size() - 4),
-                                boost::asio::transfer_all(),
-                                strand().wrap(
-                                              boost::bind(&BinConnection::HandleCompleteRead, shared_from_this(),
-                                                          boost::asio::placeholders::error_code,
-                                                          boost::asio::placeholders::bytes_transferred)
-                                              )
-                                );
+            boost::asio::async_read(
+                socket(),
+                boost::asio::buffer(&((recv_buffer()->at(4)), recv_buffer()->size() - 4)),
+                boost::asio::transfer_all(),
+                strand().wrap(
+                    boost::bind(
+                        &BinConnection::HandleCompleteRead,
+                        shared_from_this(),
+                        boost::asio::placeholders::error_code,
+                        boost::asio::placeholders::bytes_transferred)));
 
         } else {
             // 如果出现错误，不用处理，

@@ -6,6 +6,7 @@
 #include <boost/assert.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/thread.hpp>
+
 #include <vector>
 
 namespace AANF {
@@ -43,8 +44,6 @@ private:
     uint32_t max_recv_buffer_size_;
 
     boost::asio::io_service::strand strand_;
-
-
 };
 
 

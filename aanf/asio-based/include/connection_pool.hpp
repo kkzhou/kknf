@@ -1,12 +1,14 @@
-
 #ifndef _CONNECTION_POOL_HPP_
 #define _CONNECTION_POOL_HPP_
 
 #include <boost/noncopyable.hpp>
 #include <boost/assert.hpp>
-#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio.hpp>
 #include <boost/thread.hpp>
+
 #include <vector>
+
+#include "connection_pool.hpp"
 
 namespace AANF {
 

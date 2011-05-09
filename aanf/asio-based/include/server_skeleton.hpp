@@ -2,10 +2,13 @@
 #define _SERVER_SKELETON_HPP_
 
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/io_service.hpp>
+
 #include <string>
 #include <map>
 #include <list>
-#include "connection.hpp"
+
+#include "basic_connection.hpp"
 
 namespace AANF {
 
@@ -26,8 +29,7 @@ public:
         thread_pool_size_(thread_pool_size) {
     };
 
-    int AddListenSocket(std::string &ip, uint16_t port, int backlog,
-            ConnectionFactory factory) {
+    int AddListenSocket(std::string &ip, uint16_t port, int backlog, ConnectionFactory factory) {
 
         boost::system::error_code ec;
         IP_Address addr = boost::asio::ip::address::from_string(ip, ec);

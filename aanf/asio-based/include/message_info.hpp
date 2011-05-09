@@ -5,6 +5,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/date_time.hpp>
+
 #include <vector>
 
 namespace AANF {

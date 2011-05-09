@@ -20,22 +20,21 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
-		<Unit filename="..\..\src\basic_connection.hpp" />
-		<Unit filename="..\..\src\bin_connection.hpp" />
-		<Unit filename="..\..\src\client_skeleton.hpp" />
-		<Unit filename="..\..\src\connection_pool.hpp" />
-		<Unit filename="..\..\src\message_info.hpp" />
-		<Unit filename="..\..\src\server_skeleton.hpp" />
-		<Unit filename="..\..\src\test\test_bb1_connection.hpp" />
-		<Unit filename="..\..\src\test\test_bb1_server.cc" />
-		<Unit filename="..\..\src\test\test_bb2_connection.hpp" />
-		<Unit filename="..\..\src\test\test_bb2_server.cc" />
-		<Unit filename="..\..\src\test\test_bb_connection.hpp" />
-		<Unit filename="..\..\src\test\test_bb_server.cc" />
-		<Unit filename="..\..\src\test\test_bf_connection.hpp" />
-		<Unit filename="..\..\src\test\test_bf_server.cc" />
-		<Unit filename="..\..\src\test\test_client.cc" />
-		<Unit filename="..\..\src\test\test_client_connection.hpp" />
+		<Unit filename="..\..\include\basic_connection.hpp" />
+		<Unit filename="..\..\include\bin_connection.hpp" />
+		<Unit filename="..\..\include\client_skeleton.hpp" />
+		<Unit filename="..\..\include\connection_pool.hpp" />
+		<Unit filename="..\..\include\message_info.hpp" />
+		<Unit filename="..\..\include\server_skeleton.hpp" />
+		<Unit filename="..\..\test\test_bb1_connection.hpp" />
+		<Unit filename="..\..\test\test_bb1_server.cc" />
+		<Unit filename="..\..\test\test_bb2_connection.hpp" />
+		<Unit filename="..\..\test\test_bb2_server.cc" />
+		<Unit filename="..\..\test\test_bf_connection.hpp" />
+		<Unit filename="..\..\test\test_bf_server.cc" />
+		<Unit filename="..\..\test\test_client.cc" />
+		<Unit filename="..\..\test\test_client_connection.hpp" />
+		<Unit filename="..\..\test\test_messages.hpp" />
 		<Extensions>
 			<code_completion />
 			<debugger />

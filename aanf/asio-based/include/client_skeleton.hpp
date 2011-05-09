@@ -1,17 +1,19 @@
-#ifndef _SERVER_SKELETON_HPP_
-#define _SERVER_SKELETON_HPP_
+#ifndef _CLIENT_SKELETON_HPP_
+#define _CLIENT_SKELETON_HPP_
 
-#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio.hpp>
+
 #include <string>
 #include <map>
 #include <list>
-#include "connection.hpp"
+
+#include "basic_connection.hpp"
 
 namespace AANF {
 
 typedef (boost::shared_ptr<BasicConnect>)(*ConnectionFactory)();
 
-class ServerSkeleton {
+class ClientSkeleton {
 
 public:
     typedef boost::asio::tcp::acceptor Acceptor;
@@ -21,40 +23,9 @@ public:
     typedef boost::asio::ip::tcp::socket TCP_Socket;
 
 public:
-    ServerSkeleton(int thread_pool_size = 4)
+    ClientSkeleton(int thread_pool_size = 4)
         :strand_(io_service_),
         thread_pool_size_(thread_pool_size) {
-    };
-
-    int AddListenSocket(std::string &ip, uint16_t port, int backlog,
-            ConnectionFactory factory) {
-
-        boost::system::error_code ec;
-        IP_Address addr = boost::asio::ip::address::from_string(ip, ec);
-        if (ec == boost::system::errc.bad_address) {
-            return -1;
-        }
-
-        TCP_Endpoint endpoint(addr, port);
-        Acceptor accpetor(endpoint);
-        acceptor.open(endpoint.protocol());
-        acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-        acceptor.bind(endpoint);
-        acceptor.listen(backlog);
-
-        boost::shared_ptr<BasicConnection> new_connection(ConnectionFactory());
-
-        acceptor.async_accept(new_connection->socket(),
-            strand_.wrap(
-                boost::bind(
-                    ServerSkeleton::HandleAccept,
-                    this, boost::asio::placeholders::error,
-                    acceptor, ConnectionFactory()
-                )
-            )
-        );
-
-        return 0;
     };
 
     void Run() {
@@ -64,12 +35,16 @@ public:
                 new boost::thread(boost::bind(&boost::asio::io_service::run, &io_service_)));
             threads.push_back(thread);
         }
+
         for (std::size_t i = 0; i < thread_pool_size_; i++) {
             threads[i]->join();
         }
     };
+
+    void ThreadProc() = 0;
+    void PrepareRequest() = 0;
+    void ProcessResponse() = 0;
     void Stop() {
-        io_service_.stop();
     };
 
 private:
