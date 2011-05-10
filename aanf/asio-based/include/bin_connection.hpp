@@ -9,7 +9,7 @@
 
 class BinConnection : public BasicConnection {
 public:
-    void Start() {
+    void StartRead() {
         boost::asio::async_read(
             socket(),
             boost::asio::buffer(&((recv_buffer()->at(0)), 4)),
@@ -21,7 +21,32 @@ public:
                     boost::asio::placeholders::error_code,
                     boost::asio::placeholders::bytes_transferred)));
     };
+    void StartWrite(boost::shared_ptr<MessageInfo> msg) {
 
+        boost::asio::async_write(
+            socket(),
+            boost::asio::buffer(msg->data()),
+            boost::asio::transfer_all(),
+            strand().wrap(
+                boost::bind(
+                    &BinConnection::HandleWrite,
+                    shared_from_this(),
+                    boost::asio::placeholders::error_code,
+                    boost::asio::placeholders::bytes_transferred)));
+    };
+    void HandleWrite(const boost::system::error_code &ec, std::size_t byte_num) {
+
+        boost::asio::async_read(
+            socket(),
+            boost::asio::buffer(&((recv_buffer()->at(0)), 4)),
+            boost::asio::transfer_all(),
+            strand().wrap(
+                boost::bind(
+                    &BinConnection::HandleLengthRead,
+                    shared_from_this(),
+                    boost::asio::placeholders::error_code,
+                    boost::asio::placeholders::bytes_transferred)));
+    };
     // 长度域被读出后的处理函数
     void HandleLengthRead(const boost::system::error_code &ec, std::size_t byte_num) {
 

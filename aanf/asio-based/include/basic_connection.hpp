@@ -32,10 +32,9 @@ public:
     boost::shared_ptr<std::vector<char> > recv_buffer() {return recv_buffer_;};
     boost::asio::io_service::strand& strand() {return strand_;};
     void Use() {BOOST_ASSERT(in_use_ == false); in_use_ = true;};
-    void HandleWrite(const boost::system::error_code &ec) {
-        return;
-    };
-    void Start() = 0;
+
+    void StartRead() = 0;
+    void StartWrite(boost::shared_ptr<MessageInfo> msg) = 0;
 
 private:
     TCP_Socket socket_;
