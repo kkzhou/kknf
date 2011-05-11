@@ -9,7 +9,7 @@
 
 class BinConnection : public BasicConnection {
 public:
-    void StartRead() {
+    virtual void StartRead(const boost::system::error_code &ec) {
         boost::asio::async_read(
             socket(),
             boost::asio::buffer(&((recv_buffer()->at(0)), 4)),
@@ -21,7 +21,7 @@ public:
                     boost::asio::placeholders::error_code,
                     boost::asio::placeholders::bytes_transferred)));
     };
-    void StartWrite(boost::shared_ptr<MessageInfo> msg) {
+    void StartWrite(const boost::system::error_code &ec, boost::shared_ptr<MessageInfo> msg) {
 
         boost::asio::async_write(
             socket(),
@@ -34,6 +34,32 @@ public:
                     boost::asio::placeholders::error_code,
                     boost::asio::placeholders::bytes_transferred)));
     };
+
+    void StartConnect(const boost::system::error_code &ec, std::string &to_ip, uint16_t to_port, boost::shared_ptr<MessageInfo> msg) {
+
+        IP_Address to_addr = boost::asio::ip::address::from_string(to_ip);
+        TCP_Endpoint to_endpoint(to_addr, to_port);
+        socket()->async_connect(to_addr,
+            strand().wrap(
+                boost::bind(
+                    &BinConnection::HandleConnect,
+                    shared_from_this(),
+                    boost::asio::placeholders::error_code,
+                    msg)));
+    };
+    void HandleConnect(const boost::system::error_code &ec, boost::shared_ptr<MessageInfo> msg) {
+        set_connected(true);
+        boost::asio::async_write(
+            socket(),
+            boost::asio::buffer(msg->data()),
+            boost::asio::transfer_all(),
+            strand().wrap(
+                boost::bind(
+                    &BinConnection::HandleWrite,
+                    shared_from_this(),
+                    boost::asio::placeholders::error_code,
+                    boost::asio::placeholders::bytes_transferred)));
+    }
     void HandleWrite(const boost::system::error_code &ec, std::size_t byte_num) {
 
         boost::asio::async_read(

@@ -21,24 +21,29 @@ public:
         strand_(io_serv),
         recv_buffer_(new std::vector<char>(init_recv_buffer_size)),
         max_recv_buffer_size_(max_recv_buffer_size),
-        in_use_(false) {
+        in_use_(false),
+        conected_(false) {
 
     };
 
     TCP_Socket& socket() { return socket_; };
 
     bool in_use() { return in_use_; };
+    bool connected() {return connected_;)};
     uint32_t max_recv_buffer_size() {return max_recv_buffer_size_;};
     boost::shared_ptr<std::vector<char> > recv_buffer() {return recv_buffer_;};
     boost::asio::io_service::strand& strand() {return strand_;};
     void Use() {BOOST_ASSERT(in_use_ == false); in_use_ = true;};
+    void set_connected(bool connected) {connected_ = connected;}
 
-    void StartRead() = 0;
-    void StartWrite(boost::shared_ptr<MessageInfo> msg) = 0;
+    virtual void StartRead(const boost::system::error_code &ec) = 0;
+    virtual void StartWrite(const boost::system::error_code &ec, boost::shared_ptr<MessageInfo> msg) = 0;
+    virtual void StartConnect(const boost::system::error_code &ec, std::string &to_ip, uint16_t to_port, boost::shared_ptr<MessageInfo> msg) = 0;
 
 private:
     TCP_Socket socket_;
     volatile bool in_use_;
+    volatile bool connected_;
     boost::shared_ptr<std::vector<char> > recv_buffer_;
     uint32_t max_recv_buffer_size_;
 

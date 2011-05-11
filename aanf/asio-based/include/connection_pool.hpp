@@ -42,19 +42,16 @@ public:
 
         ConnectionList::iterator list_it = map_it->second.begin();
         for (; list_it != map_it->second.end(); list_it++) {
-            if (!(*list_it)->in_use()) {
+            if (!(*list_it)->in_use() && (*list_it)->connected()) {
                 (*list_it)->Use();
                 return *list_it;
             }
         }
     };
 
-    void InsertConnection(boost::shared_ptr<BasicConnection> new_connection) {
+    void InsertConnection(ConnectionKey &key, boost::shared_ptr<BasicConnection> new_connection) {
 
         boost::mutex::scoped_lock locker(mutex_);
-        ConnectionKey key;
-        key.addr_ = new_connection.address();
-        key.port_ = new_connection.port();
 
         ConnectionListMap::iterator it;
         it = connection_pool_.find(key);

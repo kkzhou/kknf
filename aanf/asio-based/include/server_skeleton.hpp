@@ -81,7 +81,14 @@ private:
         if (!ec) {
 
             connection->Use();
-            connection->start();
+
+            ConnectionKey key;
+            key.addr_ = boost::asio::ip::address::from_string(new_connection->socket()->remote_point()->address());
+            key.port_ = (new_connection->socket()->remote_point()->port());
+
+            ConnectionPool::GetConnectionPool()->InsertConnection(key, connection);
+            boost::system::error_code read_ec;
+            connection->StartRead(read_ec);
             boost::shared_ptr<BasicConnection> new_connection(ConnectionFactory());
 
             acceptor.async_accept(new_connection->socket(),
