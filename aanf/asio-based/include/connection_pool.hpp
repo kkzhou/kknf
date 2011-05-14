@@ -96,13 +96,14 @@ public:
         if (it != connection_map_.end()) {
             return;
         } else {
-            ConnectionList new_list;
-            new_list.push_back(new_connection);
-            pair<ConnectionListMap::iterator, bool> ret;
-            ret = connection_map_.insert(
-                    pair<ConnectionKey, ConnectionList> > >(key, new_list));
-            if (!ret.second) {
+            ConnectionList::iterator list_it, list_endit;
+            list_it = it->second.begin();
+            list_endit = it->second.end();
+            boost::shared_ptr<BasicConnection> ret = std::find(list_it, list_endit, exact_connection);
+            if (ret) {
+                it->second.erase(exact_connection);
             }
+            exact_connection->socket().close();
         }
     };
 private:

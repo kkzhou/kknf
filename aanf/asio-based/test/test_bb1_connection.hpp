@@ -15,21 +15,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef _TEST_BB_CONNECTION_HPP_
-#define _TEST_BB_CONNECTION_HPP_
+#ifndef _TEST_BB1_CONNECTION_HPP_
+#define _TEST_BB1_CONNECTION_HPP_
 
 #include "bin_connection.hpp"
 #include "test_messages.hpp"
 
 
-class TestBBConnection : public BinConnection {
+class TestBB1Connection : public BinConnection {
 public:
     // 业务逻辑相关的报文处理函数
     // 根据具体业务来实现
     // 返回值是一个列表，列表的元素是要发送的MessageInfo和对应的ConnectionFacotry对。
     // 含义是：在处理这个报文时，需要发出一些报文，为了发出这些报文，需要对应的connection，
     // 而这些connection就是用ConnectionFacotry建立。
-    virtual ProcessResult ProcessMessage(boost::shared_ptr<MessageInfo> msg) {
+    virtual ProcessResult& ProcessMessage(boost::shared_ptr<MessageInfo> msg) {
 
         BB1Req req, *orig_ptr;
         orig_ptr = reinterpret_cast<BB1Req*>(&(msg->data()->at(4)));
@@ -60,7 +60,7 @@ public:
         ret.push_back(return_msg, boost::functor<BasicConnection*()>());
         return ret;
     };
-private:
+
 
 };
 #endif

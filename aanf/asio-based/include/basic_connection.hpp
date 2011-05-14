@@ -80,7 +80,7 @@ private:
     // 返回值是一个列表，列表的元素是要发送的MessageInfo和对应的ConnectionFacotry对。
     // 含义是：在处理这个报文时，需要发出一些报文，为了发出这些报文，需要对应的connection，
     // 而这些connection就是用ConnectionFacotry建立。
-    virtual ProcessResult ProcessMessage(boost::shared_ptr<MessageInfo> msg) = 0;
+    virtual ProcessResult& ProcessMessage(boost::shared_ptr<MessageInfo> msg) = 0;
 private:
     TCP_Socket socket_;
     volatile bool in_use_;

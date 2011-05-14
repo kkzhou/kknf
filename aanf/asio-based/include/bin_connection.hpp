@@ -117,9 +117,9 @@ private:
     // 发送完后关闭连接
     virtual void HandleWriteThenClose(const boost::system::error_code &ec, std::size_t byte_num) {
 
+        ConnectionPool::GetConnectionPool()->DeleteConnection(shared_form_this());
         boost::system::error e;
         socket().close(e);
-        ConnectionPool::GetConnectionPool()->
     }
 
     virtual void HandleReadThenRead(const boost::system::error_code &ec, std::size_t byte_num) {
@@ -144,7 +144,7 @@ private:
                 boost::asio::transfer_all(),
                 strand().wrap(
                     boost::bind(
-                        &BinConnection::HandleCompleteRead,
+                        &BinConnection::HandleReadThenProcess,
                         shared_from_this(),
                         boost::asio::placeholders::error,
                         boost::asio::placeholders::bytes_transferred)));
@@ -159,58 +159,78 @@ private:
     // 一个完整的报文被读出后的处理函数
     virtual void HandleReadThenProcess(const boost::system::error_code &ec, std::size_t byte_num) {
 
-        if (!ec) {
-            int len = *(int*)(&((recv_buffer()->at(0))));
-            len = boost::asio::detail::socket_ops::network_to_host_long(len);
-            BOOST_ASSERT(byte_num == len - 4);
-            boost::shared_ptr<MessageInfo> new_message(new MessageInfo);
+        if (ec) {
+        }
+        int len = *(int*)(&((recv_buffer()->at(0))));
+        len = boost::asio::detail::socket_ops::network_to_host_long(len);
+        BOOST_ASSERT(byte_num == len - 4);
+        boost::shared_ptr<MessageInfo> new_message(new MessageInfo);
 
-            new_message->set_from_ip(socket()->remote_endpoint().address().to_string());
-            new_message->set_from_port(socket()->remote_endpoint().port());
-            new_message->set_to_ip(socket()->local_endpoint().address().to_string());
-            new_message->set_to_port(socket()->local_endpoint().port());
+        new_message->set_from_ip(socket()->remote_endpoint().address().to_string());
+        new_message->set_from_port(socket()->remote_endpoint().port());
+        new_message->set_to_ip(socket()->local_endpoint().address().to_string());
+        new_message->set_to_port(socket()->local_endpoint().port());
 
-            new_message->set_arrive_time(boost::posix_time::second_time::localtime());
-            new_message->set_len(len);
-            new_message->set_data(recv_buffer());
+        new_message->set_arrive_time(boost::posix_time::second_time::localtime());
+        new_message->set_len(len);
+        new_message->set_data(recv_buffer());
 
-            ProcessResult ret = ProcessMessage(new_message);
-            if (ret.size() == 0) {
-                // 关闭连接
-                boost::system::system_error e;
-                socket().close(e);
-                return;
-            }
+        BasicConnection::ProcessResult ret = ProcessMessage(new_message);
+        if (ret.size() == 0) {
+            // 关闭连接
+            boost::system::system_error e;
+            socket().close(e);
+            return;
+        }
 
-            ProcessResult::iterator it, endit;
-            it = ret.begin();
-            endit = ret.end();
+        BasicConnection::ProcessResult::iterator it, endit;
+        it = ret.begin();
+        endit = ret.end();
 
-            while (it) {
+        bool coming_connection_used = false;
+        while (it) {
 
-                boost::shared_ptr<MessageInfo> msg = it->first;
-                // 先判断是不是按连接返回的应答
-                if (msg->to_ip() == new_message->from_ip() && msg->to_port() == new_message->to_port()) {
-                    boost::asio::async_write(
-                        socket(),
-                        boost::asio::buffer(msg->data()),
-                        boost::asio::transfer_all(),
-                        strand().wrap(
+            boost::shared_ptr<MessageInfo> msg = it->first;
+            boost::functor<BasicConnection* ()> connection_factory = it->second;
+            // 先判断是不是按连接返回的应答
+            if (msg->to_ip() == new_message->from_ip() && msg->to_port() == new_message->to_port()) {
+                coming_connection_used = true;
+                boost::asio::async_write(
+                    socket(),
+                    boost::asio::buffer(msg->data()),
+                    boost::asio::transfer_all(),
+                    strand().wrap(
                         boost::bind(
                             &BinConnection::HandleWrite,
                             shared_from_this(),
                             boost::asio::placeholders::error,
                             boost::asio::placeholders::bytes_transferred)));
+            } else {
+                // 如果不是，则查找空闲连接，或者创建新连接，并发送
+                ConnectionKey key;
+                boost::system::error_code ec;
+                key.addr_ = boost::asio::ip::address::from_string(msg->to_ip(), ec);
+                key.port_ = msg->to_port();
+                boost::shared_ptr<BasicConnection> tmp_connection =
+                    ConnectionPool::GetConnectionPool()->GetIdelConnection(key);
+                if (tmp_connection) {
+                    // 如果有空闲的连接
+                    tmp_connection->StartWrite(ec, msg);
                 } else {
-                    // 如果不是，则查找空闲连接，或者创建新连接，并发送
-
+                    // 否则，先创建连接
+                    BOOST_ASSERT(connection_factory);
+                    boost::shared_ptr<BasicConnection> new_connection(connection_factory());
+                    new_connection->Use();
+                    ConnectionPool::GetConnectionPool()->InsertConnection(key, new_connection);
+                    new_connection->StartConnect(ec, msg->to_ip(), msg->to_port(), msg);
                 }
             }
+        } // while
+        if (!coming_connection_used) {
+            UnUse();
         }
+
     };
-
-
-private:
 
 };
 #endif

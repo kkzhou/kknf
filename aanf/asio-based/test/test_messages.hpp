@@ -22,15 +22,26 @@
 #define CMD_GET_USER_GENDER 0x00000002
 #define CMD_GET_USER_AGE 0x00000003
 
+#define TYPE_BF_REQ 0x00000001
+#define TYPE_BF_RSP 0x00000002
+#define TYPE_BB1_REQ 0x00000003
+#define TYPE_BB1_RSP 0x00000004
+#define TYPE_BB2_REQ 0x00000005
+#define TYPE_BB2_RSP 0x00000006
+
 //报文格式，简单起见，就不序列化反序列化了，直接内存拷贝。
 #pragma pack(1)
-class BFReq {
+class Packet {
+public:
+    int type_;
+};
+class BFReq : public Packet {
 public:
     int user_id_;
     int seq_;
     int cmd_;
 };
-class BFRsp {
+class BFRsp : public Packet {
 public:
     int user_id_;
     int seq_;
@@ -38,26 +49,26 @@ public:
     int gender_;
     int age_;
 };
-class BB1Req {
+class BB1Req : public Packet {
 public:
     int user_id_;
     int seq_;
     int cmd_;
 };
-class BB1Rsp {
+class BB1Rsp : public Packet {
 public:
     int user_id_;
     int seq_;
     int cmd_;
     int gender_;
 };
-class BB2Req {
+class BB2Req : public Packet {
 public:
     int user_id_;
     int seq_;
     int cmd_;
 };
-class BB2Rsp {
+class BB2Rsp : public Packet {
 public:
     int user_id_;
     int seq_;
@@ -65,4 +76,5 @@ public:
     int age_;
 };
 #pragma pack(0)
+
 #endif
