@@ -1,3 +1,20 @@
+ /*
+    Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>
+*/
+
 #ifndef _CLIENT_SKELETON_HPP_
 #define _CLIENT_SKELETON_HPP_
 
@@ -44,20 +61,14 @@ public:
             threads[i]->join();
         }
     };
-    boost::shared_ptr<BasicConnection> CreateConnection(int type, std::string &my_ip, uint16_t my_port) {
 
-        boost::system::error_code ec;
-        IP_Address my_addr = boost::asio::ip::address::from_string(my_ip, ec);
-        if (ec == boost::system::errc.bad_address) {
-            return -1;
-        }
 
-        TCP_Endpoint my_endpoint(my_addr, my_port);
-        boost::shared_ptr<BasicConnect> new_connection(new BinConnection(io_service_, 1024, 10240));
-        new_connection->socket()->bind(my_endpoint);
-        return new_connection;
+
+    void Stop() {
+        io_service_.stop();
     };
 
+private:
     void ThreadProc() {
 
         boost::mt19937 gen;
@@ -90,33 +101,24 @@ public:
         } // while
 
     };
+
     boost::shared_ptr<MessageInfo> PrepareRequest(int type) = 0;
-    void Stop() {
-    };
+    boost::shared_ptr<BasicConnection> CreateConnection(int type, std::string &my_ip, uint16_t my_port) = 0;
+     /* 示例代码
+    {
 
-private:
-    void HandleAccept(boost::system::error_code &ec, Acceptor &acceptor,
-                boost::shared_ptr<BasicConnection> connection) {
-
-        if (!ec) {
-
-            connection->Use();
-            connection->start();
-            boost::shared_ptr<BasicConnection> new_connection(ConnectionFactory());
-
-            acceptor.async_accept(new_connection->socket(),
-                strand_.wrap(
-                    boost::bind(
-                        ServerSkeleton::HandleAccept,
-                        this, boost::asio::placeholders::error,
-                        acceptor, ConnectionFactory()
-                    )
-                )
-            );
-
-        } else {
+        boost::system::error_code ec;
+        IP_Address my_addr = boost::asio::ip::address::from_string(my_ip, ec);
+        if (ec == boost::system::errc.bad_address) {
+            return -1;
         }
+
+        TCP_Endpoint my_endpoint(my_addr, my_port);
+        boost::shared_ptr<BasicConnect> new_connection(new BinConnection(io_service_, 1024, 10240));
+        new_connection->socket()->bind(my_endpoint);
+        return new_connection;
     };
+    */
 
 private:
     IO_Service io_service_;

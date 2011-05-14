@@ -1,3 +1,20 @@
+ /*
+    Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>
+*/
+
 #ifndef _CONNECTION_POOL_HPP_
 #define _CONNECTION_POOL_HPP_
 
@@ -63,12 +80,31 @@ public:
             new_list.push_back(new_connection);
             pair<ConnectionListMap::iterator, bool> ret;
             ret = connection_map_.insert(
-                    pair<ConnectionKey, ConnectionList> > >(key, new_list) );
+                    pair<ConnectionKey, ConnectionList> > >(key, new_list));
             if (!ret.second) {
             }
         }
     };
 
+    void DeleteConnection(ConnectionKey &key, boost::shared_ptr<BasicConnection> exact_connection) {
+
+        boost::mutex::scoped_lock locker(mutex_);
+
+        ConnectionListMap::iterator it;
+        it = connection_pool_.find(key);
+
+        if (it != connection_map_.end()) {
+            return;
+        } else {
+            ConnectionList new_list;
+            new_list.push_back(new_connection);
+            pair<ConnectionListMap::iterator, bool> ret;
+            ret = connection_map_.insert(
+                    pair<ConnectionKey, ConnectionList> > >(key, new_list));
+            if (!ret.second) {
+            }
+        }
+    };
 private:
     boost::mutex mutex_;
 

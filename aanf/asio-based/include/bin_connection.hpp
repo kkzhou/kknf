@@ -1,3 +1,20 @@
+ /*
+    Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>
+*/
+
 #ifndef _BIN_CONNECTION_HPP_
 #define _BIN_CONNECTION_HPP_
 
@@ -18,10 +35,10 @@ public:
                 boost::bind(
                     &BinConnection::HandleLengthRead,
                     shared_from_this(),
-                    boost::asio::placeholders::error_code,
+                    boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred)));
     };
-    void StartWrite(const boost::system::error_code &ec, boost::shared_ptr<MessageInfo> msg) {
+    virtual void StartWrite(const boost::system::error_code &ec, boost::shared_ptr<MessageInfo> msg) {
 
         boost::asio::async_write(
             socket(),
@@ -31,11 +48,11 @@ public:
                 boost::bind(
                     &BinConnection::HandleWrite,
                     shared_from_this(),
-                    boost::asio::placeholders::error_code,
+                    boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred)));
     };
 
-    void StartConnect(const boost::system::error_code &ec, std::string &to_ip, uint16_t to_port, boost::shared_ptr<MessageInfo> msg) {
+    virtual void StartConnect(const boost::system::error_code &ec, std::string &to_ip, uint16_t to_port, boost::shared_ptr<MessageInfo> msg) {
 
         IP_Address to_addr = boost::asio::ip::address::from_string(to_ip);
         TCP_Endpoint to_endpoint(to_addr, to_port);
@@ -44,10 +61,12 @@ public:
                 boost::bind(
                     &BinConnection::HandleConnect,
                     shared_from_this(),
-                    boost::asio::placeholders::error_code,
+                    boost::asio::placeholders::error,
                     msg)));
     };
-    void HandleConnect(const boost::system::error_code &ec, boost::shared_ptr<MessageInfo> msg) {
+
+private:
+    virtual void HandleConnectThenWrite(const boost::system::error_code &ec, boost::shared_ptr<MessageInfo> msg) {
         set_connected(true);
         boost::asio::async_write(
             socket(),
@@ -57,10 +76,11 @@ public:
                 boost::bind(
                     &BinConnection::HandleWrite,
                     shared_from_this(),
-                    boost::asio::placeholders::error_code,
+                    boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred)));
-    }
-    void HandleWrite(const boost::system::error_code &ec, std::size_t byte_num) {
+    };
+
+    virtual void HandleConnectThenRead(const boost::system::error_code &ec) {
 
         boost::asio::async_read(
             socket(),
@@ -70,11 +90,39 @@ public:
                 boost::bind(
                     &BinConnection::HandleLengthRead,
                     shared_from_this(),
-                    boost::asio::placeholders::error_code,
+                    boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred)));
     };
-    // 长度域被读出后的处理函数
-    void HandleLengthRead(const boost::system::error_code &ec, std::size_t byte_num) {
+
+    virtual void HandleWriteThenRead(const boost::system::error_code &ec, std::size_t byte_num) {
+
+        boost::asio::async_read(
+            socket(),
+            boost::asio::buffer(&((recv_buffer()->at(0)), 4)),
+            boost::asio::transfer_all(),
+            strand().wrap(
+                boost::bind(
+                    &BinConnection::HandleLengthRead,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    boost::asio::placeholders::bytes_transferred)));
+    };
+
+    // 发送完后放入空闲队列
+    virtual void HandleWriteThenIdle(const boost::system::error_code &ec, std::size_t byte_num) {
+
+        UnUse();
+    };
+
+    // 发送完后关闭连接
+    virtual void HandleWriteThenClose(const boost::system::error_code &ec, std::size_t byte_num) {
+
+        boost::system::error e;
+        socket().close(e);
+        ConnectionPool::GetConnectionPool()->
+    }
+
+    virtual void HandleReadThenRead(const boost::system::error_code &ec, std::size_t byte_num) {
 
         if (!ec) {
             int len = *(int*)(&((recv_buffer()->at(0))));
@@ -82,6 +130,7 @@ public:
             if (len > max_recv_buffer_size()) {
                 return;
             }
+
             if (len > recv_buffer().size()) {
                 std::vector<char> new_buffer;
                 new_buffer.reserve(len);
@@ -97,7 +146,7 @@ public:
                     boost::bind(
                         &BinConnection::HandleCompleteRead,
                         shared_from_this(),
-                        boost::asio::placeholders::error_code,
+                        boost::asio::placeholders::error,
                         boost::asio::placeholders::bytes_transferred)));
 
         } else {
@@ -106,8 +155,9 @@ public:
         }
     };
 
+
     // 一个完整的报文被读出后的处理函数
-    void HandleCompleteRead(const boost::system::error_code &ec, std::size_t byte_num) {
+    virtual void HandleReadThenProcess(const boost::system::error_code &ec, std::size_t byte_num) {
 
         if (!ec) {
             int len = *(int*)(&((recv_buffer()->at(0))));
@@ -124,25 +174,42 @@ public:
             new_message->set_len(len);
             new_message->set_data(recv_buffer());
 
-            int ret = 1;
-            while ((ret = ProcessMessage(new_message)) == 1) {
+            ProcessResult ret = ProcessMessage(new_message);
+            if (ret.size() == 0) {
+                // 关闭连接
+                boost::system::system_error e;
+                socket().close(e);
+                return;
             }
-            if( ret == -1) {
 
-            } else if( ret == 0) {
-            } else {
-                BOOST_ASSERT(false);
+            ProcessResult::iterator it, endit;
+            it = ret.begin();
+            endit = ret.end();
+
+            while (it) {
+
+                boost::shared_ptr<MessageInfo> msg = it->first;
+                // 先判断是不是按连接返回的应答
+                if (msg->to_ip() == new_message->from_ip() && msg->to_port() == new_message->to_port()) {
+                    boost::asio::async_write(
+                        socket(),
+                        boost::asio::buffer(msg->data()),
+                        boost::asio::transfer_all(),
+                        strand().wrap(
+                        boost::bind(
+                            &BinConnection::HandleWrite,
+                            shared_from_this(),
+                            boost::asio::placeholders::error,
+                            boost::asio::placeholders::bytes_transferred)));
+                } else {
+                    // 如果不是，则查找空闲连接，或者创建新连接，并发送
+
+                }
             }
         }
     };
 
-    // 业务逻辑相关的报文处理函数
-    // 根据具体业务来实现
-    // return value:
-    // 0: OK
-    // -1: Fail
-    // 1: Process again
-    int ProcessMessage(boost::shared_ptr<MessageInfo> msg) = 0;
+
 private:
 
 };

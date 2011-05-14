@@ -24,6 +24,7 @@
 		<Unit filename="..\..\include\bin_connection.hpp" />
 		<Unit filename="..\..\include\client_skeleton.hpp" />
 		<Unit filename="..\..\include\connection_pool.hpp" />
+		<Unit filename="..\..\include\line_connection.hpp" />
 		<Unit filename="..\..\include\message_info.hpp" />
 		<Unit filename="..\..\include\server_skeleton.hpp" />
 		<Unit filename="..\..\test\test_bb1_connection.hpp" />
