@@ -46,6 +46,7 @@ public:
     void set_to_ip(std::string &to_ip){to_ip_ = to_ip;};
     void set_arrive_time(boost::posix_time::ptime &arrive_time){arrive_time_ = arrive_time;};
     void set_data(boost::shared_ptr<std::vector<char> > data){data_ = data;};
+
 private:
     std::string from_ip_;
     uint16_t from_port_;

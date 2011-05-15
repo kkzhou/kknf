@@ -32,8 +32,6 @@
 
 namespace AANF {
 
-typedef (boost::shared_ptr<BasicConnect>)(*ConnectionFactory)();
-
 class ClientSkeleton {
 
 public:
@@ -48,6 +46,7 @@ public:
         :strand_(io_service_),
         thread_pool_size_(thread_pool_size) {
     };
+
 
     void Run() {
         std::vector<boost::shared_ptr<boost::thread> > threads;
@@ -96,29 +95,13 @@ private:
                 ConnectionPool::GetConnectionPool()->InsertConnection(key, connection_to_use);
                 connection_to_use->StartConnect(ec, msg_to_send->to_ip(), msg_to_send->to_port(), msg_to_send);
             } else {
-                connection_to_use->StartWrite(ec, msg_to_send);
+                connection_to_use->StartConnect(ec, msg_to_send->to_ip(), msg_to_send->to_port(), msg_to_send);
             }
         } // while
 
     };
 
     boost::shared_ptr<MessageInfo> PrepareRequest(int type) = 0;
-    boost::shared_ptr<BasicConnection> CreateConnection(int type, std::string &my_ip, uint16_t my_port) = 0;
-     /* 示例代码
-    {
-
-        boost::system::error_code ec;
-        IP_Address my_addr = boost::asio::ip::address::from_string(my_ip, ec);
-        if (ec == boost::system::errc.bad_address) {
-            return -1;
-        }
-
-        TCP_Endpoint my_endpoint(my_addr, my_port);
-        boost::shared_ptr<BasicConnect> new_connection(new BinConnection(io_service_, 1024, 10240));
-        new_connection->socket()->bind(my_endpoint);
-        return new_connection;
-    };
-    */
 
 private:
     IO_Service io_service_;

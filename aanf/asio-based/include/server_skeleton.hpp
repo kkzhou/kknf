@@ -44,7 +44,10 @@ public:
         thread_pool_size_(thread_pool_size) {
     };
 
-    int AddListenSocket(std::string &ip, uint16_t port, int backlog, ConnectionFactory factory) {
+    boost::asio::io_service& io_service() {return io_service_;};
+
+    int AddListenSocket(std::string &ip, uint16_t port, int backlog,
+                        boost::functor<BasicConnection*()> factory) {
 
         boost::system::error_code ec;
         IP_Address addr = boost::asio::ip::address::from_string(ip, ec);
@@ -59,14 +62,14 @@ public:
         acceptor.bind(endpoint);
         acceptor.listen(backlog);
 
-        boost::shared_ptr<BasicConnection> new_connection(ConnectionFactory());
+        boost::shared_ptr<BasicConnection> new_connection(factory());
 
         acceptor.async_accept(new_connection->socket(),
             strand_.wrap(
                 boost::bind(
                     ServerSkeleton::HandleAccept,
                     this, boost::asio::placeholders::error,
-                    acceptor, ConnectionFactory()
+                    acceptor, new_connection, factory
                 )
             )
         );
@@ -91,7 +94,7 @@ public:
 
 private:
     void HandleAccept(boost::system::error_code &ec, Acceptor &acceptor,
-                boost::shared_ptr<BasicConnection> connection) {
+                boost::shared_ptr<BasicConnection> connection, boost::functor<BasicConnection*()> factory) {
 
         if (!ec) {
 
@@ -104,14 +107,14 @@ private:
             ConnectionPool::GetConnectionPool()->InsertConnection(key, connection);
             boost::system::error_code read_ec;
             connection->StartRead(read_ec);
-            boost::shared_ptr<BasicConnection> new_connection(ConnectionFactory());
+            boost::shared_ptr<BasicConnection> new_connection(factory());
 
             acceptor.async_accept(new_connection->socket(),
                 strand_.wrap(
                     boost::bind(
                         ServerSkeleton::HandleAccept,
                         this, boost::asio::placeholders::error,
-                        acceptor, ConnectionFactory()
+                        acceptor, new_connection, factory
                     )
                 )
             );

@@ -32,23 +32,91 @@
 
 namespace AANF {
 
+class DataPerRequest {
+public:
+    DataPerRequest(int req_index)
+        : req_index_(req_index) {
+
+        create_time_ = boost::posix_time::second_time::localtime();
+    }
+    int req_index() {return req_index_;)};
+    void req_index(int req_index) {return req_index_ = req_index;)};
+    boost::posix_time::ptime& create_time(){return create_time_;};
+    void set_create_time(boost::posix_time::ptime &create_time){create_time = create_time;};
+private:
+    int req_index_;
+    boost::posix_time::ptime create_time_;
+
+private: // 禁止调用
+    DataPerRequest(){};
+    DataPerRequest(DataPerRequest&){};
+    DataPerRequest& operator=(DataPerRequest&){};
+};
+
+class LocalData {
+public:
+    boost::shared_ptr<DataPerRequest> GetDataPerRequest(int req_index) {
+
+        std::map<int, boost::shared_ptr<DataPerRequest> >::iterator it =
+            req_map_.find(req_index);
+
+        if (ret != req_map_.end()) {
+            return it->second;
+        } else {
+            return boost::shared_ptr<DataPerRequest>(0);
+        }
+    };
+    bool InsertDataPerRequest(int req_index, boost::shared_ptr<DataPerRequest> req) {
+
+        ::iterator it =
+            req_map_.find(req_index);
+
+        if (ret != req_map_.end()) {
+            return false;
+        } else {
+
+            req_map_.insert(std::pair<int, boost::shared_ptr<DataPerRequest> >(req_index, req));
+            return true;
+        }
+    };
+    int SweepExpiredRequest(int timeout) {
+
+        std::map<int, boost::shared_ptr<DataPerRequest> >::iterator it, endit;
+        while(it != endit) {
+            boost::shared_ptr<DataPerRequest> tmp_data = it->second;
+            if (tmp_data->create_time() + boost::posix_time::seconds(timeout)
+                >= boost::posix_time::second_time::localtime()) {
+
+                req_map_.erase(it++);
+                } else {
+                    it++;
+                }
+        } // while
+    };
+private:
+    boost::shared_ptr<std::map<int, boost::shared_ptr<DataPerRequest> > > req_map_;
+};
+
 class BasicConnection : public boost::enable_shared_from_this, private boost::noncopyable {
 public:
     typedef std::list<std::pair<boost::shared_ptr<MessageInfo>, boost::functor<BasicConnection*()> > > ProcessResult;
     typedef boost::asio::ip::tcp::socket TCP_Socket;
     typedef boost::asio::ip::address IP_Address;
 public:
-    BasicConnection(boost::asio::io_service &io_serv, uint32_t init_recv_buffer_size, uint32_t max_recv_buffer_size)
+    BasicConnection(boost::asio::io_service &io_serv, uint32_t init_recv_buffer_size,
+                    uint32_t max_recv_buffer_size)
         :socket_(io_serv),
         strand_(io_serv),
         recv_buffer_(new std::vector<char>(init_recv_buffer_size)),
         max_recv_buffer_size_(max_recv_buffer_size),
         in_use_(false),
-        conected_(false) {
+        conected_(false),
+        ld_(new LocalData) {
 
     };
 
     TCP_Socket& socket() { return socket_; };
+    boost::shared_ptr<LocalData> ld() {return ld_;};
 
     bool in_use() { return in_use_; };
     bool connected() {return connected_;)};
@@ -89,6 +157,8 @@ private:
     uint32_t max_recv_buffer_size_;
 
     boost::asio::io_service::strand strand_;
+private:
+    boost::shared_ptr<LocalData> ld_;
 };
 
 

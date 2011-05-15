@@ -16,22 +16,77 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef _TEST_BB1_CONNECTION_HPP_
-#define _TEST_BB1_CONNECTION_HPP_
+#ifndef _TEST_BF_CONNECTION_HPP_
+#define _TEST_BF_CONNECTION_HPP_
 
 #include "bin_connection.hpp"
 #include "test_messages.hpp"
 
+#define TYPE_CLIENT_TO_BF_CONNECTION 0x00000001
+#define TYPE_BF_TO_BB1_CONNECTION 0x00000002
+#define TYPE_BF_TO_BB2_CONNECTION 0x00000003
+
+class BFDataPerRequest : public DataPerRequest {
+public:
+    BFDataPerRequest(int req_index)
+        : DataPerRequest(req_index),
+        msg_to_client_(new MessageInfo) {
+    };
+public:
+    bool bb1_rsp_arrived_;
+    bool bb2_rsp_arrived_;
+    BFRsp rsp_to_client_;
+    boost::shared_ptr<MessageInfo> msg_to_client_;
+};
+
+class BFConnectionLocalData : public LocalData {
+public :
+    int connection_type_;
+};
 
 class TestBFConnection : public BinConnection {
 public:
-    TestBFConnection()
-        : bb1_rsp_ready_(false),
-        bb2_rsp_reay_(false){
+    TestBFConnection(boost::asio::io_service &io_serv, uint32_t init_recv_buffer_size,
+                    uint32_t max_recv_buffer_size)
+                    : ld_(new BFConnectionLocalData){
     };
 
-    static TestBFConnection* CreateTestBFConnection() {
-        return new TestBFConnection;
+    static BasicConnection* CreateTestBFConnection1(boost::asio::io_service &io_serv,
+                    uint32_t init_recv_buffer_size, uint32_t max_recv_buffer_size) {
+
+        TestBFConnection new_connection =
+            new TestBFConnection(io_serv, init_recv_buffer_size, max_recv_buffer_size);
+
+        boost::shared_ptr<BFConnectionLocalData> tmp_ld =
+            boost::dynamic_pointer_cast<LocalData>(new_connection->ld());
+        tmp_ld->connection_type_ = TYPE_CLIENT_TO_BF_CONNECTION;
+
+        return new_connection;
+    };
+
+    static BasicConnection* CreateTestBFConnection2(boost::asio::io_service &io_serv,
+                    uint32_t init_recv_buffer_size, uint32_t max_recv_buffer_size) {
+
+        TestBFConnection new_connection =
+            new TestBFConnection(io_serv, init_recv_buffer_size, max_recv_buffer_size);
+
+        boost::shared_ptr<BFConnectionLocalData> tmp_ld =
+            boost::dynamic_pointer_cast<LocalData>(new_connection->ld());
+        tmp_ld->connection_type_ = TYPE_BF_TO_BB1_CONNECTION;
+
+        return new_connection;
+    };
+    static BasicConnection* CreateTestBFConnection3(boost::asio::io_service &io_serv,
+                    uint32_t init_recv_buffer_size, uint32_t max_recv_buffer_size) {
+
+        TestBFConnection new_connection =
+            new TestBFConnection(io_serv, init_recv_buffer_size, max_recv_buffer_size);
+
+        boost::shared_ptr<BFConnectionLocalData> tmp_ld =
+            boost::dynamic_pointer_cast<LocalData>(new_connection->ld());
+        tmp_ld->connection_type_ = TYPE_BF_TO_BB2_CONNECTION;
+
+        return new_connection;
     };
 
     // 业务逻辑相关的报文处理函数
@@ -42,12 +97,37 @@ public:
     virtual ProcessResult& ProcessMessage(boost::shared_ptr<MessageInfo> msg) {
 
         Packet *orig_pkt = reinterpret_cast<BFReq*>(&(msg->data()->at(4)));
-        if (orig_pkt->type_ == TYPE_BF_REQ) {
+        int connection_type;
+        boost::shared_ptr<BFConnectionLocalData> ld =
+            boost::dynamic_pointer_cast<LocalData>(new_connection->ld());
+        connection_type = ld->connection_type_;
+
+        static int req_index = 0;
+
+        boost::shared_ptr<BFDataPerRequest> data_for_this_req;
+        char *tmp_begin, *tmp_end;
+        ProcessResult ret;
+        if (connection_type == TYPE_CLIENT_TO_BF_CONNECTION) {
+            // 这是从客户端（相对的客户端，不一定是用户）过来的新Request，
+            // 创建一个新的DataPerRequest放到map里
+            int req_index_for_this_req = ++req_index;
+            data_for_this_req
+                = boost::shared_ptr<BFDataPerRequest>(new BFDataPerRequest(req_index_for_this_req);
+
+            data_for_this_req->msg_to_client_->set_from_ip(msg->to_ip());
+            data_for_this_req->msg_to_client_->set_from_port(msg->to_port());
+            data_for_this_req->msg_to_client_->set_to_ip(msg->from_ip());
+            data_for_this_req->msg_to_client_->set_to_port(msg->from_port());
+
+            ld->InsertDataPerRequest(req_index_for_this_req, data_for_this_req));
+
             BFReq req, *orig_ptr;
             orig_ptr = reinterpret_cast<BFReq*>(orig_pkt);
             req.seq_ = orig_ptr->seq_;
             req.user_id_ = orig_ptr->user_id_;
             req.cmd_ = orig_ptr->cmd_;
+            data_for_this_req->rsp_to_client_.cmd_ = req.cmd_;
+            data_for_this_req->rsp_to_client_.seq_ = req.seq_;
 
             boost::shared_ptr<MessageInfo> msg_to_bb1(new MessageInfo);
             boost::shared_ptr<MessageInfo> msg_to_bb2(new MessageInfo);
@@ -65,8 +145,8 @@ public:
             bb1_req.cmd_ = req.cmd_;
             bb1_req.seq_ = req.seq_;
             bb1_req.user_id_ = req.user_id_;
+            bb1_req.req_index_ = req_index_for_this_req;
 
-            char *tmp_begin, *tmp_end;
             tmp_begin = reinterpret_cast<char*>(&bb1_req);
             tmp_end = tmp_begin + sizeof(BB1Req);
             msg_to_bb1->data()->assign(tmp_begin, tmp_end);
@@ -84,19 +164,20 @@ public:
             bb2_req.cmd_ = req.cmd_;
             bb2_req.seq_ = req.seq_;
             bb2_req.user_id_ = req.user_id_;
+            bb2_req.req_index_ = req_index_for_this_req;
 
-            char *tmp_begin, *tmp_end;
+
             tmp_begin = reinterpret_cast<char*>(&bb2_req);
             tmp_end = tmp_begin + sizeof(BB2Req);
             msg_to_bb2->data()->assign(tmp_begin, tmp_end);
 
-            ProcessResult ret;
-            boost::functor<BasicConnection*()> connection_factory = CreateTestBFConnection;
-            ret.push_back(std::pair(msg_to_bb1, connection_factory));
-            ret.push_back(std::pair(msg_to_bb1, connection_factory));
+            boost::functor<BasicConnection*()> connection_factory1 = CreateTestBFConnection2;
+            boost::functor<BasicConnection*()> connection_factory2 = CreateTestBFConnection2;
+            ret.push_back(std::pair(msg_to_bb1, connection_factory1));
+            ret.push_back(std::pair(msg_to_bb2, connection_factory2));
             return ret;
 
-        } else if (orig_pkt->type_ == TYPE_BB1_RSP) {
+        } else if (connection_type == TYPE_BF_TO_BB1_CONNECTION) {
             BB1Rsp bb1_rsp, *orig_ptr;
             orig_ptr = reinterpret_cast<BB1Rsp*>(orig_pkt);
             bb1_rsp.seq_ = orig_ptr->seq_;
@@ -104,21 +185,50 @@ public:
             bb1_rsp.cmd_ = orig_ptr->cmd_;
             bb1_rsp.gender_ = orig_ptr->gender_;
             bb1_rsp.type_ = orig_ptr->type_;
+            bb1_rsp.req_index_ = orig_ptr->req_index_;
 
-            rsp_to_client_.gender_ = bb1_rsp.gender_;
-            rsp_to_client_.user_id_ = bb1_rsp.user_id_;
-            if (bb2_rsp_reay_){
-                // 发送返回给客户端的报文
-            }
-        } else if (orig_pkt->type_ == TYPE_BB2_RSP) {
+            data_for_this_req =
+                boost::dynamic_pointer_cast<BFDataPerRequest>(ld()->GetDataPerRequest(bb1_rsp.req_index_));
+            data_for_this_req->rsp_to_client_.gender_ = bb1_rsp.gender_;
+            data_for_this_req->rsp_to_client_.user_id_ = bb1_rsp.user_id_;
+            data_for_this_req->bb1_rsp_arrived_ = true;
+
+        } else if (connection_type == TYPE_BF_TO_BB2_CONNECTION) {
+            BB2Rsp bb2_rsp, *orig_ptr;
+            orig_ptr = reinterpret_cast<BB2Rsp*>(orig_pkt);
+            bb2_rsp.seq_ = orig_ptr->seq_;
+            bb2_rsp.user_id_ = orig_ptr->user_id_;
+            bb2_rsp.cmd_ = orig_ptr->cmd_;
+            bb2_rsp.age_ = orig_ptr->age_;
+            bb2_rsp.type_ = orig_ptr->type_;
+            bb2_rsp.req_index_ = orig_ptr->req_index_;
+
+            data_for_this_req =
+                boost::dynamic_pointer_cast<BFDataPerRequest>(ld()->GetDataPerRequest(bb2_rsp.req_index_));
+            data_for_this_req->rsp_to_client_.age_ = bb2_rsp.age_;
+            data_for_this_req->rsp_to_client_.user_id_ = bb2_rsp.user_id_;
+            data_for_this_req->bb2_rsp_arrived_ = true;
+
         } else {
         }
 
+        // 如果BB1和BB2都给了应答，则发送回应给客户端
+        data_for_this_req =
+                boost::dynamic_pointer_cast<BFDataPerRequest>(ld()->GetDataPerRequest(bb2_rsp.req_index_));
+        if (data_for_this_req->bb1_rsp_arrived_ && data_for_this_req->bb2_rsp_arrived_) {
+            data_for_this_req->msg_to_client_->set_arrive_time(boost::posix_time::second_time::localtime());
+            data_for_this_req->msg_to_client_->set_data(boost_shared_ptr<std::vector<char> >(new std::vector<char>));
+            tmp_begin = reinterpret_cast<char*>(&data_for_this_req->rsp_to_client_);
+            tmp_end = tmp_begin + sizeof(BFRsp);
+            data_for_this_req->msg_to_client_->data().assgn();
+
+
+            ret.push_back(std::pair(data_for_this_req->msg_to_client_, boost::functor<BasicConnection(*()>())));
+
+        }
+        return ret;
     };
-private:
-    BFRsp rsp_to_client_;
-    bool bb1_rsp_ready_;
-    bool bb2_rsp_reay_;
+
 
 };
 #endif

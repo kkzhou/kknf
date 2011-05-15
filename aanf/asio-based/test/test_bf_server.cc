@@ -14,3 +14,26 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
+
+#include "server_skeleton.hpp"
+
+class BFServer : public ServerSkeleton {
+public:
+    int Init(std::string &configfile) {
+        // 如果是复杂的初始化参数，一般从配置文件里读
+        return 0;
+
+    };
+private:
+
+};
+
+int main(int argc, char const * const * const argv) {
+
+    BFServer srv(5);
+    srv.AddListenSocket("127.0.0.1", 20001, 10, TestBFConnection::CreateTestBFConnection1);
+    srv.AddListenSocket("127.0.0.1", 20002, 10, TestBFConnection::CreateTestBFConnection1);
+
+    srv.Run();
+    return 0;
+}

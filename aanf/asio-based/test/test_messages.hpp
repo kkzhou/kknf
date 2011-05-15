@@ -52,12 +52,14 @@ public:
 class BB1Req : public Packet {
 public:
     int user_id_;
+    int req_index_;
     int seq_;
     int cmd_;
 };
 class BB1Rsp : public Packet {
 public:
     int user_id_;
+    int req_index_;
     int seq_;
     int cmd_;
     int gender_;
@@ -65,12 +67,14 @@ public:
 class BB2Req : public Packet {
 public:
     int user_id_;
+    int req_index_;
     int seq_;
     int cmd_;
 };
 class BB2Rsp : public Packet {
 public:
     int user_id_;
+    int req_index_;
     int seq_;
     int cmd_;
     int age_;

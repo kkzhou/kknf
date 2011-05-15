@@ -61,6 +61,14 @@ public:
         return ret;
     };
 
+    static BasicConnection* CreateTestBB1Connection(boost::asio::io_service &io_serv,
+                    uint32_t init_recv_buffer_size, uint32_t max_recv_buffer_size) {
+
+        TestBFConnection new_connection =
+            new TestBB1Connection(io_serv, init_recv_buffer_size, max_recv_buffer_size);
+
+        return new_connection;
+    };
 
 };
 #endif
