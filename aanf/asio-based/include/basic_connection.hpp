@@ -32,6 +32,8 @@
 
 namespace AANF {
 
+// 这个类是用来存储一个Request的状态数据的，例如，客户端的一个请求，引发
+// 多次向后的请求，那么需要存储这个状态信息。
 class DataPerRequest {
 public:
     DataPerRequest(int req_index)
@@ -53,6 +55,9 @@ private: // 禁止调用
     DataPerRequest& operator=(DataPerRequest&){};
 };
 
+// 这个类是每个connection的本地数据
+// 一个connection中可能同时处理多个Request，因此一个LocalData里
+// 会有多个DataPerRequest
 class LocalData {
 public:
     boost::shared_ptr<DataPerRequest> GetDataPerRequest(int req_index) {

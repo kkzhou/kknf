@@ -20,7 +20,9 @@
 
 #include <boost/asio/detail/socket_ops.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+
 #include <vector>
+
 #include "basic_connection.hpp"
 
 
