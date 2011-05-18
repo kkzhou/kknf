@@ -27,6 +27,7 @@
 		<Unit filename="..\..\include\debug.hpp" />
 		<Unit filename="..\..\include\line_connection.hpp" />
 		<Unit filename="..\..\include\message_info.hpp" />
+		<Unit filename="..\..\include\server.hpp" />
 		<Unit filename="..\..\include\server_skeleton.hpp" />
 		<Unit filename="..\..\test\test_bb1_connection.hpp" />
 		<Unit filename="..\..\test\test_bb1_server.cc" />
