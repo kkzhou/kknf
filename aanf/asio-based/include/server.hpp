@@ -11,18 +11,7 @@
 
 namespace AANF {
 
-typedef boost::asio::ip::udp::socket UDPSocket;
-typedef boost::shared_ptr<UDPSocket> UDPSocketPtr;
-typedef boost::asio::ip::udp::endpoint UDPEndpoint;
-typedef boost::shared_ptr<UDPEndpoint> UDPEndpointPtr;
 
-typedef boost::asio::ip::tcp::socket TCPSocket;
-typedef boost::shared_ptr<TCPSocket> TCPSocketPtr;
-typedef boost::asio::ip::tcp::endpoint TCPEndpoint;
-typedef boost::shared_ptr<TCPEndpoint> TCPEndpointPtr;
-typedef boost::asio::ip::tcp::acceptor TCPAcceptor;
-
-typedef boost::date_time::posix_time PTime;
 
 
 // The key for a socket used in std::map
@@ -75,44 +64,87 @@ public:
 // Information about an acceptor
 class TCPAcceptorInfo {
 public:
+    TCPAcceptorInfo(SocketType type, TCPEndpoint &local_endpoint)
+        : type_(type),
+        acceptor_(local_endpoint),
+        new_socket_(0) {
+    };
+public:
     TCPAcceptor acceptor_;
+    SocketType type_;
     TCPScoketPtr new_socket_;
 };
 
+typedef boost::asio::ip::udp::socket UDPSocket;
+typedef boost::shared_ptr<UDPSocket> UDPSocketPtr;
+typedef boost::asio::ip::udp::endpoint UDPEndpoint;
 
-class ServerSkeleton : public enable_shared_from_this<ServerSkeleton> {
+typedef boost::asio::ip::tcp::socket TCPSocket;
+typedef boost::shared_ptr<TCPSocket> TCPSocketPtr;
+typedef boost::asio::ip::tcp::endpoint TCPEndpoint;
+typedef boost::asio::ip::tcp::acceptor TCPAcceptor;
+typedef boost::shared_ptr<TCPAcceptorInfo> TCPAcceptorInfoPtr;
+
+typedef boost::shared_ptr<SocketInfo> SocketInfoPtr;
+
+typedef boost::date_time::posix_time PTime;
+
+
+class Server : public enable_shared_from_this<ServerSkeleton> {
 public:
-    ServerSkeleton()
+    Server()
         : strand_(io_serv_) {
     };
-    int AddTCPListenSocket(std::string &ip, uint16_t port) {
+    int AddTCPListenSocket(std::string &ip, uint16_t port, SocketType type) {
 
         boost::system::error_code ec;
-        IP_Address addr = boost::asio::ip::address::from_string(ip, ec);
+        boost::asio::ip::address addr = boost::asio::ip::address::from_string(ip, ec);
         if (ec == boost::system::errc.bad_address) {
             return -1;
         }
 
-        TCP_Endpoint endpoint(addr, port);
-        boost::shared_ptr<TCPAcceptor> accpetor(new TCPAcceptor(endpoint));
-        acceptor->open(endpoint.protocol());
-        acceptor->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-        acceptor->bind(endpoint);
-        acceptor->listen(tcp_backlog_);
+        TCPEndpoint endpoint(addr, port);
+        TCPAcceptorInfoPtr new_acceptorinfo(new TCPAcceptorInfo(type, endpoint));
+        new_acceptorinfo->acceptor_.open(endpoint.protocol());
+        new_acceptorinfo->acceptor_->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+        new_acceptorinfo->acceptor_->bind(endpoint);
+        new_acceptorinfo->acceptor_->listen(tcp_backlog_);
 
-        acceptor->async_accept(new_connection->socket(),
+        SocketKey key(ip, port);
+        std::map<SocketKey, TCPAcceptorInfoPtr>::iterator it = tcp_acceptor_map_.find(key);
+        if (it->first) {
+            return -2;
+        }
+
+        std::pair<bool, std::map<SocketKey, TCPAcceptorInfoPtr>::iterator> insert_result =
+            tcp_acceptor_map_.insert(std::pair<SocketKey, TCPAcceptorInfoPtr>(key, new_acceptorinfo));
+
+        new_acceptorinfo->acceptor_->async_accept(new_acceptorinfo->new_socket_,
             strand_.wrap(
                 boost::bind(
-                    ServerSkeleton::HandleAccept,
-                    this, boost::asio::placeholders::error,
-                    acceptor, new_connection, factory
+                    Server::HandleAccept,
+                    shared_from_this(this),
+                    boost::asio::placeholders::error,
+                    new_acceptorinfo
                 )
             )
         );
 
         return 0;
     };
-    int AddUDPServerSocket(std::string &ip, uint16_t port);
+
+
+    int AddUDPServerSocket(std::string &ip, uint16_t port) {
+
+        boost::system::error_code ec;
+        boost::asio::ip::address addr = boost::asio::ip::address::from_string(ip, ec);
+        if (ec == boost::system::errc.bad_address) {
+            return -1;
+        }
+
+        UDPEndpoint endpoint(addr, port);
+        SocketInfoPtr new_socket(new SocketInfo())
+    };
     int Run();
 private:
     int ToConnect(SocketInfo &sk, TCPEndpint &remote_endpoint, std::vector<char> &buf_to_send) {
@@ -126,6 +158,9 @@ private:
     int ToRead(SocketInfo &sk, UDPEndpoint &remote_endpoint, std::vector<char> &buf_to_fill) {
     };
 private:
+    // Accept handler
+    void HandleAccept(const boost::system::error_code& error, TCPAcceptorInfoPtr acceptorinfo) {
+    };
     // Connect handlers
     void HandleConnectThenWrite(const boost::system::error_code& error,
                                     SocketInfo &sk, std::vector<char> &buf_to_send) {
@@ -163,9 +198,9 @@ public:
     void set_tcp_backlog(int backlog) {tcp_backlog_ = backlog;};
 private:
     // Data structure to maintain sockets(connections)
-    std::map<SocketKey, UDPSocketPtr> udp_server_socket_map_;
-    std::map<SocketKey, boost::shared_ptr<TCPAcceptorInfo> > tcp_acceptor_map_;
-    std::map<SocketKey, std::list<std::pair<bool, TCPSocketPtr> > > tcp_client_socket_map_;
+    std::map<SocketKey, SocketInfoPtr> udp_server_socket_map_;
+    std::map<SocketKey, TCPAcceptorInfoPtr > tcp_acceptor_map_;
+    std::map<SocketKey, std::list<std::pair<bool, SocketInfoPtr> > > tcp_client_socket_map_;
     // strand is for synchronous
     boost::asio::strand strand_;
     // thread
