@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
-	<File name="..\..\include\basic_connection.hpp" open="0" top="0" tabpos="7">
-		<Cursor position="1587" topLine="112" />
+	<File name="..\..\include\basic_connection.hpp" open="1" top="0" tabpos="5">
+		<Cursor position="3491" topLine="89" />
 	</File>
-	<File name="..\..\include\bin_connection.hpp" open="1" top="0" tabpos="1">
-		<Cursor position="2687" topLine="59" />
+	<File name="..\..\include\bin_connection.hpp" open="1" top="0" tabpos="4">
+		<Cursor position="2716" topLine="39" />
 	</File>
 	<File name="..\..\include\client_skeleton.hpp" open="0" top="0" tabpos="4">
 		<Cursor position="3384" topLine="42" />
@@ -16,16 +16,16 @@
 	<File name="..\..\include\message_info.hpp" open="0" top="0" tabpos="6">
 		<Cursor position="287" topLine="12" />
 	</File>
-	<File name="..\..\include\server.hpp" open="1" top="1" tabpos="3">
-		<Cursor position="1352" topLine="58" />
+	<File name="..\..\include\server.hpp" open="1" top="1" tabpos="2">
+		<Cursor position="18428" topLine="103" />
 	</File>
-	<File name="..\..\include\server_skeleton.hpp" open="1" top="0" tabpos="4">
+	<File name="..\..\include\server_skeleton.hpp" open="1" top="0" tabpos="3">
 		<Cursor position="2475" topLine="68" />
 	</File>
 	<File name="..\..\test\test_client_connection.hpp" open="0" top="0" tabpos="3">
 		<Cursor position="1" topLine="0" />
 	</File>
-	<File name="..\..\test\test_messages.hpp" open="1" top="0" tabpos="2">
+	<File name="..\..\test\test_messages.hpp" open="1" top="0" tabpos="1">
 		<Cursor position="0" topLine="0" />
 	</File>
 </CodeBlocks_layout_file>
