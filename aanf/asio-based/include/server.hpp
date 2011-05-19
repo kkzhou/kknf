@@ -19,8 +19,12 @@ public:
         : ip_(ip),
         port_(port) {};
 
-    std::string& ip() {return ip_;};
-    uint16_t port() {return port_;};
+    std::string& ip() {
+        return ip_;
+    };
+    uint16_t port() {
+        return port_;
+    };
 private:
     string ip_;
     uint16_t port_;
@@ -48,20 +52,68 @@ public:
             boost::posix_time::second_time::localtime();
 
     };
-    SocketType type() {return type_;};
-    bool is_client() {return is_client_;};
-    void set_is_client(bool is_client) {is_client_ = is_client;};
-    bool in_use() {return in_use_;};
-    void Use() { BOOST_ASSERT(in_use_ == false); in_use_ = true;};
-    TCPSocket& tcp_sk() {return tcp_sk_;};
-    PTime& create_time() {return create_time;};
-    PTime& access_time_() {return access_time_;};
-    void Touch() {access_time_ = boost::posix_time::second_time::localtime();};
-    std::vector<char>& recv_buf() {return recv_buf_;};
-    void set_recv_buf(size_t byte_num) {
+    SocketType type() {
+        return type_;
+    };
+
+    bool is_client() {
+        return is_client_;
+    };
+
+    void set_is_client(bool is_client) {
+        is_client_ = is_client;
+    };
+
+    bool in_read() {
+        return in_read_;
+    };
+
+    bool in_write() {
+        return in_write;
+    };
+
+    void set_in_read(bool in_read) {
+        in_read_ = in_read;
+    };
+
+    void set_in_write(bool in_write) {
+        in_write_ = in_write;
+    };
+
+    TCPSocket& tcp_sk() {
+        return tcp_sk_;
+    };
+
+    PTime& create_time() {
+        return create_time;
+    };
+
+    PTime& access_time_() {
+        return access_time_;
+    };
+
+    void Touch() {
+        access_time_ = boost::posix_time::second_time::localtime();
+    };
+
+    std::vector<char>& recv_buf() {
+        return recv_buf_;
+    };
+
+    void GetData(std::vector<char> &to_swap) {
+        recv_buf_.swap(to_swap_;)
+    };
+    void SetRecvBuf(size_t byte_num) {
         std::vector<char> tmp;
         tmp.reserve(byte_num);
         recv_buf_.swap(tmp);
+    };
+    void SetRecvBuf(std::vector<char> &new_buf) {
+        recv_buf_.swap(new_buf);
+    };
+
+    void SetSendBuf(std::vector<char> &to_send) {
+        send_buf_.swap(to_send);
     };
 
 private:
@@ -69,9 +121,11 @@ private:
     TCPSocket tcp_sk_;
     PTime create_time_;
     PTime access_time_;
-    bool in_use_;
+    bool in_read_;
+    bool in_write_;
     bool is_client_;
     std::vector<char> recv_buf_;
+    std::vector<char> send_buf_;
 
 };
 
@@ -156,13 +210,63 @@ public:
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;
         return 0;
     };
-    int Run();
+    void Run() {
+        std::vector<boost::shared_ptr<boost::thread> > threads;
+        for (std::size_t i = 0; i <　thread_pool_size; i++) {
+            boost::shared_ptr<boost::thread> thread(
+                new boost::thread(boost::bind(&boost::asio::io_service::run, &io_service_)));
+            threads.push_back(thread);
+        }
+        for (std::size_t i = 0; i < thread_pool_size_; i++) {
+            threads[i]->join();
+        }
+    };
+    void Stop() {
+        io_service_.stop();
+    };
 private:
-    int ToConnect(SocketInfoPtr skinfo, TCPEndpint &remote_endpoint, std::vector<char> &buf_to_send) {
+    int ToConnectThenWrite(TCPEndpint &remote_endpoint, std::vector<char> &buf_to_send/*content swap*/) {
+
+        SocketInfoPtr skinfo(new SocketInfo(SocketType.T_TCP_LV, io_serv_));
+        skinfo->SetSendBuf(buf_to_send);
+
+
+        skinfo->tcp_sk().async_connect(remote_endpoint,
+            strand().wrap(
+                boost::bind(
+                    &Server::HandleConnectThenWrite,
+                    shared_from_this(),
+                    skinfo,
+                    boost::asio::placeholders::error,
+                    buf_to_send)));
     };
-    int ToWrite(SocketInfoPtr skinfo, std::vector<char> &buf_to_send) {
+    int ToWriteThenRead(SocketInfoPtr skinfo, std::vector<char> &buf_to_send) {
+
+        boost::asio::async_write(
+            skinfo->tcp_sk(),
+            boost::asio::buffer(buf_to_send),
+            boost::asio::transfer_all(),
+            strand().wrap(
+                boost::bind(
+                    &Server::HandleWriteThenRead,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    boost::asio::placeholders::bytes_transferred)));
     };
-    int ToRead(SocketInfoPtr skinfo) {
+    int ToWriteThenIdle(SocketInfoPtr skinfo, std::vector<char> &buf_to_send) {
+
+        boost::asio::async_write(
+            skinfo->tcp_sk(),
+            boost::asio::buffer(buf_to_send),
+            boost::asio::transfer_all(),
+            strand().wrap(
+                boost::bind(
+                    &Server::HandleWriteThenIdle,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    boost::asio::placeholders::bytes_transferred)));
+    };
+    int ToReadL(SocketInfoPtr skinfo) {
 
         boost::asio::async_read(
             skinfo->tcp_sk(),
@@ -170,7 +274,7 @@ private:
             boost::asio::transfer_all(),
             strand().wrap(
                 boost::bind(
-                    &Server::HandleReadThenRead,
+                    &Server::HandleReadTLhenReadV,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred)));
@@ -229,7 +333,7 @@ private:
 
         boost::system::error_code read_ec;
         sk_info->set_recv_buf(init_recv_buf_size_);
-        if (ToRead(sk_info) < 0) {
+        if (ToReadL(sk_info) < 0) {
             std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;
             Destroy(sk_info);
             return 0;
@@ -251,6 +355,33 @@ private:
     // Connect handlers
     void HandleConnectThenWrite(const boost::system::error_code& error, SocketInfoPtr skinfo,
                                     std::size_t byte_num, std::vector<char> &buf_to_send) {
+
+        skinfo->Use();
+                SocketKey key(skinfo->tcp_sk().remote_point().address().tostring(),
+                      skinfo->tcp_sk().remote_point().port());
+        std::map<SocketKey, SocketInfoPtr>::iterator it
+            = tcp_server_socket_map_.find(key);
+
+        if (it->first) {
+            std::cerr << "This server socket already exists(cant be true)" << endl;
+            std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;
+            return -2;
+        }
+
+        std::pair<bool, std::map<SocketKey, SocketInfoPtr>::iterator> insert_result =
+            tcp_server_socket_map_.insert(std::pair<SocketKey, SocketInfoPtr>(key, sk_info));
+
+        boost::asio::async_write(
+            skinfo->tcp_sk(),
+            boost::asio::buffer(buf_to_send),
+            boost::asio::transfer_all(),
+            strand().wrap(
+                boost::bind(
+                    &BinConnection::HandleWrite,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    boost::asio::placeholders::bytes_transferred)));
+    };
     };
     void HandleConnectThenRead(const boost::system::error_code& error,
                                SocketInfoPtr skinfo, std::size_t byte_num) {
@@ -259,17 +390,21 @@ private:
                                SocketInfoPtr skinfo, std::size_t byte_num) {
     };
     // Read handlers
-    void HandleReadThenRead(const boost::system::error_code& error,
+    void HandleReadLThenReadV(const boost::system::error_code& error,
                             SocketInfoPtr skinfo, std::size_t byte_num) {
+
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << endl;
 
         if (error) {
             std::cerr << "Read error: " << error.message() << endl;
-            exit(1);
+            DestroySocket(skinfo);
             return;
         }
         int len = *(int*)(&((skinfo->recv_buf().at(0))));
         len = boost::asio::detail::socket_ops::network_to_host_long(len);
-        if (len > max_recv_buf_size) {
+        if (len > max_recv_buf_size_) {
+            std::cerr << "Data length is too large, so close: " << len << ">" << max_recv_buf_size_ << endl;
+            DestroySocket(skinfo);
             return;
         }
 
@@ -284,15 +419,87 @@ private:
             boost::asio::transfer_all(),
             strand().wrap(
                 boost::bind(
-                    &Server::HandleReadThenProcess,
+                    &Server::HandleReadVThenProcess,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred)));
 
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;
+
 
     };
-    void HandleReadThenProcess(const boost::system::error_code& error,
+    void HandleReadVThenProcess(const boost::system::error_code& error,
                                SocketInfoPtr skinfo, std::size_t byte_num) {
+        if (ec) {
+        }
+        int len = *(int*)(&((recv_buffer()->at(0))));
+        len = boost::asio::detail::socket_ops::network_to_host_long(len);
+        BOOST_ASSERT(byte_num == len - 4);
+        boost::shared_ptr<MessageInfo> new_message(new MessageInfo);
+
+        new_message->set_from_ip(socket()->remote_endpoint().address().to_string());
+        new_message->set_from_port(socket()->remote_endpoint().port());
+        new_message->set_to_ip(socket()->local_endpoint().address().to_string());
+        new_message->set_to_port(socket()->local_endpoint().port());
+
+        new_message->set_arrive_time(boost::posix_time::second_time::localtime());
+        new_message->set_len(len);
+        new_message->set_data(recv_buffer());
+
+        BasicConnection::ProcessResult ret = ProcessMessage(new_message);
+        if (ret.size() == 0) {
+            // 关闭连接
+            boost::system::system_error e;
+            socket().close(e);
+            return;
+        }
+
+        BasicConnection::ProcessResult::iterator it, endit;
+        it = ret.begin();
+        endit = ret.end();
+
+        bool coming_connection_used = false;
+        while (it) {
+
+            boost::shared_ptr<MessageInfo> msg = it->first;
+            boost::functor<BasicConnection* ()> connection_factory = it->second;
+            // 先判断是不是按连接返回的应答
+            if (msg->to_ip() == new_message->from_ip() && msg->to_port() == new_message->to_port()) {
+                coming_connection_used = true;
+                boost::asio::async_write(
+                    socket(),
+                    boost::asio::buffer(msg->data()),
+                    boost::asio::transfer_all(),
+                    strand().wrap(
+                        boost::bind(
+                            &BinConnection::HandleWrite,
+                            shared_from_this(),
+                            boost::asio::placeholders::error,
+                            boost::asio::placeholders::bytes_transferred)));
+            } else {
+                // 如果不是，则查找空闲连接，或者创建新连接，并发送
+                ConnectionKey key;
+                boost::system::error_code ec;
+                key.addr_ = boost::asio::ip::address::from_string(msg->to_ip(), ec);
+                key.port_ = msg->to_port();
+                boost::shared_ptr<BasicConnection> tmp_connection =
+                    ConnectionPool::GetConnectionPool()->GetIdelConnection(key);
+                if (tmp_connection) {
+                    // 如果有空闲的连接
+                    tmp_connection->StartWrite(ec, msg);
+                } else {
+                    // 否则，先创建连接
+                    BOOST_ASSERT(connection_factory);
+                    boost::shared_ptr<BasicConnection> new_connection(connection_factory());
+                    new_connection->Use();
+                    ConnectionPool::GetConnectionPool()->InsertConnection(key, new_connection);
+                    new_connection->StartConnect(ec, msg->to_ip(), msg->to_port(), msg);
+                }
+            }
+        } // while
+        if (!coming_connection_used) {
+            UnUse();
+        }
     };
     // Write handlers
     void HandleWriteThenRead(const boost::system::error_code& error,
