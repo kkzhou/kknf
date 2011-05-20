@@ -31,7 +31,13 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="..\..\include\client.hpp" />
 		<Unit filename="..\..\include\server.hpp" />
+		<Unit filename="..\..\test\test_simple_bb1.cc" />
+		<Unit filename="..\..\test\test_simple_bb2.cc" />
+		<Unit filename="..\..\test\test_simple_bf.cc" />
+		<Unit filename="..\..\test\test_simple_client.cc" />
+		<Unit filename="..\..\test\test_simple_packet.hpp" />
 		<Extensions>
 			<code_completion />
 			<debugger />
