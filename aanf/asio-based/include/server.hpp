@@ -38,7 +38,8 @@ class SocketKey {
 public:
     SocketKey(std::string &ip, uint16_t port)
         : ip_(ip),
-        port_(port) {};
+        port_(port) {
+    };
 
     std::string& ip() {
         return ip_;
@@ -187,7 +188,7 @@ private:
 };
 
 
-
+// The skeleton of a server
 class Server : public enable_shared_from_this<Server> {
 public:
     Server()
@@ -195,7 +196,7 @@ public:
         timer_trigger_interval_(10000),
         timer_(io_serv_, boost::posix_time::microsec_time::localtime()) {
     };
-
+    // Register handlers to the timer(only one timer)
     void AddTimerHandler(boost::function<void()> func) {
 
         timer_handler_list_.push_back(func);
@@ -203,6 +204,7 @@ public:
 
     };
 
+    // Add listen sockets to accept connections
     int AddTCPAcceptor(std::string &ip, uint16_t port, SocketType type) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << endl;
@@ -246,6 +248,7 @@ public:
         return 0;
     };
 
+    // Start the server in serveral threads.
     void Run() {
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << endl;
         std::vector<boost::shared_ptr<boost::thread> > threads;
@@ -267,6 +270,7 @@ public:
     };
 
 public:
+    // Called when sending request to the server behind and the connection hasn't established yet.
     int ToConnectThenWrite(TCPEndpint &remote_endpoint, std::vector<char> &buf_to_send/*content swap*/) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << endl;
@@ -285,7 +289,7 @@ public:
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;
         return 0;
     };
-
+    // Called when sending request to the server behind and the connection has already established.
     int ToWriteThenRead(SocketInfoPtr skinfo, std::vector<char> &buf_to_send) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << endl;
@@ -303,7 +307,7 @@ public:
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;
         return 0;
     };
-
+    // Called when beginning to read data from a socket
     int ToReadLThenReadV(SocketInfoPtr skinfo) {
 
         std::cerr << "Eneter " << __FUNCTION__ << ":" << __LINE__ << endl;
