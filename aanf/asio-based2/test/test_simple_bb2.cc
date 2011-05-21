@@ -43,7 +43,7 @@ public:
 
         TestPacketBase *baseptr = reinterpret_cast<TestPacketBase*>(&input_data[0]);
 
-        if (baseptr->type_ != TestPacketBase::PacketType.T_REQ_TO_BB2) {
+        if (baseptr->type_ != TestPacketBase::T_REQ_TO_BB2) {
             cerr << "Not supported packet type: " << baseptr->type_ << endl;
             return 0;
         }
@@ -52,12 +52,12 @@ public:
         cerr << "Recieve ReqToBB2.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req_to_bb2->len_)
                 << "ReqToBB2.type_ = " << req_to_bb2->type_
                 << "ReqToBB2.seq_ = " << req_to_bb2->seq_
-                << "ReqToBB2.a_ = " << req_to_bb2->a_ << endl;
+                << "ReqToBB2.b_ = " << req_to_bb2->b_ << endl;
 
         RspFromBB2 rsp;
         rsp.another_b_ = req_to_bb2->b_ +  die();
         rsp.seq_ = req_to_bb2->seq_;
-        rsp.type_ = TestPacketBase::PacketType.T_RSP_FROM_BB2;
+        rsp.type_ = TestPacketBase::T_RSP_FROM_BB2;
 
         char *tmp = reinterpret_cast<char*>(&req_to_bb2);
         send_buf.assign(tmp, tmp + sizeof(RspFromBB2));
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
     bb2.set_thread_pool_size(thread_num);
 
     for (uint16_t port = bb2.port_low_; port <= bb2.port_high_; port++) {
-        bb2.AddAcceptor(bb2.local_ip_, port, SocketType.T_TCP_LV);
+        bb2.AddTCPAcceptor(bb2.local_ip_, port, SocketInfo::T_TCP_LV);
     }
 
     bb2.Run();
