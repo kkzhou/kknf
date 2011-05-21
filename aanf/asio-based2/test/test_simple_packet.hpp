@@ -28,37 +28,32 @@ public:
 public:
     int len_;
     PacketType type_;
+    int seq_;
 };
 
 class ReqToBF : public TestPacketBase {
 public:
-    int seq_;
     int a_;
     int b_;
 };
 class RspFromBF : public TestPacketBase {
 public:
-    int seq_;
     int sum_;
     int error_;
 };
 class ReqToBB1 : public TestPacketBase {
 public:
-    int seq_;
     int a_;
 };
 class RspFromBB1 : public TestPacketBase {
 public:
-    int seq_;
     int another_a_;
 };
 class ReqToBB2 : public TestPacketBase {
 public:
-    int seq_;
     int b_;
 };
 class RspFromBB2 : public TestPacketBase {
 public:
-    int seq_;
     int another_b_;
 };

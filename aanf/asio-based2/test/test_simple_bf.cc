@@ -49,7 +49,7 @@ public:
 
         TestPacketBase *baseptr = reinterpret_cast<TestPacketBase*>(&input_data[0]);
 
-        if (baseptr->type_ == TestPacketBase::PacketType.T_REQ_TO_BF) {
+        if (baseptr->type_ == TestPacketBase::T_REQ_TO_BF) {
             // request from client
             ReqToBF *req_to_bf = reinterpret_cast<ReqToBF*>(baseptr);
             cerr << "Recieve ReqToBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req_to_bf->len_)
@@ -69,15 +69,15 @@ public:
             ReqToBB1 req1;
             req1.a_ = req_to_bf->a_;
             req1.seq_ = req_to_bf->seq_;
-            req1.type_ = TestPacketBase::PacketType.T_REQ_TO_BB1;
+            req1.type_ = TestPacketBase::T_REQ_TO_BB1;
 
             ld_for_this_req.rsp_.error_ = 0;
             ld_for_this_req.client_ip_ = from_ip;
             ld_for_this_req.client_port_ = from_port;
             ld_for_this_req.rsp_.len_ = boost::asio::detail::socket_ops::network_to_host_long(sizeof(RspFromBF));
             ld_for_this_req.rsp_.seq_ = req_to_bf->seq_;
-            ld_for_this_req.rsp_.type_ = TestPacketBase::PacketType.T_RSP_FROM_BF;
-            ld_.insert(pair<int, ReqLocalData>(req_to_bf->seq_, ld));
+            ld_for_this_req.rsp_.type_ = TestPacketBase::T_RSP_FROM_BF;
+            ld_.insert(pair<int, ReqLocalData>(req_to_bf->seq_, ld_for_this_req));
 
             char *tmp = reinterpret_cast<char*>(&req1);
             send_buf1.assign(tmp, tmp + sizeof(ReqToBB1));
@@ -85,9 +85,9 @@ public:
             SocketKey key1(bb1_ip_, bb1_port_);
             SocketInfoPtr skinfo1 = FindIdleTCPClientSocket(key1);
             if (!skinfo1) {
-                IPAddress addr = IPAddress.fromstring(bb1_ip_);
+                IPAddress addr = IPAddress::from_string(bb1_ip_);
                 TCPEndpoint remote_endpoint(addr, bb1_port_);
-                ToConnectThenWrite(endpoint, send_buf1);
+                ToConnectThenWrite(remote_endpoint, send_buf1);
             } else {
                 ToWriteThenRead(skinfo1, send_buf1);
             }
@@ -100,7 +100,7 @@ public:
             ReqToBB2 req2;
             req2.b_ = req_to_bf->b_;
             req2.seq_ = req_to_bf->seq_;
-            req2.type_ = TestPacketBase::PacketType.T_REQ_TO_BB2;
+            req2.type_ = TestPacketBase::T_REQ_TO_BB2;
 
             tmp = reinterpret_cast<char*>(&req2);
             send_buf2.assign(tmp, tmp + sizeof(ReqToBB2));
@@ -108,9 +108,9 @@ public:
             SocketKey key2(bb2_ip_, bb2_port_);
             SocketInfoPtr skinfo2 = FindIdleTCPClientSocket(key2);
             if (!skinfo2) {
-                IPAddress addr = IPAddress.fromstring(bb2_ip_);
+                IPAddress addr = IPAddress::from_string(bb2_ip_);
                 TCPEndpoint remote_endpoint(addr, bb2_port_);
-                ToConnectThenWrite(endpoint, send_buf2);
+                ToConnectThenWrite(remote_endpoint, send_buf2);
             } else {
                 ToWriteThenRead(skinfo2, send_buf2);
             }
@@ -120,7 +120,7 @@ public:
                 << "ReqToBB2.b_ = " << req2.b_ << endl;
             return 0;
 
-        } else if (baseptr->type_ == TestPacketBase::PacketType.T_RSP_FROM_BB1) {
+        } else if (baseptr->type_ == TestPacketBase::T_RSP_FROM_BB1) {
             // rsp form bb1
             RspFromBB1 *rsp_from_bb1 = reinterpret_cast<RspFromBB1*>(baseptr);
             cerr << "Recieve RspFromBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp_from_bb1->len_)
@@ -135,9 +135,9 @@ public:
             }
 
             it->second.rsp_.sum_ += rsp_from_bb1->another_a_;
-            it->second.rsp_.bb1_rsp_arrived_= true;
+            it->second.bb1_rsp_arrived_= true;
 
-        } else if (baseptr->type_ == TestPacketBase::PacketType.T_RSP_FROM_BB2) {
+        } else if (baseptr->type_ == TestPacketBase::T_RSP_FROM_BB2) {
             // rsp form bb2
             RspFromBB2 *rsp_from_bb2 = reinterpret_cast<RspFromBB2*>(baseptr);
             cerr << "Recieve RspFromBB2.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp_from_bb2->len_)
@@ -152,31 +152,36 @@ public:
             }
 
             it->second.rsp_.sum_ += rsp_from_bb2->another_b_;
-            it->second.rsp_.bb2_rsp_arrived_= true;
+            it->second.bb2_rsp_arrived_= true;
         } else {
             cerr << "Not supported packet type: " << baseptr->type_ << endl;
             return -1;
         }
 
-        if (ld_.bb1_rsp_arrived_ && ld_.bb2_rsp_arrived) {
+        map<int, ReqLocalData>::iterator tmpit = ld_.find(baseptr->seq_);
+        if (tmpit != ld_.end()) {
+            cerr << "Seq error: seqnum(" << baseptr->seq_ << ") is taken." << endl;
+            return 0;
+        }
+        if (tmpit->second.bb1_rsp_arrived_ && tmpit->second.bb2_rsp_arrived_) {
             // build rsp to client
-            char *tmp = reinterpret_cast<char*>(&ld_.rsp_);
+            char *tmp = reinterpret_cast<char*>(&tmpit->second.rsp_);
             send_buf3.assign(tmp, tmp + sizeof(RspFromBF));
 
-            SocketKey key3(ld_.client_ip_, ld_.client_port_);
+            SocketKey key3(tmpit->second.client_ip_, tmpit->second.client_port_);
             SocketInfoPtr skinfo3 = FindIdleTCPClientSocket(key3);
             if (!skinfo3) {
-                IPAddress addr = IPAddress.fromstring(ld_.client_ip_);
-                TCPEndpoint remote_endpoint(addr, ld_.client_port_);
-                ToConnectThenWrite(endpoint, send_buf3);
+                IPAddress addr = IPAddress::from_string(tmpit->second.client_ip_);
+                TCPEndpoint remote_endpoint(addr, tmpit->second.client_port_);
+                ToConnectThenWrite(remote_endpoint, send_buf3);
             } else {
                 ToWriteThenRead(skinfo3, send_buf3);
             }
 
-            cerr << "Send RspFromBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(ld_.rsp_.len_)
-                << "RspFromBF.type_ = " << ld_.rsp_.type_
-                << "RspFromBF.seq_ = " << ld_.rsp_.seq_
-                << "RspFromBF.sum_ = " << ld_.rsp_.sum_ << endl;
+            cerr << "Send RspFromBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(tmpit->second.rsp_.len_)
+                << "RspFromBF.type_ = " << tmpit->second.rsp_.type_
+                << "RspFromBF.seq_ = " << tmpit->second.rsp_.seq_
+                << "RspFromBF.sum_ = " << tmpit->second.rsp_.sum_ << endl;
         }
         return 0;
     };
@@ -251,7 +256,7 @@ int main(int argc, char **argv) {
     bf.set_thread_pool_size(thread_num);
 
     for (uint16_t port = bf.port_low_; port <= bf.port_high_; port++) {
-        bf.AddAcceptor(bf.local_ip_, port, SocketType.T_TCP_LV);
+        bf.AddTCPAcceptor(bf.local_ip_, port, SocketInfo::T_TCP_LV);
     }
 
     bf.Run();
