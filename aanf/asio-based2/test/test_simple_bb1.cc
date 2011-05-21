@@ -43,7 +43,7 @@ public:
 
         TestPacketBase *baseptr = reinterpret_cast<TestPacketBase*>(&input_data[0]);
 
-        if (baseptr->type_ != TestPacketBase::PacketType.T_REQ_TO_BB1) {
+        if (baseptr->type_ != TestPacketBase::T_REQ_TO_BB1) {
             cerr << "Not supported packet type: " << baseptr->type_ << endl;
             return 0;
         }
@@ -57,9 +57,9 @@ public:
         RspFromBB1 rsp;
         rsp.another_a_ = req_to_bb1->a_ +  die();
         rsp.seq_ = req_to_bb1->seq_;
-        rsp.type_ = TestPacketBase::PacketType.T_RSP_FROM_BB1;
+        rsp.type_ = TestPacketBase::T_RSP_FROM_BB1;
 
-        char *tmp = reinterpret_cast<char*>(&req1);
+        char *tmp = reinterpret_cast<char*>(&rsp);
         send_buf.assign(tmp, tmp + sizeof(RspFromBB1));
 
         SocketKey key(from_ip, from_port);
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
     bb1.set_thread_pool_size(thread_num);
 
     for (uint16_t port = bb1.port_low_; port <= bb1.port_high_; port++) {
-        bb1.AddAcceptor(bb1.local_ip_, port, SocketType.T_TCP_LV);
+        bb1.AddTCPAcceptor(bb1.local_ip_, port, SocketInfo::T_TCP_LV);
     }
 
     bb1.Run();
