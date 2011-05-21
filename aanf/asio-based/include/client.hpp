@@ -176,7 +176,7 @@ class Client : public enable_shared_from_this<Client> {
 
 public: // Two interfaces, the only two should be overrided in derived classes
     // Process data
-    int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port
+    int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
                     std::string &to_ip, uint16_t to_port, PTime arrive_time) {
         BOOST_ASSERT(false);
         return 0;

@@ -31,7 +31,7 @@ public:
 
        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
        RspFromBF *rsp = reinterpret_cast<RspFromBF*>(&input_data[0]);
-       cerr << "RspFromBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp->len_)
+       cerr << "Recieve RspFromBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp->len_)
             << "RspFromBF.type_ = " << rsp->type_
             << "RspFromBF.seq_ = " << rsp->seq_
             << "RspFromBF.sum_ = " << rsp->sum_
@@ -40,6 +40,7 @@ public:
        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
     };
+
     void PrepareDataThenSend() {
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         static int a = 0;
@@ -70,7 +71,7 @@ public:
         } else {
             ToWriteThenRead(skinfo, send_buf);
         }
-        cerr << "ReqToBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req.len_)
+        cerr << "Send ReqToBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req.len_)
             << "ReqToBF.type_ = " << req.type_
             << "ReqToBF.seq_ = " << req.seq_
             << "ReqToBF.a_ = " << req.a_
@@ -93,20 +94,20 @@ int main(int argc, char **argv) {
     int thread_num = 4;
 
     int oc;
-    const char *helpstr = " USAGE: ./test_simple_client -n threadnum -i timerinterval -I serverip -p serverport -h";
+    const char *helpstr = " USAGE: ./test_simple_client -n threadnum -i timerinterval -I bfip -p bfport -h";
     while ((oc = getopt(argc, argv, "i:I:n:p:h")) != -1) {
         switch (oc) {
             case 'i':
-                timer_interval = atoi( optarg );
+                timer_interval = atoi(optarg);
                 break;
             case 'I':
                 client.server_ip_ = optarg;
                 break;
             case 'p':
-                client.server_port_ = atoi( optarg );
+                client.server_port_ = atoi(optarg);
                 break;
             case 'n':
-                thread_num = atoi( optarg );
+                thread_num = atoi(optarg);
                 break;
             case 'h':
                 cout << helpstr << endl;

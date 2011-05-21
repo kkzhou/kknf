@@ -1,25 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
-	<File name="..\..\src\bin_tcp_socket.cc" open="1" top="0" tabpos="1">
-		<Cursor position="796" topLine="21" />
-	</File>
-	<File name="..\..\src\packet.h" open="1" top="0" tabpos="6">
-		<Cursor position="0" topLine="0" />
-	</File>
-	<File name="..\..\src\socket.h" open="1" top="1" tabpos="7">
-		<Cursor position="4571" topLine="9" />
-	</File>
-	<File name="..\..\src\tcp_socket.h" open="1" top="0" tabpos="5">
-		<Cursor position="0" topLine="0" />
-	</File>
-	<File name="..\..\src\utils.cc" open="1" top="0" tabpos="4">
-		<Cursor position="1598" topLine="45" />
-	</File>
-	<File name="..\..\src\utils.h" open="1" top="0" tabpos="3">
-		<Cursor position="1126" topLine="81" />
-	</File>
-	<File name="..\..\test\test_bf.cc" open="1" top="0" tabpos="2">
-		<Cursor position="779" topLine="18" />
+	<File name="..\..\src\utils.h" open="0" top="0" tabpos="0">
+		<Cursor position="1067" topLine="39" />
 	</File>
 </CodeBlocks_layout_file>
