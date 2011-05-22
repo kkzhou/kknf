@@ -45,7 +45,10 @@ public:
     class SocketKeyCompare {
     public:
         bool operator()(const SocketKey &l, const SocketKey &r) const {
-            if (l.ip_ < r.ip_ && l.port_ < r.port_) {
+            if (l.ip_ < r.ip_) {
+                return true;
+            }
+            if (l.port_ < r.port_) {
                 return true;
             }
             return false;
@@ -213,7 +216,7 @@ public:
     Client()
         : strand_(io_serv_),
         timer_trigger_interval_(10000),
-        timer_(io_serv_, boost::posix_time::microseconds(timer_trigger_interval_)),
+        timer_(io_serv_),
         init_recv_buf_size_(1024),
         max_recv_buf_size_(1024 * 1024 * 2) {
 
@@ -232,6 +235,8 @@ public:
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
+    
+        timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
         timer_.async_wait(strand().wrap( 
                                 boost::bind(&Client::HandleTimeout, 
                                 shared_from_this(), 
@@ -477,11 +482,12 @@ private:
         std::cerr << "Eneter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         BOOST_ASSERT(skinfo->is_connected());
         BOOST_ASSERT(!skinfo->in_write());
-        BOOST_ASSERT(skinfo->in_read());
+        BOOST_ASSERT(!skinfo->in_read());
 
+        skinfo->SetRecvBuf(4);
         boost::asio::async_read(
             skinfo->tcp_sk(),
-            boost::asio::buffer(&(skinfo->recv_buf().at(0)), 4),
+            boost::asio::buffer(&(skinfo->recv_buf()[0]), 4),
             boost::asio::transfer_all(),
             strand().wrap(
                 boost::bind(
@@ -533,14 +539,22 @@ private:
 
         if (error) {
             std::cerr << "Timer error: " << error.message() << std::endl;
-            return;
+        } else {
+            std::list<boost::function<void()> >::iterator it, endit;
+            it = timer_handler_list_.begin();
+            endit = timer_handler_list_.end();
+            for (; it != endit; it++) {
+                    (*it)();
+            }
+
         }
-        std::list<boost::function<void()> >::iterator it, endit;
-        it = timer_handler_list_.begin();
-        endit = timer_handler_list_.end();
-        for (; it != endit; it++) {
-            (*it)();
-        }
+
+        timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
+        timer_.async_wait(strand().wrap( 
+                                boost::bind(&Client::HandleTimeout, 
+                                shared_from_this(), 
+                                boost::asio::placeholders::error)));
+
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     };
 
@@ -595,7 +609,7 @@ private:
             return;
         }
 
-        int len = *(int*)(&((skinfo->recv_buf().at(0))));
+        int len = *(int*)(&((skinfo->recv_buf()[0])));
         len = boost::asio::detail::socket_ops::network_to_host_long(len);
         if (len > max_recv_buf_size_) {
             std::cerr << "Data length is too large, so close: " << len << ">" << max_recv_buf_size_ << std::endl;
@@ -603,7 +617,7 @@ private:
             return;
         }
 
-        if (len > static_cast<int>(skinfo->recv_buf().capacity())) {
+        if (len > static_cast<int>(skinfo->recv_buf().size())) {
             skinfo->SetRecvBuf(len);
             *(int*)(&skinfo->recv_buf().at(0)) = boost::asio::detail::socket_ops::network_to_host_long(len);
         }
@@ -682,9 +696,10 @@ private:
         BOOST_ASSERT(!skinfo->in_read());
         BOOST_ASSERT(skinfo->is_connected());
 
+        skinfo->SetRecvBuf(4);  // len_field
         boost::asio::async_read(
             skinfo->tcp_sk(),
-            boost::asio::buffer(&(skinfo->recv_buf().at(0)), 4),
+            boost::asio::buffer(&(skinfo->recv_buf()[0]), 4),
             boost::asio::transfer_all(),
             strand().wrap(
                 boost::bind(
@@ -772,8 +787,8 @@ public:
         init_recv_buf_size_ = init_recv_buf_size;
     };
 
-    void set_timer_trigger_interval(int microsec) {
-        timer_trigger_interval_ = microsec;
+    void set_timer_trigger_interval(int millisec) {
+        timer_trigger_interval_ = millisec;
     };
     int timer_trigger_interval() {
         return timer_trigger_interval_;

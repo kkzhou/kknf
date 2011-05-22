@@ -51,7 +51,10 @@ public:
     class SocketKeyCompare {
     public:
         bool operator()(const SocketKey &l, const SocketKey &r) const {
-            if (l.ip_ < r.ip_ && l.port_ < r.port_) {
+            if (l.ip_ < r.ip_) {
+                return true;
+            }
+            if (l.port_ < r.port_) {
                 return true;
             }
             return false;
@@ -249,7 +252,7 @@ public:
     Server()
         : strand_(io_serv_),
         timer_trigger_interval_(10000),
-        timer_(io_serv_, boost::posix_time::microseconds(timer_trigger_interval_)),
+        timer_(io_serv_),
         init_recv_buf_size_(1024),
         max_recv_buf_size_(1024 * 1024 * 2),
         tcp_backlog_(1024) {
@@ -313,6 +316,7 @@ public:
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
+        timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
         timer_.async_wait(strand().wrap( 
                             boost::bind(&Server::HandleTimeout,
                                         shared_from_this(),
@@ -589,6 +593,7 @@ private:
 
         skinfo->set_in_read(true);
 
+        skinfo->SetRecvBuf(4);
         boost::asio::async_read(
             skinfo->tcp_sk(),
             boost::asio::buffer(&(skinfo->recv_buf().at(0)), 4),
@@ -640,16 +645,23 @@ private:
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         if (error) {
             std::cerr << "Timer error: " << error.message() << std::endl;
-            return;
+        } else {
+            std::list<boost::function<void()> >::iterator it, endit;
+            it = timer_handler_list_.begin();
+            endit = timer_handler_list_.end();
+
+            for (; it != endit; it++) {
+                (*it)();
+            }
+
         }
 
-        std::list<boost::function<void()> >::iterator it, endit;
-        it = timer_handler_list_.begin();
-        endit = timer_handler_list_.end();
+        timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
+        timer_.async_wait(strand().wrap( 
+                            boost::bind(&Server::HandleTimeout,
+                                        shared_from_this(),
+                                        boost::asio::placeholders::error)));
 
-        for (; it != endit; it++) {
-            (*it)();
-        }
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     };
 
@@ -665,7 +677,6 @@ private:
 
         SocketInfoPtr sk_info = acceptorinfo->sk_info();
         sk_info->set_is_connected(true);
-        sk_info->set_in_read(true);
 
         acceptorinfo->Reset();
 
@@ -764,7 +775,7 @@ private:
             return;
         }
 
-        if (len > static_cast<int>(skinfo->recv_buf().capacity())) {
+        if (len > static_cast<int>(skinfo->recv_buf().size())) {
             skinfo->SetRecvBuf(len);
             *(int*)(&skinfo->recv_buf()[0]) = boost::asio::detail::socket_ops::network_to_host_long(len);
         }
@@ -825,6 +836,7 @@ private:
             DestroySocket(skinfo);
         } else if (ret == 2) {
             // send and then read
+            skinfo->set_in_read(false);
             ToReadLThenReadV(skinfo);
         }
 
@@ -844,9 +856,10 @@ private:
         skinfo->set_in_write(false);
         skinfo->set_in_read(true);
 
+        skinfo->SetRecvBuf(4);
         boost::asio::async_read(
             skinfo->tcp_sk(),
-            boost::asio::buffer(&(skinfo->recv_buf().at(0)), 4),
+            boost::asio::buffer(&(skinfo->recv_buf()[0]), 4),
             boost::asio::transfer_all(),
             strand().wrap(
                 boost::bind(
@@ -1000,8 +1013,8 @@ public:
         init_recv_buf_size_ = init_recv_buf_size;
     };
 
-    void set_timer_trigger_interval(int microsec) {
-        timer_trigger_interval_ = microsec;
+    void set_timer_trigger_interval(int millisec) {
+        timer_trigger_interval_ = millisec;
     };
     int timer_trigger_interval() {
         return timer_trigger_interval_;
