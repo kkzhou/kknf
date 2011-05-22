@@ -461,10 +461,10 @@ public:
             return -2;
         }
 
-        buf_to_fill.reserve(len);
+        buf_to_fill.resize(len);
         std::copy(len_field.begin(), len_field.end(), buf_to_fill.begin());
         ret = boost::asio::read(skinfo->tcp_sk(), 
-                                boost::asio::buffer(&len_field[4], len - 4),
+                                boost::asio::buffer(&buf_to_fill[4], len - 4),
                                 boost::asio::transfer_all(),
                                 e);
 
