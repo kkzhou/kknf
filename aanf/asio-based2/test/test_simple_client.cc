@@ -89,7 +89,7 @@ public:
 int main(int argc, char **argv) {
 
     std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-    TestClient client;
+    boost::shared_ptr<TestClient> client(new TestClient);
     int timer_interval = 10000;
     int thread_num = 4;
 
@@ -102,11 +102,11 @@ int main(int argc, char **argv) {
                 timer_interval = atoi(optarg);
                 break;
             case 'I':
-                client.server_ip_ = optarg;
+                client->server_ip_ = optarg;
                 option_num++;
                 break;
             case 'p':
-                client.server_port_ = atoi(optarg);
+                client->server_port_ = atoi(optarg);
                 option_num++;
                 break;
             case 'n':
@@ -134,15 +134,15 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    if (client.server_ip_.empty() || client.server_port_ == 0) {
+    if (client->server_ip_.empty() || client->server_port_ == 0) {
         cout << helpstr << endl;
         return -1;
     }
-    client.set_timer_trigger_interval(timer_interval);
-    client.set_thread_pool_size(thread_num);
-    client.AddTimerHandler(boost::bind(&Client::PrepareDataThenSend, boost::shared_ptr<Client>(&client)));
+    client->set_timer_trigger_interval(timer_interval);
+    client->set_thread_pool_size(thread_num);
+    client->AddTimerHandler(boost::bind(&Client::PrepareDataThenSend, client));
 
-    client.Run();
+    client->Run();
     std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     return 0;
 

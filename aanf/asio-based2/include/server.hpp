@@ -106,6 +106,14 @@ public:
         return type_;
     };
 
+    TCPEndpoint& remote_endpoint() {
+        return remote_endpoint_;
+    };
+
+    void set_remote_endpoint(TCPEndpoint &remote_endpoint) {
+        remote_endpoint_ = remote_endpoint;
+    };
+
     bool is_client() {
         return is_client_;
     };
@@ -177,6 +185,7 @@ public:
     };
 
 private:
+    TCPEndpoint remote_endpoint_;
     SocketType type_;
     TCPSocket tcp_sk_;
     PTime create_time_;
@@ -498,12 +507,14 @@ public:
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         SocketInfoPtr skinfo(new SocketInfo(SocketInfo::T_TCP_LV, io_serv_));
         skinfo->SetSendBuf(buf_to_send);
+        skinfo->set_remote_endpoint(remote_endpoint);
+        skinfo->set_is_client(true);
 
-        std::string ip = remote_endpoint.address().to_string();
-        SocketKey key(ip, remote_endpoint.port());
+        std::string ip = skinfo->remote_endpoint().address().to_string();
+        SocketKey key(ip, skinfo->remote_endpoint().port());
         InsertTCPClientSocket(key, skinfo);
 
-        skinfo->tcp_sk().async_connect(remote_endpoint,
+        skinfo->tcp_sk().async_connect(skinfo->remote_endpoint(),
             strand().wrap(
                 boost::bind(
                     &Server::HandleConnectThenWrite,
@@ -601,8 +612,8 @@ private:
 
         boost::system::error_code e;
         skinfo->tcp_sk().close(e);
-        std::string ip = skinfo->tcp_sk().remote_endpoint().address().to_string();
-        SocketKey key(ip, skinfo->tcp_sk().remote_endpoint().port());
+        std::string ip = skinfo->remote_endpoint().address().to_string();
+        SocketKey key(ip, skinfo->remote_endpoint().port());
         if (skinfo->is_client()) {
             std::map<SocketKey, std::list<SocketInfoPtr> >::iterator it =
                 tcp_client_socket_map_.find(key);
@@ -658,8 +669,10 @@ private:
 
         acceptorinfo->Reset();
 
-        std::string ip = sk_info->tcp_sk().remote_endpoint().address().to_string();
-        SocketKey key(ip, sk_info->tcp_sk().remote_endpoint().port());
+        TCPEndpoint tmp_endpoint(sk_info->tcp_sk().remote_endpoint());
+        sk_info->set_remote_endpoint(tmp_endpoint);
+        std::string ip = sk_info->remote_endpoint().address().to_string();
+        SocketKey key(ip, sk_info->remote_endpoint().port());
 
         int ret = InsertTCPServerSocket(key, sk_info);
         if (ret < 0) {
@@ -705,10 +718,9 @@ private:
             return;
         }
         skinfo->set_is_connected(true);
-        skinfo->set_is_client(true);
 
-        std::string ip = skinfo->tcp_sk().remote_endpoint().address().to_string();
-        SocketKey key(ip, skinfo->tcp_sk().remote_endpoint().port());
+        std::string ip = skinfo->remote_endpoint().address().to_string();
+        SocketKey key(ip, skinfo->remote_endpoint().port());
 
         skinfo->set_in_write(true);
         InsertTCPClientSocket(key, skinfo);

@@ -35,6 +35,10 @@ public:
         {
 
     };
+    // Timer handler
+    void PrintHeartBeat() {
+       cerr << "I'am alive!" << endl;
+    };
     // Process data
     int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
                     std::string &to_ip, uint16_t to_port, PTime arrive_time) {
@@ -93,7 +97,7 @@ private:
 int main(int argc, char **argv) {
 
     std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-    TestBB2 bb2;
+    boost::shared_ptr<TestBB2> bb2(new TestBB2);
     int timer_interval = 10000;
     int thread_num = 4;
 
@@ -110,15 +114,15 @@ int main(int argc, char **argv) {
                 break;
             case 'L':
                 option_num++;
-                bb2.local_ip_ = optarg;
+                bb2->local_ip_ = optarg;
                 break;
             case 'p':
                 option_num++;
-                bb2.port_low_ = atoi(optarg);
+                bb2->port_low_ = atoi(optarg);
                 break;
             case 'P':
                 option_num++;
-                bb2.port_high_ = atoi(optarg);
+                bb2->port_high_ = atoi(optarg);
                 break;
             case 'h':
                 cout << helpstr << endl;
@@ -141,18 +145,19 @@ int main(int argc, char **argv) {
         cerr << "Parameter invalid: threadnum is in [1, 10000]" << endl;
         return -1;
     }
-    if (bb2.port_high_ < bb2.port_low_) {
+    if (bb2->port_high_ < bb2->port_low_) {
         cerr << "Parameter invalid: listenport_low must be less than listenport_high" << endl;
         return -1;
     }
-    bb2.set_timer_trigger_interval(timer_interval);
-    bb2.set_thread_pool_size(thread_num);
+    bb2->set_timer_trigger_interval(timer_interval);
+    bb2->set_thread_pool_size(thread_num);
 
-    for (uint16_t port = bb2.port_low_; port <= bb2.port_high_; port++) {
-        bb2.AddTCPAcceptor(bb2.local_ip_, port, SocketInfo::T_TCP_LV);
+    for (uint16_t port = bb2->port_low_; port <= bb2->port_high_; port++) {
+        bb2->AddTCPAcceptor(bb2->local_ip_, port, SocketInfo::T_TCP_LV);
     }
 
-    bb2.Run();
+    bb2->AddTimerHandler(bb2->strand().wrap(boost::bind(&TestBB2::PrintHeartBeat, bb2)));
+    bb2->Run();
     std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     return 0;
 

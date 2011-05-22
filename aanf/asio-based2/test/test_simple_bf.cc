@@ -41,6 +41,10 @@ public:
 
 class TestBF : public Server {
 public:
+    // Timer handler
+    void PrintHeartBeat() {
+       cerr << "I'am alive!" << endl;
+    };
     // Process data
     int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
                     std::string &to_ip, uint16_t to_port, PTime arrive_time) {
@@ -199,12 +203,13 @@ public:
 int main(int argc, char **argv) {
 
     std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-    TestBF bf;
+    boost::shared_ptr<TestBF> bf(new TestBF);
     int timer_interval = 10000;
     int thread_num = 4;
 
     int oc;
-    const char *helpstr = " USAGE: ./test_bf -n threadnum -i timerinterval -L listenip -p listenport_low -P listenport_high -a bb1ip -b bbiport -c bb2ip -d bb2port -h";
+    const char *helpstr = 
+        " USAGE: ./test_bf -n threadnum -i timerinterval -L listenip -p listenport_low -P listenport_high -a bb1ip -b bbiport -c bb2ip -d bb2port -h";
     int option_num = 0;
     while ((oc = getopt(argc, argv, "i:L:n:p:P:a:b:c:d:h")) != -1) {
         switch (oc) {
@@ -215,31 +220,31 @@ int main(int argc, char **argv) {
                 thread_num = atoi( optarg );
                 break;
             case 'L':
-                bf.local_ip_ = optarg;
+                bf->local_ip_ = optarg;
                 option_num++;
                 break;
             case 'p':
-                bf.port_low_ = atoi(optarg);
+                bf->port_low_ = atoi(optarg);
                 option_num++;
                 break;
             case 'P':
-                bf.port_high_ = atoi(optarg);
+                bf->port_high_ = atoi(optarg);
                 option_num++;
                 break;
             case 'a':
-                bf.bb1_ip_ = atoi(optarg);
+                bf->bb1_ip_ = atoi(optarg);
                 option_num++;
                 break;
             case 'b':
-                bf.bb1_port_ = atoi(optarg);
+                bf->bb1_port_ = atoi(optarg);
                 option_num++;
                 break;
             case 'c':
-                bf.bb2_ip_ = atoi(optarg);
+                bf->bb2_ip_ = atoi(optarg);
                 option_num++;
                 break;
             case 'd':
-                bf.bb2_port_ = atoi(optarg);
+                bf->bb2_port_ = atoi(optarg);
                 option_num++;
                 break;
             case 'h':
@@ -263,18 +268,19 @@ int main(int argc, char **argv) {
         cerr << "Parameter invalid: threadnum is in [1, 10000]" << endl;
         return -1;
     }
-    if (bf.port_high_ < bf.port_low_) {
+    if (bf->port_high_ < bf->port_low_) {
         cerr << "Parameter invalid: listenport_low must be less than listenport_high" << endl;
         return -1;
     }
-    bf.set_timer_trigger_interval(timer_interval);
-    bf.set_thread_pool_size(thread_num);
+    bf->set_timer_trigger_interval(timer_interval);
+    bf->set_thread_pool_size(thread_num);
 
-    for (uint16_t port = bf.port_low_; port <= bf.port_high_; port++) {
-        bf.AddTCPAcceptor(bf.local_ip_, port, SocketInfo::T_TCP_LV);
+    for (uint16_t port = bf->port_low_; port <= bf->port_high_; port++) {
+        bf->AddTCPAcceptor(bf->local_ip_, port, SocketInfo::T_TCP_LV);
     }
 
-    bf.Run();
+    bf->AddTimerHandler(bf->strand().wrap(boost::bind(&TestBF::PrintHeartBeat, bf)));
+    bf->Run();
     std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     return 0;
 
