@@ -3,7 +3,7 @@ CC = g++ -g -Wall
 BOOST_DIR = /usr/local/boost/
 INC_DIR = -I../include/ -I$(BOOST_DIR)/include/
 LIB_DIR = -L$(BOOST_DIR)/lib/
-LIBS = -lboost_date_time -lboost_random -lboost_thread -lboost_system
+LIBS = -lboost_system -lboost_date_time -lboost_random -lboost_thread 
 
 
 all : client bb1 bb2 bf

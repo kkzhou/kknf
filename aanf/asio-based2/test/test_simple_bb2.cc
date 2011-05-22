@@ -98,19 +98,26 @@ int main(int argc, char **argv) {
     int thread_num = 4;
 
     int oc;
+    int option_num = 0;
     const char *helpstr = " USAGE: ./test_bb1 -n threadnum -i timerinterval -L listenip -p listenport_low -P listenport_high -h";
-    while ((oc = getopt(argc, argv, "i:L:n:p:h")) != -1) {
+    while ((oc = getopt(argc, argv, "i:L:n:p:P:h")) != -1) {
         switch (oc) {
             case 'i':
-                timer_interval = atoi( optarg );
+                timer_interval = atoi(optarg);
+                break;
+            case 'n':
+                thread_num = atoi(optarg);
                 break;
             case 'L':
+                option_num++;
                 bb2.local_ip_ = optarg;
                 break;
             case 'p':
+                option_num++;
                 bb2.port_low_ = atoi(optarg);
                 break;
             case 'P':
+                option_num++;
                 bb2.port_high_ = atoi(optarg);
                 break;
             case 'h':
@@ -122,6 +129,10 @@ int main(int argc, char **argv) {
         }// switch
     } // while
 
+    if (option_num < 3) {
+        cout << helpstr << endl;
+        return -1;
+    }
     if (timer_interval < 0 || timer_interval > 100000) {
         cerr << "Parameter invalid: timerinterval is in [0, 100000]" << endl;
         return -1;

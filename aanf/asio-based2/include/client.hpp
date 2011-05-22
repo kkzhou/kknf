@@ -190,12 +190,12 @@ class Client : public boost::enable_shared_from_this<Client> {
 public: 
     // Two interfaces, the only two should be overrided in derived classes
     // Process data
-    int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
+    virtual int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
                     std::string &to_ip, uint16_t to_port, PTime arrive_time) {
         BOOST_ASSERT(false);
         return 0;
     };
-    void PrepareDataThenSend() {
+    virtual void PrepareDataThenSend() {
         BOOST_ASSERT(false);
         return;
     };
@@ -204,9 +204,10 @@ public:
     Client()
         : strand_(io_serv_),
         timer_trigger_interval_(10000),
-        timer_(io_serv_, boost::posix_time::microsec_clock::local_time()),
+        timer_(io_serv_, boost::posix_time::microseconds(timer_trigger_interval_)),
         init_recv_buf_size_(1024),
         max_recv_buf_size_(1024 * 1024 * 2) {
+
     };
 
     // Register handlers to the timer(only one timer)
@@ -219,7 +220,20 @@ public:
 
     // Start the server in serveral threads.
     void Run() {
+
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+        timer_.async_wait(strand().wrap( 
+                                boost::bind(&Client::HandleTimeout, 
+                                shared_from_this(), 
+                                boost::asio::placeholders::error)));
+
+        if (thread_pool_size_ == 1) {
+            io_serv_.run();
+            std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+            return;
+        }
+
         std::list<boost::shared_ptr<boost::thread> > threads;
 
         for (int i = 0; i < thread_pool_size_; i++) {
@@ -402,8 +416,8 @@ public:
         SocketInfoPtr skinfo(new SocketInfo(SocketInfo::T_TCP_LV, io_serv_));
         skinfo->SetSendBuf(buf_to_send);
 
-        std::string ip = skinfo->tcp_sk().remote_endpoint().address().to_string();
-        SocketKey key(ip, skinfo->tcp_sk().remote_endpoint().port());
+        std::string ip = remote_endpoint.address().to_string();
+        SocketKey key(ip, remote_endpoint.port());
         InsertTCPClientSocket(key, skinfo);
 
         skinfo->tcp_sk().async_connect(remote_endpoint,
@@ -472,9 +486,10 @@ private:
     int DestroySocket(SocketInfoPtr skinfo) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        BOOST_ASSERT(skinfo->in_read() || skinfo->in_write());
+        BOOST_ASSERT((!skinfo->is_connected()) || skinfo->in_read() || skinfo->in_write());
 
-        skinfo->tcp_sk().close();
+        boost::system::error_code e;
+        skinfo->tcp_sk().close(e);
         std::string ip = skinfo->tcp_sk().remote_endpoint().address().to_string();
         SocketKey key(ip, skinfo->tcp_sk().remote_endpoint().port());
         if (skinfo->is_client()) {
@@ -525,6 +540,13 @@ private:
         BOOST_ASSERT(!skinfo->is_connected());
         BOOST_ASSERT(!skinfo->in_write());
         BOOST_ASSERT(!skinfo->in_read());
+
+        if (error) {
+            std::cerr << "Connect error: " << error.message() << std::endl;
+            DestroySocket(skinfo);
+            std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+            return;
+        }
 
         skinfo->set_is_connected(true);
         std::string ip = skinfo->tcp_sk().remote_endpoint().address().to_string();
@@ -745,6 +767,8 @@ public:
         return timer_trigger_interval_;
     };
 private:
+    // io_service
+    boost::asio::io_service io_serv_;
     // Data structure to maintain sockets(connections)
     std::map<SocketKey, std::list<SocketInfoPtr>, SocketKey::SocketKeyCompare > tcp_client_socket_map_;
     // strand is for synchronous
@@ -754,8 +778,6 @@ private:
     boost::asio::deadline_timer timer_;
     // thread
     int thread_pool_size_;
-    // io_service
-    boost::asio::io_service io_serv_;
 
     // timer handlers
     std::list<boost::function<void()> > timer_handler_list_;

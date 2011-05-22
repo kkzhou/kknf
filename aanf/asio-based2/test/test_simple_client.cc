@@ -94,6 +94,7 @@ int main(int argc, char **argv) {
     int thread_num = 4;
 
     int oc;
+    int option_num = 0;
     const char *helpstr = " USAGE: ./test_simple_client -n threadnum -i timerinterval -I bfip -p bfport -h";
     while ((oc = getopt(argc, argv, "i:I:n:p:h")) != -1) {
         switch (oc) {
@@ -102,9 +103,11 @@ int main(int argc, char **argv) {
                 break;
             case 'I':
                 client.server_ip_ = optarg;
+                option_num++;
                 break;
             case 'p':
                 client.server_port_ = atoi(optarg);
+                option_num++;
                 break;
             case 'n':
                 thread_num = atoi(optarg);
@@ -118,6 +121,10 @@ int main(int argc, char **argv) {
         }// switch
     } // while
 
+    if (option_num < 2) {
+        cout << helpstr << endl;
+        return -1;
+    }
     if (timer_interval < 0 || timer_interval > 100000) {
         cerr << "Parameter invalid: timerinterval is in [0, 100000]" << endl;
         return -1;
@@ -127,9 +134,13 @@ int main(int argc, char **argv) {
         return -1;
     }
 
+    if (client.server_ip_.empty() || client.server_port_ == 0) {
+        cout << helpstr << endl;
+        return -1;
+    }
     client.set_timer_trigger_interval(timer_interval);
     client.set_thread_pool_size(thread_num);
-    client.AddTimerHandler(boost::bind(&Client::PrepareDataThenSend, &client));
+    client.AddTimerHandler(boost::bind(&Client::PrepareDataThenSend, boost::shared_ptr<Client>(&client)));
 
     client.Run();
     std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
