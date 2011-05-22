@@ -32,10 +32,10 @@ public:
        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
        RspFromBF *rsp = reinterpret_cast<RspFromBF*>(&input_data[0]);
        cerr << "Recieve RspFromBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp->len_)
-            << "RspFromBF.type_ = " << rsp->type_
-            << "RspFromBF.seq_ = " << rsp->seq_
-            << "RspFromBF.sum_ = " << rsp->sum_
-            << "RspFromBF.error_ = " << rsp->error_ << endl;
+            << " RspFromBF.type_ = " << rsp->type_
+            << " RspFromBF.seq_ = " << rsp->seq_
+            << " RspFromBF.sum_ = " << rsp->sum_
+            << " RspFromBF.error_ = " << rsp->error_ << endl;
 
        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -63,19 +63,23 @@ public:
         send_buf.assign(tmp, tmp + len);
 
         SocketKey key(server_ip_, server_port_);
+        cerr << "To find an idel connection." << endl;
         SocketInfoPtr skinfo = FindIdleTCPClientSocket(key);
         if (!skinfo) {
+            cerr << "No idle connection, to create a new one." << endl;
             IPAddress addr = IPAddress::from_string(server_ip_);
             TCPEndpoint remote_endpoint(addr, server_port_);
             ToConnectThenWrite(remote_endpoint, send_buf);
         } else {
+            cerr << "Idle connection found." << endl;
             ToWriteThenRead(skinfo, send_buf);
         }
+
         cerr << "Send ReqToBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req.len_)
-            << "ReqToBF.type_ = " << req.type_
-            << "ReqToBF.seq_ = " << req.seq_
-            << "ReqToBF.a_ = " << req.a_
-            << "ReqToBF.b_ = " << req.b_ << endl;
+            << " ReqToBF.type_ = " << req.type_
+            << " ReqToBF.seq_ = " << req.seq_
+            << " ReqToBF.a_ = " << req.a_
+            << " ReqToBF.b_ = " << req.b_ << endl;
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return;

@@ -226,6 +226,7 @@ public:
     void AddTimerHandler(boost::function<void()> func) {
 
         timer_handler_list_.push_back(func);
+        std::cerr << "A new timer handler is added" << std::endl;
         return;
 
     };
@@ -721,6 +722,7 @@ protected:
     SocketInfoPtr FindIdleTCPClientSocket(SocketKey &key) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        std::cerr << "To find socket ip=" << key.ip() << " port=" << key.port() << std::endl;
         SocketInfoPtr ret;
         std::map<SocketKey, std::list<SocketInfoPtr> >::iterator it
             = tcp_client_socket_map_.find(key);
@@ -729,13 +731,14 @@ protected:
             std::list<SocketInfoPtr>::iterator list_it =
                 it->second.begin();
             while (list_it != it->second.end()) {
-                if ((*list_it)->in_write() || (*list_it)->in_read()) {
+                if ((*list_it)->in_write() || (*list_it)->in_read() || (!(*list_it)->is_connected())) {
                     list_it++;
                 } else {
+                    ret = (*list_it);
+                    std::cerr << "Found" << std::endl;
                     break;
                 }
             } // while
-            ret = (*list_it);
         }
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return ret;
@@ -744,6 +747,7 @@ protected:
     int InsertTCPClientSocket(SocketKey &key, SocketInfoPtr new_skinfo) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        std::cerr << "To Insert socket ip=" << key.ip() << " port=" << key.port() << std::endl;
         BOOST_ASSERT(!new_skinfo->in_write());
         BOOST_ASSERT(!new_skinfo->in_read());
 
@@ -751,8 +755,10 @@ protected:
             = tcp_client_socket_map_.find(key);
 
         if (it != tcp_client_socket_map_.end()) {
+            std::cerr << "There are " << it->second.size() << " sockets for this <ip, port> in use." << std::endl;
             it->second.push_back(new_skinfo);
         } else {
+            std::cerr << "There is no socket for this <ip, port>." << std::endl;
             std::list<SocketInfoPtr> new_list;
             new_list.push_back(new_skinfo);
             std::pair<std::map<SocketKey, std::list<SocketInfoPtr> >::iterator, bool> insert_result =

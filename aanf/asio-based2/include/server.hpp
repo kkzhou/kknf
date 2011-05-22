@@ -952,10 +952,10 @@ protected:
                 if ((*list_it)->in_write() || (*list_it)->in_read() || (!(*list_it)->is_connected())) {
                     list_it++;
                 } else {
+                    ret = *list_it;
                     break;
                 }
             } // while
-            ret = *list_it;
         }
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return ret;
