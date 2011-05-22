@@ -234,6 +234,145 @@ public:
     };
 
 public:
+    // Sync interfaces
+    // Called when sending request to the server behind and the connection hasn't established yet.
+    int ToWriteReadSync(TCPEndpoint &remote_endpoint,
+                        std::vector<char> &buf_to_send/*content swap*/,
+                        std::vector<char> &buf_to_fill) {
+
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        SocketInfoPtr skinfo(new SocketInfo(SocketInfo::T_TCP_LV, io_serv_));
+
+        // connect
+        boost::system::error_code e;
+        skinfo->tcp_sk().connect(remote_endpoint, e);
+        if (e) {
+            std::cerr << "Connect error: " << e.message() << std::endl;
+            // shared_ptr 'skinfo' will destruct the SocketInfo
+            return -1;
+        }
+        skinfo->set_connected(true);
+
+        // write
+        skinfo->set_in_write(true);
+        size_t ret = boost::asio::write(skinfo->tcp_sk(),
+                                        boost::buffer(buf_to_send),
+                                        boost::asio::transfer_all(),
+                                        e);
+        if (e) {
+            std::cerr << "Write error: " << e.message() << std::endl;
+            // shared_ptr 'skinfo' will destruct the SocketInfo
+            return -1;
+        }
+
+        BOOST_ASSERT(ret == buf_to_send.size());
+
+        skinfo->set_in_write(false);
+
+        // read len_field
+        skinfo->set_in_read(true);
+        std::vector<char> len_field(4, 0);
+        int len = 0;
+
+        ret = boost::asio::read(skinfo->tcp_sk(),
+                                        boost::buffer(len_field),
+                                        boost::asio::transfer_all(),
+                                        e);
+        if (e) {
+            std::cerr << "Read len_field error: " << e.message() << std::endl;
+            // shared_ptr 'skinfo' will destruct the SocketInfo
+            return -1;
+        }
+        BOOST_ASSERT(ret == 4);
+
+        len = *reinterpret_cast<int*>(&len_field[0]);
+        len = boost::asio::detail::socket_ops::network_to_host_long(len);
+        if (len < 0 || len > max_recv_buf_size()) {
+            std::cerr << "len_field invalid: " << len << std::endl;
+            return -2;
+        }
+        buf_to_fill.reserve(len);
+        std::copy(len_field.begin(), len_field.end(), buf_to_fill.begin());
+        ret = boost::asio::read(skinfo->tcp_sk(),
+                                        boost::buffer(&len_field[4], len - 4),
+                                        boost::asio::transfer_all(),
+                                        e);
+        if (e) {
+            std::cerr << "Read data_field error: " << e.message() << std::endl;
+            // shared_ptr 'skinfo' will destruct the SocketInfo
+            return -3;
+        }
+
+        skinfo->set_in_read(false);
+        std::string ip = skinfo->tcp_sk().remote_endpoint().address().to_string();
+        SocketKey key(ip, skinfo->tcp_sk().remote_endpoint().port());
+        int ret = InsertTCPClientSocket(key, skinfo);
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return 0;
+    };
+    // Called when sending request to the server behind and the connection has already established.
+    int ToWriteReadSync(SocketInfoPtr skinfo, std::vector<char> &buf_to_send,
+                        std::vector<char> &buf_to_fill) {
+
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+        // write
+        skinfo->set_in_write(true);
+        size_t ret = boost::asio::write(skinfo->tcp_sk(),
+                                        boost::buffer(buf_to_send),
+                                        boost::asio::transfer_all(),
+                                        e);
+        if (e) {
+            std::cerr << "Write error: " << e.message() << std::endl;
+            // shared_ptr 'skinfo' will destruct the SocketInfo
+            return -1;
+        }
+
+        BOOST_ASSERT(ret == buf_to_send.size());
+
+        skinfo->set_in_write(false);
+
+        // read len_field
+        skinfo->set_in_read(true);
+        std::vector<char> len_field(4, 0);
+        int len = 0;
+
+        ret = boost::asio::read(skinfo->tcp_sk(),
+                                        boost::buffer(len_field),
+                                        boost::asio::transfer_all(),
+                                        e);
+        if (e) {
+            std::cerr << "Read len_field error: " << e.message() << std::endl;
+            // shared_ptr 'skinfo' will destruct the SocketInfo
+            return -1;
+        }
+        BOOST_ASSERT(ret == 4);
+
+        len = *reinterpret_cast<int*>(&len_field[0]);
+        len = boost::asio::detail::socket_ops::network_to_host_long(len);
+        if (len < 0 || len > max_recv_buf_size()) {
+            std::cerr << "len_field invalid: " << len << std::endl;
+            return -2;
+        }
+
+        buf_to_fill.reserve(len);
+        std::copy(len_field.begin(), len_field.end(), buf_to_fill.begin());
+        ret = boost::asio::read(skinfo->tcp_sk(),
+                                        boost::buffer(&len_field[4], len - 4),
+                                        boost::asio::transfer_all(),
+                                        e);
+        if (e) {
+            std::cerr << "Read data_field error: " << e.message() << std::endl;
+            // shared_ptr 'skinfo' will destruct the SocketInfo
+            return -3;
+        }
+
+        skinfo->set_in_read(false);
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return 0;
+    };
+
+    // Async interfaces
     // Called when sending request to the server behind and the connection hasn't established yet.
     int ToConnectThenWrite(TCPEndpoint &remote_endpoint, std::vector<char> &buf_to_send/*content swap*/) {
 
