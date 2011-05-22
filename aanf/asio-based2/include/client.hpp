@@ -202,7 +202,9 @@ public:
     Client()
         : strand_(io_serv_),
         timer_trigger_interval_(10000),
-        timer_(io_serv_, boost::posix_time::microsec_clock::local_time()) {
+        timer_(io_serv_, boost::posix_time::microsec_clock::local_time()),
+        init_recv_buf_size_(1024),
+        max_recv_buf_size_(1024 * 1024 * 2) {
     };
     // Register handlers to the timer(only one timer)
     void AddTimerHandler(boost::function<void()> func) {
@@ -216,12 +218,12 @@ public:
     void Run() {
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         std::vector<boost::shared_ptr<boost::thread> > threads;
-        for (std::size_t i = 0; i < thread_pool_size_; i++) {
+        for (int i = 0; i < thread_pool_size_; i++) {
             boost::shared_ptr<boost::thread> thread(
                 new boost::thread(boost::bind(&boost::asio::io_service::run, &io_serv_)));
             threads.push_back(thread);
         }
-        for (std::size_t i = 0; i < thread_pool_size_; i++) {
+        for (int i = 0; i < thread_pool_size_; i++) {
             threads[i]->join();
         }
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -251,12 +253,12 @@ public:
             // shared_ptr 'skinfo' will destruct the SocketInfo
             return -1;
         }
-        skinfo->set_connected(true);
+        skinfo->set_is_connected(true);
 
         // write
         skinfo->set_in_write(true);
         size_t ret = boost::asio::write(skinfo->tcp_sk(),
-                                        boost::buffer(buf_to_send),
+                                        boost::asio::buffer(buf_to_send),
                                         boost::asio::transfer_all(),
                                         e);
         if (e) {
@@ -275,7 +277,7 @@ public:
         int len = 0;
 
         ret = boost::asio::read(skinfo->tcp_sk(),
-                                        boost::buffer(len_field),
+                                        boost::asio::buffer(len_field),
                                         boost::asio::transfer_all(),
                                         e);
         if (e) {
@@ -294,7 +296,7 @@ public:
         buf_to_fill.reserve(len);
         std::copy(len_field.begin(), len_field.end(), buf_to_fill.begin());
         ret = boost::asio::read(skinfo->tcp_sk(),
-                                        boost::buffer(&len_field[4], len - 4),
+                                        boost::asio::buffer(&len_field[4], len - 4),
                                         boost::asio::transfer_all(),
                                         e);
         if (e) {
@@ -306,10 +308,11 @@ public:
         skinfo->set_in_read(false);
         std::string ip = skinfo->tcp_sk().remote_endpoint().address().to_string();
         SocketKey key(ip, skinfo->tcp_sk().remote_endpoint().port());
-        int ret = InsertTCPClientSocket(key, skinfo);
+        ret = InsertTCPClientSocket(key, skinfo);
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
     };
+
     // Called when sending request to the server behind and the connection has already established.
     int ToWriteReadSync(SocketInfoPtr skinfo, std::vector<char> &buf_to_send,
                         std::vector<char> &buf_to_fill) {
@@ -317,9 +320,10 @@ public:
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
         // write
+        boost::system::error_code e;
         skinfo->set_in_write(true);
         size_t ret = boost::asio::write(skinfo->tcp_sk(),
-                                        boost::buffer(buf_to_send),
+                                        boost::asio::buffer(buf_to_send),
                                         boost::asio::transfer_all(),
                                         e);
         if (e) {
@@ -338,7 +342,7 @@ public:
         int len = 0;
 
         ret = boost::asio::read(skinfo->tcp_sk(),
-                                        boost::buffer(len_field),
+                                        boost::asio::buffer(len_field),
                                         boost::asio::transfer_all(),
                                         e);
         if (e) {
@@ -358,7 +362,7 @@ public:
         buf_to_fill.reserve(len);
         std::copy(len_field.begin(), len_field.end(), buf_to_fill.begin());
         ret = boost::asio::read(skinfo->tcp_sk(),
-                                        boost::buffer(&len_field[4], len - 4),
+                                        boost::asio::buffer(&len_field[4], len - 4),
                                         boost::asio::transfer_all(),
                                         e);
         if (e) {
@@ -382,7 +386,7 @@ public:
 
         std::string ip = skinfo->tcp_sk().remote_endpoint().address().to_string();
         SocketKey key(ip, skinfo->tcp_sk().remote_endpoint().port());
-        int ret = InsertTCPClientSocket(key, skinfo);
+        InsertTCPClientSocket(key, skinfo);
 
         skinfo->tcp_sk().async_connect(remote_endpoint,
             strand().wrap(
@@ -524,7 +528,7 @@ private:
             return;
         }
 
-        if (len > skinfo->recv_buf().capacity()) {
+        if (len > static_cast<int>(skinfo->recv_buf().capacity())) {
             skinfo->SetRecvBuf(len);
             *(int*)(&skinfo->recv_buf().at(0)) = boost::asio::detail::socket_ops::network_to_host_long(len);
         }
@@ -562,7 +566,7 @@ private:
 
         int len = *(int*)(&((skinfo->recv_buf().at(0))));
         len = boost::asio::detail::socket_ops::network_to_host_long(len);
-        BOOST_ASSERT(byte_num == len - 4);
+        BOOST_ASSERT(static_cast<int>(byte_num) == len - 4);
 
         std::string fromip = skinfo->tcp_sk().remote_endpoint().address().to_string();
         std::string toip = skinfo->tcp_sk().local_endpoint().address().to_string();
@@ -703,6 +707,7 @@ private:
     // strand is for synchronous
     boost::asio::strand strand_;
     // timer
+    int timer_trigger_interval_;
     boost::asio::deadline_timer timer_;
     // thread
     int thread_pool_size_;
@@ -712,9 +717,8 @@ private:
     // timer handlers
     std::list<boost::function<void()> > timer_handler_list_;
     // socket parameters
-    int max_recv_buf_size_;
     int init_recv_buf_size_;
-    int timer_trigger_interval_;
+    int max_recv_buf_size_;
 };
 
 };// namespace
