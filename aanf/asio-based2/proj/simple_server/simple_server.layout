@@ -2,7 +2,7 @@
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
 	<File name="..\..\include\client.hpp" open="1" top="1" tabpos="7">
-		<Cursor position="6165" topLine="561" />
+		<Cursor position="8499" topLine="228" />
 	</File>
 	<File name="..\..\include\server.hpp" open="1" top="0" tabpos="5">
 		<Cursor position="4818" topLine="194" />

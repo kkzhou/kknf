@@ -199,7 +199,7 @@ private:
 // The skeleton of a client
 class Client : public boost::enable_shared_from_this<Client> {
 
-public: 
+public:
     // Two interfaces, the only two should be overrided in derived classes
     // Process data
     virtual int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
@@ -236,13 +236,15 @@ public:
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
-    
+
+        std::cerr << "Start a timer in " << timer_trigger_interval_ << "milliseconds" << std::endl;
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
-        timer_.async_wait(strand().wrap( 
-                                boost::bind(&Client::HandleTimeout, 
-                                shared_from_this(), 
+        timer_.async_wait(strand().wrap(
+                                boost::bind(&Client::HandleTimeout,
+                                shared_from_this(),
                                 boost::asio::placeholders::error)));
 
+        std::cerr << "Create " << thread_pool_size_ << " threads" << std::endl;
         if (thread_pool_size_ == 1) {
             io_serv_.run();
             std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -256,7 +258,7 @@ public:
                 new boost::thread(boost::bind(&boost::asio::io_service::run, &io_serv_)));
             threads.push_back(thread);
         }
-        
+
         std::list<boost::shared_ptr<boost::thread> >::iterator it, endit;
         it = threads.begin();
         endit = threads.end();
@@ -551,9 +553,9 @@ private:
         }
 
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
-        timer_.async_wait(strand().wrap( 
-                                boost::bind(&Client::HandleTimeout, 
-                                shared_from_this(), 
+        timer_.async_wait(strand().wrap(
+                                boost::bind(&Client::HandleTimeout,
+                                shared_from_this(),
                                 boost::asio::placeholders::error)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -661,7 +663,7 @@ private:
 
         std::string fromip = skinfo->tcp_sk().remote_endpoint().address().to_string();
         std::string toip = skinfo->tcp_sk().local_endpoint().address().to_string();
-        int ret = ProcessData(skinfo->recv_buf(), 
+        int ret = ProcessData(skinfo->recv_buf(),
                                 fromip,
                                 skinfo->tcp_sk().remote_endpoint().port(),
                                 toip,
