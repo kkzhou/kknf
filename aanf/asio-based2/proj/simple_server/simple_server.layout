@@ -4,8 +4,8 @@
 	<File name="..\..\include\client.hpp" open="1" top="0" tabpos="7">
 		<Cursor position="21916" topLine="396" />
 	</File>
-	<File name="..\..\include\server.hpp" open="1" top="0" tabpos="5">
-		<Cursor position="29279" topLine="360" />
+	<File name="..\..\include\server.hpp" open="1" top="1" tabpos="5">
+		<Cursor position="6421" topLine="372" />
 	</File>
 	<File name="..\..\test\test_simple_bb1.cc" open="1" top="0" tabpos="3">
 		<Cursor position="5167" topLine="127" />
@@ -13,8 +13,8 @@
 	<File name="..\..\test\test_simple_bb2.cc" open="1" top="0" tabpos="4">
 		<Cursor position="2369" topLine="60" />
 	</File>
-	<File name="..\..\test\test_simple_bf.cc" open="1" top="1" tabpos="2">
-		<Cursor position="11319" topLine="259" />
+	<File name="..\..\test\test_simple_bf.cc" open="1" top="0" tabpos="2">
+		<Cursor position="3389" topLine="84" />
 	</File>
 	<File name="..\..\test\test_simple_client.cc" open="1" top="0" tabpos="1">
 		<Cursor position="1388" topLine="88" />

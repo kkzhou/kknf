@@ -57,10 +57,10 @@ public:
             // request from client
             ReqToBF *req_to_bf = reinterpret_cast<ReqToBF*>(baseptr);
             cerr << "Recieve ReqToBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req_to_bf->len_)
-                << "ReqToBF.type_ = " << req_to_bf->type_
-                << "ReqToBF.seq_ = " << req_to_bf->seq_
-                << "ReqToBF.a_ = " << req_to_bf->a_
-                << "ReqToBF.b_ = " << req_to_bf->b_ << endl;
+                << " ReqToBF.type_ = " << req_to_bf->type_
+                << " ReqToBF.seq_ = " << req_to_bf->seq_
+                << " ReqToBF.a_ = " << req_to_bf->a_
+                << " ReqToBF.b_ = " << req_to_bf->b_ << endl;
 
             map<int, ReqLocalData>::iterator it = ld_.find(req_to_bf->seq_);
             if (it != ld_.end()) {

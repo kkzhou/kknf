@@ -204,7 +204,7 @@ public:
             std::cerr << "The TCPAcceptor already exists! (Can't be)" << std::endl;
             exit(1);
         }
-
+        std::cerr << "The acceptor is added, to accept" << std::endl;
         new_acceptorinfo->acceptor().async_accept(new_acceptorinfo->sk_info()->tcp_sk(),
                 boost::bind(
                     &Server::HandleAccept,
