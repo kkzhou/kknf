@@ -194,10 +194,8 @@ public:
     uint16_t port_low_;
     uint16_t port_high_;
     map<int, ReqLocalData> ld_;
-    string bb1_ip_;
-    uint16_t bb1_port_;
-    string bb2_ip_;
-    uint16_t bb2_port_;
+    TCPEndpoint bb1_endpoint_;
+    TCPEndpoint bb2_endpoint_;
 };
 
 int main(int argc, char **argv) {
@@ -205,19 +203,20 @@ int main(int argc, char **argv) {
     std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     boost::shared_ptr<TestBF> bf(new TestBF);
     int timer_interval = 10000;
-    int thread_num = 4;
 
     int oc;
-    const char *helpstr = 
+    const char *helpstr =
         " USAGE: ./test_bf -n threadnum -i timerinterval -L listenip -p listenport_low -P listenport_high -a bb1ip -b bbiport -c bb2ip -d bb2port -h";
+
     int option_num = 0;
+    IPAddress bb1_addr, bb2_addr;
+    uint16_t bb1_port, bb2_port;
+    boost::system::error_code e;
+
     while ((oc = getopt(argc, argv, "i:L:n:p:P:a:b:c:d:h")) != -1) {
         switch (oc) {
             case 'i':
                 timer_interval = atoi( optarg );
-                break;
-            case 'n':
-                thread_num = atoi( optarg );
                 break;
             case 'L':
                 bf->local_ip_ = optarg;
@@ -232,19 +231,27 @@ int main(int argc, char **argv) {
                 option_num++;
                 break;
             case 'a':
-                bf->bb1_ip_ = atoi(optarg);
+                bb1_addr.from_string(optarg, e);
+                if (e) {
+                    cerr << "IP address format invalid: " << optarg << ", "<< e.message() << endl;
+                    exit(1);
+                }
                 option_num++;
                 break;
             case 'b':
-                bf->bb1_port_ = atoi(optarg);
+                bb1_port = atoi(optarg);
                 option_num++;
                 break;
             case 'c':
-                bf->bb2_ip_ = atoi(optarg);
+                bb2_addr.from_string(optarg, e);
+                if (e) {
+                    cerr << "IP address format invalid: " << optarg << ", "<< e.message() << endl;
+                    exit(1);
+                }
                 option_num++;
                 break;
             case 'd':
-                bf->bb2_port_ = atoi(optarg);
+                bb2_port = atoi(optarg);
                 option_num++;
                 break;
             case 'h':
@@ -264,22 +271,29 @@ int main(int argc, char **argv) {
         cerr << "Parameter invalid: timerinterval is in [0, 100000]" << endl;
         return -1;
     }
-    if (thread_num <= 0 || thread_num > 10000) {
-        cerr << "Parameter invalid: threadnum is in [1, 10000]" << endl;
-        return -1;
-    }
+
     if (bf->port_high_ < bf->port_low_) {
         cerr << "Parameter invalid: listenport_low must be less than listenport_high" << endl;
         return -1;
     }
-    bf->set_timer_trigger_interval(timer_interval);
-    bf->set_thread_pool_size(thread_num);
 
-    for (uint16_t port = bf->port_low_; port <= bf->port_high_; port++) {
-        bf->AddTCPAcceptor(bf->local_ip_, port, SocketInfo::T_TCP_LV);
+    bf->set_timer_trigger_interval(timer_interval);
+    bf->bb1_endpoint_ = TCPEndpoint(bb1_addr, bb1_port);
+    bf->bb2_endpoint_ = TCPEndpoint(bb2_addr, bb2_port);
+
+    IPAddress addr;
+    boost::system::error_code e;
+    addr.from_string(bb1->local_ip_, e);
+    if (e) {
+        cerr << "IP address format invalid: " << bf->local_ip_ << endl;
+        exit(1);
     }
 
-    bf->AddTimerHandler(bf->strand().wrap(boost::bind(&TestBF::PrintHeartBeat, bf)));
+    for (uint16_t port = bf->port_low_; port <= bf->port_high_; port++) {
+        bf->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_LV);
+    }
+
+    bf->AddTimerHandler(boost::bind(&TestBF::PrintHeartBeat, bf));
     bf->Run();
     std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     return 0;

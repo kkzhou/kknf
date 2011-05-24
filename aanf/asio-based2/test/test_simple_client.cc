@@ -42,6 +42,7 @@ public:
     };
 
     void PrepareDataThenSend() {
+
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         static int a = 0;
         static int b = -1;
@@ -62,16 +63,13 @@ public:
         char *tmp = reinterpret_cast<char*>(&req);
         send_buf.assign(tmp, tmp + len);
 
-        SocketKey key(server_ip_, server_port_);
-        cerr << "To find an idel connection." << endl;
-        SocketInfoPtr skinfo = FindIdleTCPClientSocket(key);
+        cerr << "To find an idle Socket." << endl;
+        SocketInfoPtr skinfo = FindIdleTCPClientSocket(server_endpoint_);
         if (!skinfo) {
-            cerr << "No idle connection, to create a new one." << endl;
-            IPAddress addr = IPAddress::from_string(server_ip_);
-            TCPEndpoint remote_endpoint(addr, server_port_);
-            ToConnectThenWrite(remote_endpoint, send_buf);
+            cerr << "No idle Socket, to create a new one." << endl;
+            ToConnectThenWrite(server_endpoint_, send_buf);
         } else {
-            cerr << "Idle connection found." << endl;
+            cerr << "Idle Socket found." << endl;
             ToWriteThenRead(skinfo, send_buf);
         }
 
@@ -85,8 +83,7 @@ public:
         return;
     };
 public:
-    string server_ip_;
-    uint16_t server_port_;
+    TCPEndpoint server_endpoint_;
 };
 
 
@@ -95,26 +92,25 @@ int main(int argc, char **argv) {
     std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     boost::shared_ptr<TestClient> client(new TestClient);
     int timer_interval = 10000;
-    int thread_num = 4;
+    IPAddress addr;
+    uint16_t port;
 
     int oc;
     int option_num = 0;
-    const char *helpstr = " USAGE: ./test_simple_client -n threadnum -i timerinterval -I bfip -p bfport -h";
-    while ((oc = getopt(argc, argv, "i:I:n:p:h")) != -1) {
+    boost::system::error_code e;
+    const char *helpstr = " USAGE: ./test_simple_client -i timerinterval -I bfip -p bfport -h";
+    while ((oc = getopt(argc, argv, "i:I:p:h")) != -1) {
         switch (oc) {
             case 'i':
                 timer_interval = atoi(optarg);
                 break;
             case 'I':
-                client->server_ip_ = optarg;
+                addr.from_string(optarg, e);
                 option_num++;
                 break;
             case 'p':
-                client->server_port_ = atoi(optarg);
+                port = atoi(optarg);
                 option_num++;
-                break;
-            case 'n':
-                thread_num = atoi(optarg);
                 break;
             case 'h':
                 cout << helpstr << endl;
@@ -133,17 +129,13 @@ int main(int argc, char **argv) {
         cerr << "Parameter invalid: timerinterval is in [0, 100000]" << endl;
         return -1;
     }
-    if (thread_num <= 0 || thread_num > 10000) {
-        cerr << "Parameter invalid: threadnum is in [1, 10000]" << endl;
-        return -1;
+
+    if (e) {
+        cerr << "IP address format invalid: " << e.message();
     }
 
-    if (client->server_ip_.empty() || client->server_port_ == 0) {
-        cout << helpstr << endl;
-        return -1;
-    }
     client->set_timer_trigger_interval(timer_interval);
-    client->set_thread_pool_size(thread_num);
+    client->set_server_endpoint(TCPEndpoint(addr, port));
     client->AddTimerHandler(boost::bind(&Client::PrepareDataThenSend, client));
 
     client->Run();

@@ -66,8 +66,11 @@ public:
         char *tmp = reinterpret_cast<char*>(&rsp);
         send_buf.assign(tmp, tmp + sizeof(RspFromBB1));
 
-        SocketKey key(from_ip, from_port);
-        SocketInfoPtr skinfo = FindIdleTCPClientSocket(key);
+        IPAddress addr;
+        boost::system::error_code e;
+        addr.from_string(from_ip, e);
+        TCPEndpoint endpoint(addr, from_port);
+        SocketInfoPtr skinfo = FindIdleTCPClientSocket(endpoint);
         if (!skinfo) {
             cerr << "Socket not found: ip=" << from_ip << " port=" << from_port << endl;
             return 0;
@@ -99,18 +102,14 @@ int main(int argc, char **argv) {
     std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     boost::shared_ptr<TestBB1> bb1(new TestBB1);
     int timer_interval = 10000;
-    int thread_num = 4;
 
     int oc;
     int option_num = 0;
-    const char *helpstr = " USAGE: ./test_bb1 -n threadnum -i timerinterval -L listenip -p listenport_low -P listenport_high -h";
-    while ((oc = getopt(argc, argv, "i:L:n:p:P:h")) != -1) {
+    const char *helpstr = " USAGE: ./test_bb1 -i timerinterval -L listenip -p listenport_low -P listenport_high -h";
+    while ((oc = getopt(argc, argv, "i:L:p:P:h")) != -1) {
         switch (oc) {
             case 'i':
                 timer_interval = atoi( optarg );
-                break;
-            case 'n':
-                thread_num = atoi( optarg );
                 break;
             case 'L':
                 bb1->local_ip_ = optarg;
@@ -141,22 +140,25 @@ int main(int argc, char **argv) {
         cerr << "Parameter invalid: timerinterval is in [0, 100000]" << endl;
         return -1;
     }
-    if (thread_num <= 0 || thread_num > 10000) {
-        cerr << "Parameter invalid: threadnum is in [1, 10000]" << endl;
-        return -1;
-    }
+
     if (bb1->port_high_ < bb1->port_low_) {
         cerr << "Parameter invalid: listenport_low must be less than listenport_high" << endl;
         return -1;
     }
     bb1->set_timer_trigger_interval(timer_interval);
-    bb1->set_thread_pool_size(thread_num);
-
+    IPAddress addr;
+    boost::system::error_code e;
+    addr.from_string(bb1->local_ip_, e);
+    if (e) {
+        cerr << "IP address format invalid: " << bb1->local_ip_ << endl;
+        exit(1);
+    }
     for (uint16_t port = bb1->port_low_; port <= bb1->port_high_; port++) {
-        bb1->AddTCPAcceptor(bb1->local_ip_, port, SocketInfo::T_TCP_LV);
+
+        bb1->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_LV);
     }
 
-    bb1->AddTimerHandler(bb1->strand().wrap(boost::bind(&TestBB1::PrintHeartBeat, bb1)));
+    bb1->AddTimerHandler(boost::bind(&TestBB1::PrintHeartBeat, bb1));
     bb1->Run();
     std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     return 0;

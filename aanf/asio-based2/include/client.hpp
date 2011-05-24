@@ -39,38 +39,6 @@ typedef boost::posix_time::ptime PTime;
 class SocketInfo;
 typedef boost::shared_ptr<SocketInfo> SocketInfoPtr;
 
-// The key for a socket used in std::map
-class SocketKey {
-public:
-    class SocketKeyCompare {
-    public:
-        bool operator()(const SocketKey &l, const SocketKey &r) const {
-            if (l.ip_ < r.ip_) {
-                return true;
-            }
-            if (l.port_ < r.port_) {
-                return true;
-            }
-            return false;
-        };
-    };
-public:
-    SocketKey(std::string &ip, uint16_t port)
-        : ip_(ip),
-        port_(port) {
-    };
-
-    std::string& ip() {
-        return ip_;
-    };
-    uint16_t port() {
-        return port_;
-    };
-private:
-    std::string ip_;
-    uint16_t port_;
-};
-
 // Simple information about a socket
 class SocketInfo {
 public:
@@ -89,78 +57,29 @@ public:
     SocketInfo(SocketType type, boost::asio::io_service &io_serv)
         : type_(type),
         tcp_sk_(io_serv),
-        in_read_(false),
-        in_write_(false),
         is_client_(false),
-        is_connected_(false) {
+        is_connected_(false),
+        in_use_(false) {
 
         access_time_ = create_time_ =
             boost::posix_time::microsec_clock::local_time();
 
     };
 
-    SocketType type() {
-        return type_;
-    };
+    SocketType type() {r eturn type_; };
+    TCPEndpoint& remote_endpoint() { return remote_endpoint_; };
 
-    TCPEndpoint& remote_endpoint() {
-        return remote_endpoint_;
-    };
-
-    void set_remote_endpoint(TCPEndpoint &remote_endpoint) {
-        remote_endpoint_ = remote_endpoint;
-    };
-
-    bool is_client() {
-        return is_client_;
-    };
-
-    void set_is_client(bool is_client) {
-        is_client_ = is_client;
-    };
-
-    bool in_read() {
-        return in_read_;
-    };
-
-    bool in_write() {
-        return in_write_;
-    };
-
-    bool is_connected() {
-        return is_connected_;
-    };
-
-    void set_is_connected(bool is_connected) {
-        is_connected_ = is_connected;
-    };
-
-    void set_in_read(bool in_read) {
-        in_read_ = in_read;
-    };
-
-    void set_in_write(bool in_write) {
-        in_write_ = in_write;
-    };
-
-    TCPSocket& tcp_sk() {
-        return tcp_sk_;
-    };
-
-    PTime& create_time() {
-        return create_time_;
-    };
-
-    PTime& access_time() {
-        return access_time_;
-    };
+    void set_remote_endpoint(TCPEndpoint &remote_endpoint) { remote_endpoint_ = remote_endpoint;};
+    bool is_client() { return is_client_; };
+    void set_is_client(bool is_client) { is_client_ = is_client; };
+    bool in_use() { return in_use_; };
+    TCPSocket& tcp_sk() { return tcp_sk_; };
+    PTime& create_time() { return create_time_; };
+    PTime& access_time() { return access_time_; };
+    std::vector<char>& recv_buf() { return recv_buf_; };
 
     void Touch() {
         access_time_ = boost::posix_time::microsec_clock::local_time();
-    };
-
-    std::vector<char>& recv_buf() {
-        return recv_buf_;
     };
 
     // Obtain the content using 'swap'
@@ -187,10 +106,9 @@ private:
     TCPSocket tcp_sk_;
     PTime create_time_;
     PTime access_time_;
-    bool in_read_;
-    bool in_write_;
     bool is_client_;
     bool is_connected_;
+    bool in_use_;
     std::vector<char> recv_buf_;
     std::vector<char> send_buf_;
 
@@ -214,8 +132,7 @@ public:
 
 public:
     Client()
-        : strand_(io_serv_),
-        timer_trigger_interval_(10000),
+        : timer_trigger_interval_(10000),
         timer_(io_serv_),
         init_recv_buf_size_(1024),
         max_recv_buf_size_(1024 * 1024 * 2) {
@@ -236,36 +153,12 @@ public:
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
-
         std::cerr << "Start a timer in " << timer_trigger_interval_ << "milliseconds" << std::endl;
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
-        timer_.async_wait(strand().wrap(
-                                boost::bind(&Client::HandleTimeout,
+        timer_.async_wait(boost::bind(&Client::HandleTimeout,
                                 shared_from_this(),
-                                boost::asio::placeholders::error)));
-
-        std::cerr << "Create " << thread_pool_size_ << " threads" << std::endl;
-        if (thread_pool_size_ == 1) {
-            io_serv_.run();
-            std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-            return;
-        }
-
-        std::list<boost::shared_ptr<boost::thread> > threads;
-
-        for (int i = 0; i < thread_pool_size_; i++) {
-            boost::shared_ptr<boost::thread> thread(
-                new boost::thread(boost::bind(&boost::asio::io_service::run, &io_serv_)));
-            threads.push_back(thread);
-        }
-
-        std::list<boost::shared_ptr<boost::thread> >::iterator it, endit;
-        it = threads.begin();
-        endit = threads.end();
-        for (; it != endit; it++) {
-            (*it)->join();
-        }
-
+                                boost::asio::placeholders::error));
+        io_serv_.run();
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     };
 
@@ -278,7 +171,7 @@ public:
 public:
     // Sync interfaces
     // Called when sending request to the server behind and the connection hasn't established yet.
-    int ToWriteReadSync(TCPEndpoint &remote_endpoint,
+    int ToWriteThenReadSync(TCPEndpoint &remote_endpoint,
                         std::vector<char> &buf_to_send/*content swap*/,
                         std::vector<char> &buf_to_fill) {
 
@@ -297,7 +190,6 @@ public:
         skinfo->set_is_connected(true);
 
         // write
-        skinfo->set_in_write(true);
         size_t ret = boost::asio::write(skinfo->tcp_sk(),
                                         boost::asio::buffer(buf_to_send),
                                         boost::asio::transfer_all(),
@@ -310,10 +202,7 @@ public:
 
         BOOST_ASSERT(ret == buf_to_send.size());
 
-        skinfo->set_in_write(false);
-
         // read len_field
-        skinfo->set_in_read(true);
         std::vector<char> len_field(4, 0);
         int len = 0;
 
@@ -348,26 +237,19 @@ public:
             return -3;
         }
 
-        skinfo->set_in_read(false);
-        std::string ip = skinfo->remote_endpoint().address().to_string();
-        SocketKey key(ip, skinfo->remote_endpoint().port());
-        ret = InsertTCPClientSocket(key, skinfo);
+        ret = InsertTCPClientSocket(remote_endpoint, skinfo);
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
     };
 
     // Called when sending request to the server behind and the connection has already established.
-    int ToWriteReadSync(SocketInfoPtr skinfo, std::vector<char> &buf_to_send,
+    int ToWriteThenReadSync(SocketInfoPtr skinfo, std::vector<char> &buf_to_send,
                         std::vector<char> &buf_to_fill) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
-        BOOST_ASSERT(skinfo->is_connected());
-        BOOST_ASSERT(!skinfo->in_write());
-        BOOST_ASSERT(!skinfo->in_read());
         // write
         boost::system::error_code e;
-        skinfo->set_in_write(true);
         size_t ret = boost::asio::write(skinfo->tcp_sk(),
                                         boost::asio::buffer(buf_to_send),
                                         boost::asio::transfer_all(),
@@ -380,10 +262,7 @@ public:
 
         BOOST_ASSERT(ret == buf_to_send.size());
 
-        skinfo->set_in_write(false);
-
         // read len_field
-        skinfo->set_in_read(true);
         std::vector<char> len_field(4, 0);
         int len = 0;
 
@@ -416,11 +295,10 @@ public:
 
         if (e) {
             std::cerr << "Read data_field error: " << e.message() << std::endl;
-            // shared_ptr 'skinfo' will destruct the SocketInfo
+            DestroySocket(skinfo);
             return -3;
         }
 
-        skinfo->set_in_read(false);
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
     };
@@ -436,43 +314,35 @@ public:
         skinfo->SetSendBuf(buf_to_send);
         skinfo->set_is_client(true);
 
-        std::string ip = skinfo->remote_endpoint().address().to_string();
-        SocketKey key(ip, skinfo->remote_endpoint().port());
-        InsertTCPClientSocket(key, skinfo);
+        InsertTCPClientSocket(remote_endpoint, skinfo);
 
         skinfo->tcp_sk().async_connect(skinfo->remote_endpoint(),
-            strand().wrap(
                 boost::bind(
                     &Client::HandleConnectThenWrite,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
-                    buf_to_send)));
+                    buf_to_send));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
     };
+
     // Called when sending request to the server behind and the connection has already established.
     int ToWriteThenRead(SocketInfoPtr skinfo, std::vector<char> &buf_to_send) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        BOOST_ASSERT(skinfo->is_connected());
-        BOOST_ASSERT(!skinfo->in_write());
-        BOOST_ASSERT(!skinfo->in_read());
-
-        skinfo->set_in_write(true);
 
         boost::asio::async_write(
             skinfo->tcp_sk(),
             boost::asio::buffer(buf_to_send),
             boost::asio::transfer_all(),
-            strand().wrap(
                 boost::bind(
                     &Client::HandleWriteThenReadL,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
-                    boost::asio::placeholders::bytes_transferred)));
+                    boost::asio::placeholders::bytes_transferred));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -483,22 +353,20 @@ private:
     int ToReadLThenReadV(SocketInfoPtr skinfo) {
 
         std::cerr << "Eneter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        BOOST_ASSERT(skinfo->is_connected());
-        BOOST_ASSERT(!skinfo->in_write());
-        BOOST_ASSERT(!skinfo->in_read());
+
+        BOOST_ASSERT(skinfo->recv_buf().size() == 0);
 
         skinfo->SetRecvBuf(4);
         boost::asio::async_read(
             skinfo->tcp_sk(),
             boost::asio::buffer(&(skinfo->recv_buf()[0]), 4),
             boost::asio::transfer_all(),
-            strand().wrap(
                 boost::bind(
                     &Client::HandleReadLThenReadV,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
-                    boost::asio::placeholders::bytes_transferred)));
+                    boost::asio::placeholders::bytes_transferred));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -507,14 +375,12 @@ private:
     int DestroySocket(SocketInfoPtr skinfo) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        BOOST_ASSERT((!skinfo->is_connected()) || skinfo->in_read() || skinfo->in_write());
 
         boost::system::error_code e;
         skinfo->tcp_sk().close(e);
-        std::string ip = skinfo->remote_endpoint().address().to_string();
-        SocketKey key(ip, skinfo->remote_endpoint().port());
+
         if (skinfo->is_client()) {
-            std::map<SocketKey, std::list<SocketInfoPtr> >::iterator it = tcp_client_socket_map_.find(key);
+            std::map<SocketKey, std::list<SocketInfoPtr> >::iterator it = tcp_client_socket_map_.find(skinfo->remote_point());
 
             if (it == tcp_client_socket_map_.end()) {
                 std::cerr << "The SocketInfo to delete doesn't exist." << std::endl;
@@ -525,7 +391,7 @@ private:
             it->second.remove(skinfo);
             if (it->second.size() == 0) {
                 // the item deleted is the last one
-                tcp_client_socket_map_.erase(key);
+                tcp_client_socket_map_.erase(skinfo->remote_point());
             }
         } else {
             BOOST_ASSERT(false);
@@ -547,9 +413,8 @@ private:
             it = timer_handler_list_.begin();
             endit = timer_handler_list_.end();
             for (; it != endit; it++) {
-                    (*it)();
+                (*it)();
             }
-
         }
 
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
@@ -566,9 +431,6 @@ private:
                                     std::vector<char> &buf_to_send) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        BOOST_ASSERT(!skinfo->is_connected());
-        BOOST_ASSERT(!skinfo->in_write());
-        BOOST_ASSERT(!skinfo->in_read());
 
         if (error) {
             std::cerr << "Connect error: " << error.message() << std::endl;
@@ -578,21 +440,18 @@ private:
         }
 
         skinfo->set_is_connected(true);
-        std::string ip = skinfo->tcp_sk().remote_endpoint().address().to_string();
-
-        skinfo->set_in_write(true);
 
         boost::asio::async_write(
             skinfo->tcp_sk(),
             boost::asio::buffer(buf_to_send),
             boost::asio::transfer_all(),
-            strand().wrap(
                 boost::bind(
                     &Client::HandleWriteThenReadL,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
-                    boost::asio::placeholders::bytes_transferred)));
+                    boost::asio::placeholders::bytes_transferred));
+
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     };
 
@@ -601,10 +460,6 @@ private:
                             SocketInfoPtr skinfo, std::size_t byte_num) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-
-        BOOST_ASSERT(skinfo->is_connected());
-        BOOST_ASSERT(!skinfo->in_write());
-        BOOST_ASSERT(skinfo->in_read());
 
         if (error) {
             std::cerr << "Read error: " << error.message() << std::endl;
@@ -629,13 +484,12 @@ private:
             skinfo->tcp_sk(),
             boost::asio::buffer(&(skinfo->recv_buf().at(4)), len - 4),
             boost::asio::transfer_all(),
-            strand().wrap(
                 boost::bind(
                     &Client::HandleReadVThenProcess,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
-                    boost::asio::placeholders::bytes_transferred)));
+                    boost::asio::placeholders::bytes_transferred));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
@@ -646,9 +500,6 @@ private:
                                SocketInfoPtr skinfo, std::size_t byte_num) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        BOOST_ASSERT(skinfo->is_connected());
-        BOOST_ASSERT(!skinfo->in_write());
-        BOOST_ASSERT(skinfo->in_read());
 
         if (error) {
             std::cerr << "ReadV error: " << error.message() << std::endl;
@@ -670,7 +521,6 @@ private:
                                 skinfo->tcp_sk().local_endpoint().port(),
                                 boost::posix_time::microsec_clock::local_time());
 
-        skinfo->set_in_read(false);
         if (ret < 0) {
             // error
             std::cerr << "ProcessData error" << std::endl;
@@ -678,7 +528,6 @@ private:
 
         } else if (ret == 1) {
             // send and close
-            DestroySocket(skinfo);
         } else if (ret == 2) {
             // send and then read
             ToReadLThenReadV(skinfo);
@@ -695,25 +544,18 @@ private:
                              SocketInfoPtr skinfo, std::size_t byte_num) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        BOOST_ASSERT(skinfo->in_write());
-        BOOST_ASSERT(!skinfo->in_read());
-        BOOST_ASSERT(skinfo->is_connected());
 
         skinfo->SetRecvBuf(4);  // len_field
         boost::asio::async_read(
             skinfo->tcp_sk(),
             boost::asio::buffer(&(skinfo->recv_buf()[0]), 4),
             boost::asio::transfer_all(),
-            strand().wrap(
                 boost::bind(
                     &Client::HandleReadLThenReadV,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
-                    boost::asio::placeholders::bytes_transferred)));
-
-        skinfo->set_in_write(false);
-        skinfo->set_in_read(true);
+                    boost::asio::placeholders::bytes_transferred));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     };
@@ -721,19 +563,19 @@ private:
 
 protected:
 
-    SocketInfoPtr FindIdleTCPClientSocket(SocketKey &key) {
+    SocketInfoPtr FindIdleTCPClientSocket(TCPEndpoint &key) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To find socket ip=" << key.ip() << " port=" << key.port() << std::endl;
+        std::cerr << "To find socket ip=" << key.address().to_string() << " port=" << key.port() << std::endl;
         SocketInfoPtr ret;
-        std::map<SocketKey, std::list<SocketInfoPtr> >::iterator it
+        std::map<TCPEndpoint, std::list<SocketInfoPtr> >::iterator it
             = tcp_client_socket_map_.find(key);
 
         if (it != tcp_client_socket_map_.end()) {
             std::list<SocketInfoPtr>::iterator list_it =
                 it->second.begin();
             while (list_it != it->second.end()) {
-                if ((*list_it)->in_write() || (*list_it)->in_read() || (!(*list_it)->is_connected())) {
+                if ((*list_it)->in_use() || (!(*list_it)->is_connected())) {
                     list_it++;
                 } else {
                     ret = (*list_it);
@@ -742,18 +584,19 @@ protected:
                 }
             } // while
         }
+        if (!ret) {
+            std::cerr << "Not found" << std::endl;
+        }
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return ret;
     };
 
-    int InsertTCPClientSocket(SocketKey &key, SocketInfoPtr new_skinfo) {
+    int InsertTCPClientSocket(TCPEndpoint &key, SocketInfoPtr new_skinfo) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To Insert socket ip=" << key.ip() << " port=" << key.port() << std::endl;
-        BOOST_ASSERT(!new_skinfo->in_write());
-        BOOST_ASSERT(!new_skinfo->in_read());
+        std::cerr << "To Insert socket ip=" << key.address().to_string() << " port=" << key.port() << std::endl;
 
-        std::map<SocketKey, std::list<SocketInfoPtr> >::iterator it
+        std::map<TCPEndpoint, std::list<SocketInfoPtr> >::iterator it
             = tcp_client_socket_map_.find(key);
 
         if (it != tcp_client_socket_map_.end()) {
@@ -763,56 +606,31 @@ protected:
             std::cerr << "There is no socket for this <ip, port>." << std::endl;
             std::list<SocketInfoPtr> new_list;
             new_list.push_back(new_skinfo);
-            std::pair<std::map<SocketKey, std::list<SocketInfoPtr> >::iterator, bool> insert_result =
-                tcp_client_socket_map_.insert(std::pair<SocketKey, std::list<SocketInfoPtr> >(key, new_list));
+            std::pair<std::map<TCPEndpoint, std::list<SocketInfoPtr> >::iterator, bool> insert_result =
+                tcp_client_socket_map_.insert(std::pair<TCPEndpoint, std::list<SocketInfoPtr> >(key, new_list));
 
             BOOST_ASSERT(insert_result.second);
         }
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
     };
+
 public:
     // setter/getter
-    boost::asio::io_service::strand& strand() {
-        return strand_;
-    };
-    int thread_pool_size() {
-        return thread_pool_size_;
-    };
-    void set_thread_pool_size(int thread_pool_size) {
-        thread_pool_size_ = thread_pool_size;
-    };
-    int max_recv_buf_size() {
-        return max_recv_buf_size_;
-    };
-    void set_max_recv_buf_size(int max_recv_buf_size) {
-        max_recv_buf_size_ = max_recv_buf_size;
-    };
-    int init_recv_buf_size(){
-        return init_recv_buf_size_;
-    };
-    void set_init_recv_buf_size(int init_recv_buf_size) {
-        init_recv_buf_size_ = init_recv_buf_size;
-    };
-
-    void set_timer_trigger_interval(int millisec) {
-        timer_trigger_interval_ = millisec;
-    };
-    int timer_trigger_interval() {
-        return timer_trigger_interval_;
-    };
+    int max_recv_buf_size() { return max_recv_buf_size_; };
+    void set_max_recv_buf_size(int max_recv_buf_size) { max_recv_buf_size_ = max_recv_buf_size; };
+    int init_recv_buf_size(){ return init_recv_buf_size_; };
+    void set_init_recv_buf_size(int init_recv_buf_size) { init_recv_buf_size_ = init_recv_buf_size; };
+    void set_timer_trigger_interval(int millisec) { timer_trigger_interval_ = millisec; };
+    int timer_trigger_interval() { return timer_trigger_interval_; };
 private:
     // io_service
     boost::asio::io_service io_serv_;
     // Data structure to maintain sockets(connections)
-    std::map<SocketKey, std::list<SocketInfoPtr>, SocketKey::SocketKeyCompare > tcp_client_socket_map_;
-    // strand is for synchronous
-    boost::asio::strand strand_;
+    std::map<TCPEndpoint, std::list<SocketInfoPtr> > tcp_client_socket_map_;
     // timer
     int timer_trigger_interval_;
     boost::asio::deadline_timer timer_;
-    // thread
-    int thread_pool_size_;
 
     // timer handlers
     std::list<boost::function<void()> > timer_handler_list_;
