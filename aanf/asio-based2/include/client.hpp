@@ -66,10 +66,12 @@ public:
 
     };
 
-    SocketType type() {r eturn type_; };
+    SocketType type() { return type_; };
     TCPEndpoint& remote_endpoint() { return remote_endpoint_; };
 
     void set_remote_endpoint(TCPEndpoint &remote_endpoint) { remote_endpoint_ = remote_endpoint;};
+    bool is_connected() { return is_connected_; };
+    void set_is_connected(bool is_connected) { is_connected_ = is_connected; };
     bool is_client() { return is_client_; };
     void set_is_client(bool is_client) { is_client_ = is_client; };
     bool in_use() { return in_use_; };
@@ -380,7 +382,8 @@ private:
         skinfo->tcp_sk().close(e);
 
         if (skinfo->is_client()) {
-            std::map<SocketKey, std::list<SocketInfoPtr> >::iterator it = tcp_client_socket_map_.find(skinfo->remote_point());
+            std::map<TCPEndpoint, std::list<SocketInfoPtr> >::iterator it 
+                = tcp_client_socket_map_.find(skinfo->remote_endpoint());
 
             if (it == tcp_client_socket_map_.end()) {
                 std::cerr << "The SocketInfo to delete doesn't exist." << std::endl;
@@ -391,7 +394,7 @@ private:
             it->second.remove(skinfo);
             if (it->second.size() == 0) {
                 // the item deleted is the last one
-                tcp_client_socket_map_.erase(skinfo->remote_point());
+                tcp_client_socket_map_.erase(skinfo->remote_endpoint());
             }
         } else {
             BOOST_ASSERT(false);
@@ -418,10 +421,9 @@ private:
         }
 
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
-        timer_.async_wait(strand().wrap(
-                                boost::bind(&Client::HandleTimeout,
+        timer_.async_wait(boost::bind(&Client::HandleTimeout,
                                 shared_from_this(),
-                                boost::asio::placeholders::error)));
+                                boost::asio::placeholders::error));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     };

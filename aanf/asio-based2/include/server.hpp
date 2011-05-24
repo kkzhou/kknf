@@ -71,10 +71,12 @@ public:
 
     };
 
-    SocketType type() {r eturn type_; };
+    SocketType type() { return type_; };
     TCPEndpoint& remote_endpoint() { return remote_endpoint_; };
 
     void set_remote_endpoint(TCPEndpoint &remote_endpoint) { remote_endpoint_ = remote_endpoint;};
+    bool is_connected() { return is_connected_; };
+    void set_is_connected(bool is_connected) { is_connected_ = is_connected; };
     bool is_client() { return is_client_; };
     void set_is_client(bool is_client) { is_client_ = is_client; };
     bool in_use() { return in_use_; };
@@ -85,10 +87,6 @@ public:
 
     void Touch() {
         access_time_ = boost::posix_time::microsec_clock::local_time();
-    };
-
-    std::vector<char>& recv_buf() {
-        return recv_buf_;
     };
 
     // Obtain the content of 'recv_buf_' using 'swap'
@@ -567,7 +565,6 @@ private:
         }
         skinfo->set_is_connected(true);
 
-        skinfo->set_in_write(true);
         InsertTCPClientSocket(skinfo->remote_endpoint(), skinfo);
 
         boost::asio::async_write(
@@ -770,13 +767,11 @@ protected:
         return ret;
     };
 
-    int InsertTCPClientSocket(SocketKey &key, SocketInfoPtr new_skinfo) {
+    int InsertTCPClientSocket(TCPEndpoint &key, SocketInfoPtr new_skinfo) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        BOOST_ASSERT(!new_skinfo->in_write());
-        BOOST_ASSERT(!new_skinfo->in_read());
 
-        std::map<SocketKey, std::list<SocketInfoPtr> >::iterator it
+        std::map<TCPEndpoint, std::list<SocketInfoPtr> >::iterator it
             = tcp_client_socket_map_.find(key);
 
         if (it != tcp_client_socket_map_.end()) {
@@ -784,8 +779,8 @@ protected:
         } else {
             std::list<SocketInfoPtr> new_list;
             new_list.push_back(new_skinfo);
-            std::pair<std::map<SocketKey, std::list<SocketInfoPtr> >::iterator, bool> insert_result =
-                tcp_client_socket_map_.insert(std::pair<SocketKey, std::list<SocketInfoPtr> >(key, new_list));
+            std::pair<std::map<TCPEndpoint, std::list<SocketInfoPtr> >::iterator, bool> insert_result =
+                tcp_client_socket_map_.insert(std::pair<TCPEndpoint, std::list<SocketInfoPtr> >(key, new_list));
 
             BOOST_ASSERT(insert_result.second);
         }

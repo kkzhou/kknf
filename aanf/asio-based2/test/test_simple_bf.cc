@@ -86,12 +86,9 @@ public:
             char *tmp = reinterpret_cast<char*>(&req1);
             send_buf1.assign(tmp, tmp + sizeof(ReqToBB1));
 
-            SocketKey key1(bb1_ip_, bb1_port_);
-            SocketInfoPtr skinfo1 = FindIdleTCPClientSocket(key1);
+            SocketInfoPtr skinfo1 = FindIdleTCPClientSocket(bb1_endpoint_);
             if (!skinfo1) {
-                IPAddress addr = IPAddress::from_string(bb1_ip_);
-                TCPEndpoint remote_endpoint(addr, bb1_port_);
-                ToConnectThenWrite(remote_endpoint, send_buf1);
+                ToConnectThenWrite(bb1_endpoint_, send_buf1);
             } else {
                 ToWriteThenRead(skinfo1, send_buf1);
             }
@@ -109,12 +106,9 @@ public:
             tmp = reinterpret_cast<char*>(&req2);
             send_buf2.assign(tmp, tmp + sizeof(ReqToBB2));
 
-            SocketKey key2(bb2_ip_, bb2_port_);
-            SocketInfoPtr skinfo2 = FindIdleTCPClientSocket(key2);
+            SocketInfoPtr skinfo2 = FindIdleTCPClientSocket(bb2_endpoint_);
             if (!skinfo2) {
-                IPAddress addr = IPAddress::from_string(bb2_ip_);
-                TCPEndpoint remote_endpoint(addr, bb2_port_);
-                ToConnectThenWrite(remote_endpoint, send_buf2);
+                ToConnectThenWrite(bb2_endpoint_, send_buf2);
             } else {
                 ToWriteThenRead(skinfo2, send_buf2);
             }
@@ -172,12 +166,12 @@ public:
             char *tmp = reinterpret_cast<char*>(&tmpit->second.rsp_);
             send_buf3.assign(tmp, tmp + sizeof(RspFromBF));
 
-            SocketKey key3(tmpit->second.client_ip_, tmpit->second.client_port_);
-            SocketInfoPtr skinfo3 = FindIdleTCPClientSocket(key3);
+            IPAddress addr;
+            addr.from_string(tmpit->second.client_ip_);
+            TCPEndpoint client_endpoint(addr, tmpit->second.client_port_);
+            SocketInfoPtr skinfo3 = FindIdleTCPClientSocket(client_endpoint);
             if (!skinfo3) {
-                IPAddress addr = IPAddress::from_string(tmpit->second.client_ip_);
-                TCPEndpoint remote_endpoint(addr, tmpit->second.client_port_);
-                ToConnectThenWrite(remote_endpoint, send_buf3);
+                ToConnectThenWrite(client_endpoint, send_buf3);
             } else {
                 ToWriteThenRead(skinfo3, send_buf3);
             }
@@ -282,8 +276,7 @@ int main(int argc, char **argv) {
     bf->bb2_endpoint_ = TCPEndpoint(bb2_addr, bb2_port);
 
     IPAddress addr;
-    boost::system::error_code e;
-    addr.from_string(bb1->local_ip_, e);
+    addr.from_string(bf->local_ip_, e);
     if (e) {
         cerr << "IP address format invalid: " << bf->local_ip_ << endl;
         exit(1);

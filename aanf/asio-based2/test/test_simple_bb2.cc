@@ -105,14 +105,11 @@ int main(int argc, char **argv) {
 
     int oc;
     int option_num = 0;
-    const char *helpstr = " USAGE: ./test_bb1 -n threadnum -i timerinterval -L listenip -p listenport_low -P listenport_high -h";
+    const char *helpstr = " USAGE: ./test_bb2 -n threadnum -i timerinterval -L listenip -p listenport_low -P listenport_high -h";
     while ((oc = getopt(argc, argv, "i:L:n:p:P:h")) != -1) {
         switch (oc) {
             case 'i':
                 timer_interval = atoi(optarg);
-                break;
-            case 'n':
-                thread_num = atoi(optarg);
                 break;
             case 'L':
                 option_num++;
@@ -152,10 +149,10 @@ int main(int argc, char **argv) {
 
     IPAddress addr;
     boost::system::error_code e;
-    addr.from_string(bb1->local_ip_, e);
+    addr.from_string(bb2->local_ip_, e);
 
     if (e) {
-        cerr << "IP address format invalid: " << bb1->local_ip_ << endl;
+        cerr << "IP address format invalid: " << bb2->local_ip_ << endl;
         exit(1);
     }
 

@@ -135,7 +135,8 @@ int main(int argc, char **argv) {
     }
 
     client->set_timer_trigger_interval(timer_interval);
-    client->set_server_endpoint(TCPEndpoint(addr, port));
+
+    client->server_endpoint_ = TCPEndpoint(addr, port);
     client->AddTimerHandler(boost::bind(&Client::PrepareDataThenSend, client));
 
     client->Run();
