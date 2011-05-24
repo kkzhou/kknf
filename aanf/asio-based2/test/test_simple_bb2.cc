@@ -68,7 +68,7 @@ public:
 
         IPAddress addr;
         boost::system::error_code e;
-        addr.from_string(from_ip, e);
+        addr = IPAddress::from_string(from_ip, e);
         TCPEndpoint endpoint(addr, from_port);
         SocketInfoPtr skinfo = FindIdleTCPClientSocket(endpoint);
         if (!skinfo) {
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
 
     IPAddress addr;
     boost::system::error_code e;
-    addr.from_string(bb2->local_ip_, e);
+    addr = IPAddress::from_string(bb2->local_ip_, e);
 
     if (e) {
         cerr << "IP address format invalid: " << bb2->local_ip_ << endl;

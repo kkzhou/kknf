@@ -1,4 +1,4 @@
-CC = g++ -g -Wall
+CC = g++ -g -O0 -Wall
 
 BOOST_DIR = /usr/local/boost/
 INC_DIR = -I../include/ -I$(BOOST_DIR)/include/

@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
                 timer_interval = atoi(optarg);
                 break;
             case 'I':
-                addr.from_string(optarg, e);
+                addr = IPAddress::from_string(optarg, e);
                 option_num++;
                 break;
             case 'p':

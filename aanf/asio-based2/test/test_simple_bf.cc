@@ -74,11 +74,12 @@ public:
             req1.a_ = req_to_bf->a_;
             req1.seq_ = req_to_bf->seq_;
             req1.type_ = TestPacketBase::T_REQ_TO_BB1;
+            req1.len_ = boost::asio::detail::socket_ops::network_to_host_long(sizeof(ReqToBB1));
 
             ld_for_this_req.rsp_.error_ = 0;
             ld_for_this_req.client_ip_ = from_ip;
             ld_for_this_req.client_port_ = from_port;
-            ld_for_this_req.rsp_.len_ = boost::asio::detail::socket_ops::network_to_host_long(sizeof(RspFromBF));
+            ld_for_this_req.rsp_.len_ = boost::asio::detail::socket_ops::host_to_network_long(sizeof(RspFromBF));
             ld_for_this_req.rsp_.seq_ = req_to_bf->seq_;
             ld_for_this_req.rsp_.type_ = TestPacketBase::T_RSP_FROM_BF;
             ld_.insert(pair<int, ReqLocalData>(req_to_bf->seq_, ld_for_this_req));
@@ -102,6 +103,7 @@ public:
             req2.b_ = req_to_bf->b_;
             req2.seq_ = req_to_bf->seq_;
             req2.type_ = TestPacketBase::T_REQ_TO_BB2;
+            req2.len_ = boost::asio::detail::socket_ops::host_to_network_long(sizeof(ReqToBB2));
 
             tmp = reinterpret_cast<char*>(&req2);
             send_buf2.assign(tmp, tmp + sizeof(ReqToBB2));
@@ -167,7 +169,7 @@ public:
             send_buf3.assign(tmp, tmp + sizeof(RspFromBF));
 
             IPAddress addr;
-            addr.from_string(tmpit->second.client_ip_);
+            addr = IPAddress::from_string(tmpit->second.client_ip_);
             TCPEndpoint client_endpoint(addr, tmpit->second.client_port_);
             SocketInfoPtr skinfo3 = FindIdleTCPClientSocket(client_endpoint);
             if (!skinfo3) {
@@ -225,7 +227,7 @@ int main(int argc, char **argv) {
                 option_num++;
                 break;
             case 'a':
-                bb1_addr.from_string(optarg, e);
+                bb1_addr = IPAddress::from_string(optarg, e);
                 if (e) {
                     cerr << "IP address format invalid: " << optarg << ", "<< e.message() << endl;
                     exit(1);
@@ -237,7 +239,7 @@ int main(int argc, char **argv) {
                 option_num++;
                 break;
             case 'c':
-                bb2_addr.from_string(optarg, e);
+                bb2_addr = IPAddress::from_string(optarg, e);
                 if (e) {
                     cerr << "IP address format invalid: " << optarg << ", "<< e.message() << endl;
                     exit(1);
@@ -276,7 +278,7 @@ int main(int argc, char **argv) {
     bf->bb2_endpoint_ = TCPEndpoint(bb2_addr, bb2_port);
 
     IPAddress addr;
-    addr.from_string(bf->local_ip_, e);
+    addr = IPAddress::from_string(bf->local_ip_, e);
     if (e) {
         cerr << "IP address format invalid: " << bf->local_ip_ << endl;
         exit(1);
