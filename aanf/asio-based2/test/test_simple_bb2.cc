@@ -71,7 +71,7 @@ public:
         boost::system::error_code e;
         addr = IPAddress::from_string(from_ip, e);
         TCPEndpoint endpoint(addr, from_port);
-        SocketInfoPtr skinfo = FindIdleTCPServerSocket(endpoint);
+        SocketInfoPtr skinfo = FindTCPServerSocket(endpoint);
         if (!skinfo) {
             cerr << "Socket not found: ip=" << from_ip << " port=" << from_port << endl;
             return 0;
