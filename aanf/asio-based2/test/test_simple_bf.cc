@@ -166,8 +166,8 @@ public:
         }
 
         map<int, ReqLocalData>::iterator tmpit = ld_.find(baseptr->seq_);
-        if (tmpit != ld_.end()) {
-            cerr << "Seq error: seqnum(" << baseptr->seq_ << ") is taken." << endl;
+        if (tmpit == ld_.end()) {
+            cerr << "Seq error: seqnum(" << baseptr->seq_ << ") doesn't exist." << endl;
             return -1;
         }
         if (tmpit->second.bb1_rsp_arrived_ && tmpit->second.bb2_rsp_arrived_) {
