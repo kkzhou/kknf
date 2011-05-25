@@ -63,7 +63,6 @@ public:
 
         access_time_ = create_time_ =
             boost::posix_time::microsec_clock::local_time();
-
     };
 
     SocketType type() { return type_; };
@@ -382,7 +381,7 @@ private:
         skinfo->tcp_sk().close(e);
 
         if (skinfo->is_client()) {
-            std::map<TCPEndpoint, std::list<SocketInfoPtr> >::iterator it 
+            std::map<TCPEndpoint, std::list<SocketInfoPtr> >::iterator it
                 = tcp_client_socket_map_.find(skinfo->remote_endpoint());
 
             if (it == tcp_client_socket_map_.end()) {
@@ -596,7 +595,7 @@ protected:
     int InsertTCPClientSocket(TCPEndpoint &key, SocketInfoPtr new_skinfo) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To Insert socket ip=" << key.address().to_string() << " port=" << key.port() << std::endl;
+        std::cerr << "To insert " << key.address().to_string() << ":" << key.port() << std::endl;
 
         std::map<TCPEndpoint, std::list<SocketInfoPtr> >::iterator it
             = tcp_client_socket_map_.find(key);
