@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#pragma pack(4)
+#pragma pack(1)
 class TestPacketBase {
 public:
     enum PacketType {

@@ -631,7 +631,7 @@ private:
         int len = *(int*)(&((skinfo->recv_buf()[0])));
         len = boost::asio::detail::socket_ops::network_to_host_long(len);
 
-        std::cerr << "Length field is ready: " << len << " "
+        std::cerr << "Length: " << len << " "
             << skinfo->remote_endpoint().address().to_string()
             << ":" << skinfo->remote_endpoint().port() << std::endl;
 
