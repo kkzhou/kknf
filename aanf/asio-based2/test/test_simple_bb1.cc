@@ -35,12 +35,13 @@ public:
         {
 
     };
+    virtual ~TestBB1(){};
     // Timer handler
     void PrintHeartBeat() {
        cerr << "I'am alive!" << endl;
     };
     // Process data
-    int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
+    virtual int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
                     std::string &to_ip, uint16_t to_port, PTime arrive_time) {
 
         vector<char> send_buf;

@@ -176,6 +176,7 @@ public:
         tcp_backlog_(1024) {
 
     };
+    virtual ~Server(){};
 
     // Register handlers to the timer(only one timer)
     // which means add a handler to a callback chain
@@ -411,7 +412,7 @@ public:
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
         std::cerr << "To write " << skinfo->remote_endpoint().address().to_string()
-            << ":" << skinfo->remote_endpoint().port() << endl;
+            << ":" << skinfo->remote_endpoint().port() << std::endl;
         boost::asio::async_write(
             skinfo->tcp_sk(),
             boost::asio::buffer(buf_to_send),

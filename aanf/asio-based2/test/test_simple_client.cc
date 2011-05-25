@@ -25,8 +25,10 @@ using namespace std;
 
 class TestClient : public Client {
 public:
+    TestClient(){};
+    virtual ~TestClient(){};
     // Process data
-    int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
+    virtual int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
                     std::string &to_ip, uint16_t to_port, PTime arrive_time) {
 
        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -41,7 +43,7 @@ public:
         return 0;
     };
 
-    void PrepareDataThenSend() {
+    virtual void PrepareDataThenSend() {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         static int a = 0;

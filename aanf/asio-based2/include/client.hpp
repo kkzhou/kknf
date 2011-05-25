@@ -139,6 +139,7 @@ public:
         max_recv_buf_size_(1024 * 1024 * 2) {
 
     };
+    virtual ~Client(){};
 
     // Register handlers to the timer(only one timer)
     void AddTimerHandler(boost::function<void()> func) {
@@ -249,7 +250,8 @@ public:
                         std::vector<char> &buf_to_fill) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To write " << remote_endpoint.address().to_string() << ":" << remote_endpoint.port() << std::endl;
+        std::cerr << "To write " << skinfo->remote_endpoint().address().to_string() 
+            << ":" << skinfo->remote_endpoint().port() << std::endl;
         // write
         boost::system::error_code e;
         size_t ret = boost::asio::write(skinfo->tcp_sk(),
