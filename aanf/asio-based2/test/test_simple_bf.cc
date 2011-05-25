@@ -97,9 +97,9 @@ public:
             }
 
             cerr << "Send ReqToBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req1.len_)
-                << "ReqToBB1.type_ = " << req1.type_
-                << "ReqToBB1.seq_ = " << req1.seq_
-                << "ReqToBB1.a_ = " << req1.a_ << endl;
+                << " ReqToBB1.type_ = " << req1.type_
+                << " ReqToBB1.seq_ = " << req1.seq_
+                << " ReqToBB1.a_ = " << req1.a_ << endl;
 
             ReqToBB2 req2;
             req2.b_ = req_to_bf->b_;
@@ -117,18 +117,18 @@ public:
                 ToWriteThenRead(skinfo2, send_buf2);
             }
             cerr << "Send ReqToBB2.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req2.len_)
-                << "ReqToBB2.type_ = " << req2.type_
-                << "ReqToBB2.seq_ = " << req2.seq_
-                << "ReqToBB2.b_ = " << req2.b_ << endl;
+                << " ReqToBB2.type_ = " << req2.type_
+                << " ReqToBB2.seq_ = " << req2.seq_
+                << " ReqToBB2.b_ = " << req2.b_ << endl;
             return 0;
 
         } else if (baseptr->type_ == TestPacketBase::T_RSP_FROM_BB1) {
             // rsp form bb1
             RspFromBB1 *rsp_from_bb1 = reinterpret_cast<RspFromBB1*>(baseptr);
             cerr << "Recieve RspFromBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp_from_bb1->len_)
-                << "RspFromBB1.type_ = " << rsp_from_bb1->type_
-                << "RspFromBB1.seq_ = " << rsp_from_bb1->seq_
-                << "RspFromBB1.another_a_ = " << rsp_from_bb1->another_a_ << endl;
+                << " RspFromBB1.type_ = " << rsp_from_bb1->type_
+                << " RspFromBB1.seq_ = " << rsp_from_bb1->seq_
+                << " RspFromBB1.another_a_ = " << rsp_from_bb1->another_a_ << endl;
 
             map<int, ReqLocalData>::iterator it = ld_.find(rsp_from_bb1->seq_);
             if (it == ld_.end()) {
@@ -143,9 +143,9 @@ public:
             // rsp form bb2
             RspFromBB2 *rsp_from_bb2 = reinterpret_cast<RspFromBB2*>(baseptr);
             cerr << "Recieve RspFromBB2.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp_from_bb2->len_)
-                << "RspFromBB2.type_ = " << rsp_from_bb2->type_
-                << "RspFromBB2.seq_ = " << rsp_from_bb2->seq_
-                << "RspFromBB2.another_b_ = " << rsp_from_bb2->another_b_ << endl;
+                << " RspFromBB2.type_ = " << rsp_from_bb2->type_
+                << " RspFromBB2.seq_ = " << rsp_from_bb2->seq_
+                << " RspFromBB2.another_b_ = " << rsp_from_bb2->another_b_ << endl;
 
             map<int, ReqLocalData>::iterator it = ld_.find(rsp_from_bb2->seq_);
             if (it == ld_.end()) {
@@ -182,9 +182,9 @@ public:
             }
 
             cerr << "Send RspFromBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(tmpit->second.rsp_.len_)
-                << "RspFromBF.type_ = " << tmpit->second.rsp_.type_
-                << "RspFromBF.seq_ = " << tmpit->second.rsp_.seq_
-                << "RspFromBF.sum_ = " << tmpit->second.rsp_.sum_ << endl;
+                << " RspFromBF.type_ = " << tmpit->second.rsp_.type_
+                << " RspFromBF.seq_ = " << tmpit->second.rsp_.seq_
+                << " RspFromBF.sum_ = " << tmpit->second.rsp_.sum_ << endl;
         }
         return 0;
     };

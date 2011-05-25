@@ -77,9 +77,10 @@ public:
     void set_remote_endpoint(TCPEndpoint &remote_endpoint) { remote_endpoint_ = remote_endpoint;};
     bool is_connected() { return is_connected_; };
     void set_is_connected(bool is_connected) { is_connected_ = is_connected; };
+    void set_in_use(bool in_use) { in_use_ = in_use;};
+    bool in_use() {return in_use_;};
     bool is_client() { return is_client_; };
     void set_is_client(bool is_client) { is_client_ = is_client; };
-    bool in_use() { return in_use_; };
     TCPSocket& tcp_sk() { return tcp_sk_; };
     PTime& create_time() { return create_time_; };
     PTime& access_time() { return access_time_; };
@@ -410,7 +411,10 @@ public:
     int ToWriteThenRead(SocketInfoPtr skinfo, std::vector<char> &buf_to_send) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-
+        if (skinfo->is_client()) {
+            BOOST_ASSERT(!skinfo->in_use());
+            skinfo->set_in_use(true);
+        }
         std::cerr << "To write " << skinfo->remote_endpoint().address().to_string()
             << ":" << skinfo->remote_endpoint().port() << std::endl;
         boost::asio::async_write(
@@ -588,7 +592,10 @@ private:
 
         std::cerr << "To write " << skinfo->remote_endpoint().address().to_string()
             << ":" << skinfo->remote_endpoint().port() << std::endl;
+
         skinfo->set_is_connected(true);
+        BOOST_ASSERT(!skinfo->in_use());
+        skinfo->set_in_use(true);
 
         InsertTCPClientSocket(skinfo->remote_endpoint(), skinfo);
 
@@ -690,9 +697,16 @@ private:
             DestroySocket(skinfo);
 
         } else if (ret == 1) {
+            // send and idle(only for client socket)
+            BOOST_ASSERT(skinfo->is_client());
+            BOOST_ASSERT(skinfo->in_use());
+            skinfo->set_in_use(false);
+        } else if (ret == 2) {
             // send and close
+            DestroySocket(skinfo);
         } else if (ret == 2) {
             // send and then read
+            BOOST_ASSERT(!skinfo->is_client());
             ToReadLThenReadV(skinfo);
         }
 

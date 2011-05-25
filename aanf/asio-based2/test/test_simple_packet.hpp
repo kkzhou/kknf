@@ -15,6 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
+#pragma pack(4)
 class TestPacketBase {
 public:
     enum PacketType {
@@ -57,3 +58,4 @@ class RspFromBB2 : public TestPacketBase {
 public:
     int another_b_;
 };
+#pragma pack(0)

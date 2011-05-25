@@ -55,12 +55,13 @@ public:
         // request from bf
         ReqToBB1 *req_to_bb1 = reinterpret_cast<ReqToBB1*>(baseptr);
         cerr << "Recieve ReqToBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req_to_bb1->len_)
-                << "ReqToBB1.type_ = " << req_to_bb1->type_
-                << "ReqToBB1.seq_ = " << req_to_bb1->seq_
-                << "ReqToBB1.a_ = " << req_to_bb1->a_ << endl;
+                << " ReqToBB1.type_ = " << req_to_bb1->type_
+                << " ReqToBB1.seq_ = " << req_to_bb1->seq_
+                << " ReqToBB1.a_ = " << req_to_bb1->a_ << endl;
 
         RspFromBB1 rsp;
         rsp.another_a_ = req_to_bb1->a_ +  die();
+        rsp.len_= boost::asio::detail::socket_ops::host_to_network_long(sizeof(RspFromBB1));
         rsp.seq_ = req_to_bb1->seq_;
         rsp.type_ = TestPacketBase::T_RSP_FROM_BB1;
 
@@ -81,9 +82,9 @@ public:
 
 
         cerr << "Send RspFromBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp.len_)
-            << "RspFromBB1.type_ = " << rsp.type_
-            << "RspFromBB1.seq_ = " << rsp.seq_
-            << "RspFromBB1.another_a_ = " << rsp.another_a_ << endl;
+            << " RspFromBB1.type_ = " << rsp.type_
+            << " RspFromBB1.seq_ = " << rsp.seq_
+            << " RspFromBB1.another_a_ = " << rsp.another_a_ << endl;
 
         return 0;
     };
