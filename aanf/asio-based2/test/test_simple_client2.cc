@@ -35,7 +35,8 @@ public:
        RspFromBB1 *rsp = reinterpret_cast<RspFromBB1*>(&input_data[0]);
        cerr << "Recieve RspFromBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp->len_)
             << " RspFromBB1.type_ = " << rsp->type_
-            << " RspFromBB1.seq_ = " << rsp->another_a_ << endl;
+            << " RspFromBB1.seq_ = " << rsp->another_a_
+            << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
 
        cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;
        return 1;
@@ -74,7 +75,8 @@ public:
         cerr << "Send ReqToBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req.len_)
             << " ReqToBB1.type_ = " << req.type_
             << " ReqToBB1.seq_ = " << req.seq_
-            << " ReqToBB1.a_ = " << req.a_ << endl;
+            << " ReqToBB1.a_ = " << req.a_ 
+            << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
 
         cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;
         return;

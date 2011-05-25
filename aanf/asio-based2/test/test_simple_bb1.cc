@@ -57,7 +57,8 @@ public:
         cerr << "Recieve ReqToBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req_to_bb1->len_)
                 << " ReqToBB1.type_ = " << req_to_bb1->type_
                 << " ReqToBB1.seq_ = " << req_to_bb1->seq_
-                << " ReqToBB1.a_ = " << req_to_bb1->a_ << endl;
+                << " ReqToBB1.a_ = " << req_to_bb1->a_
+                << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
 
         RspFromBB1 rsp;
         rsp.another_a_ = req_to_bb1->a_ +  die();
@@ -84,7 +85,8 @@ public:
         cerr << "Send RspFromBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp.len_)
             << " RspFromBB1.type_ = " << rsp.type_
             << " RspFromBB1.seq_ = " << rsp.seq_
-            << " RspFromBB1.another_a_ = " << rsp.another_a_ << endl;
+            << " RspFromBB1.another_a_ = " << rsp.another_a_
+            << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
 
         return 2;
     };

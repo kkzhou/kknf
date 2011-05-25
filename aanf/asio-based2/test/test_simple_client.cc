@@ -37,7 +37,8 @@ public:
             << " RspFromBF.type_ = " << rsp->type_
             << " RspFromBF.seq_ = " << rsp->seq_
             << " RspFromBF.sum_ = " << rsp->sum_
-            << " RspFromBF.error_ = " << rsp->error_ << endl;
+            << " RspFromBF.error_ = " << rsp->error_ 
+            << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
 
        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
        return 1;
@@ -79,7 +80,8 @@ public:
             << " ReqToBF.type_ = " << req.type_
             << " ReqToBF.seq_ = " << req.seq_
             << " ReqToBF.a_ = " << req.a_
-            << " ReqToBF.b_ = " << req.b_ << endl;
+            << " ReqToBF.b_ = " << req.b_ 
+            << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return;
