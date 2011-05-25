@@ -173,9 +173,10 @@ public:
             IPAddress addr;
             addr = IPAddress::from_string(tmpit->second.client_ip_);
             TCPEndpoint client_endpoint(addr, tmpit->second.client_port_);
-            SocketInfoPtr skinfo3 = FindIdleTCPClientSocket(client_endpoint);
+            SocketInfoPtr skinfo3 = FindIdleTCPServerSocket(client_endpoint);
             if (!skinfo3) {
-                ToConnectThenWrite(client_endpoint, send_buf3);
+                cerr << "The socket from client is not found" << endl;
+                return 0;
             } else {
                 ToWriteThenRead(skinfo3, send_buf3);
             }
