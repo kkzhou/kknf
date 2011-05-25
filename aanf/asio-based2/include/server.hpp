@@ -85,6 +85,7 @@ public:
     PTime& create_time() { return create_time_; };
     PTime& access_time() { return access_time_; };
     std::vector<char>& recv_buf() { return recv_buf_; };
+    std::vector<char>& send_buf() { return send_buf_; };
 
     void Touch() {
         access_time_ = boost::posix_time::microsec_clock::local_time();
@@ -262,10 +263,11 @@ public:
             return -1;
         }
         skinfo->set_is_connected(true);
+        skinfo->SetSendBuf(buf_to_send);
 
         // write
         size_t ret = boost::asio::write(skinfo->tcp_sk(),
-                                        boost::asio::buffer(buf_to_send),
+                                        boost::asio::buffer(skinfo->send_buf()),
                                         boost::asio::transfer_all(),
                                         e);
         if (e) {
@@ -274,7 +276,7 @@ public:
             return -1;
         }
 
-        BOOST_ASSERT(ret == buf_to_send.size());
+        BOOST_ASSERT(ret == skinfo->send_buf().size());
 
         // read len_field
         std::vector<char> len_field(4, 0);
@@ -324,9 +326,10 @@ public:
         std::cerr << "To write " << skinfo->remote_endpoint().address().to_string() << ":"
             << skinfo->remote_endpoint().port() << std::endl;
         // write
+        skinfo->SetSendBuf(buf_to_send);
         boost::system::error_code e;
         size_t ret = boost::asio::write(skinfo->tcp_sk(),
-                                        boost::asio::buffer(buf_to_send),
+                                        boost::asio::buffer(skinfo->send_buf()),
                                         boost::asio::transfer_all(),
                                         e);
         if (e) {
@@ -335,7 +338,7 @@ public:
             return -1;
         }
 
-        BOOST_ASSERT(ret == buf_to_send.size());
+        BOOST_ASSERT(ret == skinfo->send_buf().size());
 
         // read len_field
         std::vector<char> len_field(4, 0);
@@ -401,7 +404,7 @@ public:
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
-                    buf_to_send));
+                    skinfo->send_buf()));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -415,11 +418,12 @@ public:
             BOOST_ASSERT(!skinfo->in_use());
             skinfo->set_in_use(true);
         }
+        skinfo->SetSendBuf(buf_to_send);
         std::cerr << "To write " << skinfo->remote_endpoint().address().to_string()
             << ":" << skinfo->remote_endpoint().port() << std::endl;
         boost::asio::async_write(
             skinfo->tcp_sk(),
-            boost::asio::buffer(buf_to_send),
+            boost::asio::buffer(skinfo->send_buf()),
             boost::asio::transfer_all(),
                 boost::bind(
                     &Server::HandleWriteThenReadL,
@@ -438,9 +442,10 @@ public:
         std::cerr << "To write " << skinfo->remote_endpoint().address().to_string()
             << ":" << skinfo->remote_endpoint().port() << std::endl;
 
+        skinfo->SetSendBuf(buf_to_send);
         boost::asio::async_write(
             skinfo->tcp_sk(),
-            boost::asio::buffer(buf_to_send),
+            boost::asio::buffer(skinfo->send_buf()),
             boost::asio::transfer_all(),
                 boost::bind(
                     &Server::HandleWriteThenClose,
@@ -596,12 +601,13 @@ private:
         skinfo->set_is_connected(true);
         BOOST_ASSERT(!skinfo->in_use());
         skinfo->set_in_use(true);
+        skinfo->SetSendBuf(buf_to_send);
 
         InsertTCPClientSocket(skinfo->remote_endpoint(), skinfo);
 
         boost::asio::async_write(
             skinfo->tcp_sk(),
-            boost::asio::buffer(buf_to_send),
+            boost::asio::buffer(skinfo->send_buf()),
             boost::asio::transfer_all(),
                 boost::bind(
                     &Server::HandleWriteThenReadL,
@@ -695,7 +701,8 @@ private:
             // error
             std::cerr << "ProcessData error" << std::endl;
             DestroySocket(skinfo);
-
+        } else if (ret == 0) {
+            BOOST_ASSERT(!skinfo->is_client());
         } else if (ret == 1) {
             // send and idle(only for client socket)
             BOOST_ASSERT(skinfo->is_client());
@@ -704,8 +711,8 @@ private:
         } else if (ret == 2) {
             // send and close
             DestroySocket(skinfo);
-        } else if (ret == 2) {
-            // send and then read
+        } else if (ret == 3) {
+            // send and then read(only for server socket);
             BOOST_ASSERT(!skinfo->is_client());
             ToReadLThenReadV(skinfo);
         }

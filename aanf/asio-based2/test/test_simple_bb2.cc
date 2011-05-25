@@ -50,7 +50,7 @@ public:
 
         if (baseptr->type_ != TestPacketBase::T_REQ_TO_BB2) {
             cerr << "Not supported packet type: " << baseptr->type_ << endl;
-            return 0;
+            return -1;
         }
         // request from bf
         ReqToBB2 *req_to_bb2 = reinterpret_cast<ReqToBB2*>(baseptr);
@@ -74,8 +74,8 @@ public:
         TCPEndpoint endpoint(addr, from_port);
         SocketInfoPtr skinfo = FindTCPServerSocket(endpoint);
         if (!skinfo) {
-            cerr << "Socket not found: ip=" << from_ip << " port=" << from_port << endl;
-            return 0;
+            cerr << "Socket not found " << from_ip << ":" << from_port << endl;
+            return -1;
         }
 
         ToWriteThenRead(skinfo, send_buf);
@@ -86,7 +86,7 @@ public:
             << " RspFromBB2.seq_ = " << rsp.seq_
             << " RspFromBB2.another_b_ = " << rsp.another_b_ << endl;
 
-        return 0;
+        return 2;
     };
 public:
     string local_ip_;

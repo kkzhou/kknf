@@ -38,7 +38,7 @@ public:
             << " RspFromBB1.seq_ = " << rsp->another_a_ << endl;
 
        cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;
-       return 0;
+       return 1;
     };
 
     virtual void PrepareDataThenSend() {
@@ -52,7 +52,7 @@ public:
         req.a_ = a++;
         req.seq_ = seq++;
         int len = sizeof(ReqToBB1);
-        req.len_ = boost::asio::detail::socket_ops::network_to_host_long(len);
+        req.len_ = boost::asio::detail::socket_ops::host_to_network_long(len);
 
 
         vector<char> send_buf;

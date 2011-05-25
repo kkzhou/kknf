@@ -40,7 +40,7 @@ public:
             << " RspFromBF.error_ = " << rsp->error_ << endl;
 
        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        return 0;
+       return 1;
     };
 
     virtual void PrepareDataThenSend() {

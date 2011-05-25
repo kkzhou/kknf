@@ -67,7 +67,7 @@ public:
             map<int, ReqLocalData>::iterator it = ld_.find(req_to_bf->seq_);
             if (it != ld_.end()) {
                 cerr << "Seq error: seqnum(" << req_to_bf->seq_ << ") is taken." << endl;
-                return 0;
+                return -1;
             }
 
             ReqLocalData ld_for_this_req;
@@ -133,7 +133,7 @@ public:
             map<int, ReqLocalData>::iterator it = ld_.find(rsp_from_bb1->seq_);
             if (it == ld_.end()) {
                 cerr << "Seq error: seqnum(" << rsp_from_bb1->seq_ << ") doesn't exist." << endl;
-                return 0;
+                return -1;
             }
 
             it->second.rsp_.sum_ += rsp_from_bb1->another_a_;
@@ -150,7 +150,7 @@ public:
             map<int, ReqLocalData>::iterator it = ld_.find(rsp_from_bb2->seq_);
             if (it == ld_.end()) {
                 cerr << "Seq error: seqnum(" << rsp_from_bb2->seq_ << ") doesn't exist." << endl;
-                return 0;
+                return -1;
             }
 
             it->second.rsp_.sum_ += rsp_from_bb2->another_b_;
@@ -163,7 +163,7 @@ public:
         map<int, ReqLocalData>::iterator tmpit = ld_.find(baseptr->seq_);
         if (tmpit != ld_.end()) {
             cerr << "Seq error: seqnum(" << baseptr->seq_ << ") is taken." << endl;
-            return 0;
+            return -1;
         }
         if (tmpit->second.bb1_rsp_arrived_ && tmpit->second.bb2_rsp_arrived_) {
             // build rsp to client
@@ -176,7 +176,7 @@ public:
             SocketInfoPtr skinfo3 = FindTCPServerSocket(client_endpoint);
             if (!skinfo3) {
                 cerr << "The socket from client is not found" << endl;
-                return 0;
+                return -1;
             } else {
                 ToWriteThenRead(skinfo3, send_buf3);
             }
@@ -186,7 +186,7 @@ public:
                 << " RspFromBF.seq_ = " << tmpit->second.rsp_.seq_
                 << " RspFromBF.sum_ = " << tmpit->second.rsp_.sum_ << endl;
         }
-        return 0;
+        return 1;
     };
 public:
     string local_ip_;

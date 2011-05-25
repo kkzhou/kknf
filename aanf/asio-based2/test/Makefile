@@ -7,13 +7,13 @@ LIB_DIR = -L$(BOOST_DIR)/lib/
 LIBS = -lboost_system -lboost_date_time -lboost_random -lboost_thread
 
 
-all : client bb1 bb2 bf client1
+all : client bb1 bb2 bf client2
 
 client :
 	$(CC) -o client $(INC_DIR) $(LIB_DIR) $(LIBS) test_simple_client.cc
 
-client1 :
-	$(CC) -o client1 $(INC_DIR) $(LIB_DIR) $(LIBS) test_simple_client2.cc
+client2 :
+	$(CC) -o client2 $(INC_DIR) $(LIB_DIR) $(LIBS) test_simple_client2.cc
 
 bb1 :
 	$(CC) -o bb1  $(INC_DIR) $(LIB_DIR) $(LIBS) test_simple_bb1.cc
@@ -27,4 +27,4 @@ bf :
 .PHONY : clean
 
 clean:
-	rm -f bb1 bb2 bf client
+	rm -f bb1 bb2 bf client client2

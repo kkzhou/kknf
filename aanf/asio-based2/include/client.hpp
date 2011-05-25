@@ -79,6 +79,7 @@ public:
     PTime& create_time() { return create_time_; };
     PTime& access_time() { return access_time_; };
     std::vector<char>& recv_buf() { return recv_buf_; };
+    std::vector<char>& send_buf() { return send_buf_; };
 
     void Touch() {
         access_time_ = boost::posix_time::microsec_clock::local_time();
@@ -194,8 +195,9 @@ public:
         skinfo->set_is_connected(true);
 
         // write
+        skinfo->SetSendBuf(buf_to_send);
         size_t ret = boost::asio::write(skinfo->tcp_sk(),
-                                        boost::asio::buffer(buf_to_send),
+                                        boost::asio::buffer(skinfo->send_buf()),
                                         boost::asio::transfer_all(),
                                         e);
         if (e) {
@@ -204,7 +206,7 @@ public:
             return -1;
         }
 
-        BOOST_ASSERT(ret == buf_to_send.size());
+        BOOST_ASSERT(ret == skinfo->send_buf().size());
 
         // read len_field
         std::vector<char> len_field(4, 0);
@@ -255,8 +257,9 @@ public:
             << ":" << skinfo->remote_endpoint().port() << std::endl;
         // write
         boost::system::error_code e;
+        skinfo->SetSendBuf(buf_to_send);
         size_t ret = boost::asio::write(skinfo->tcp_sk(),
-                                        boost::asio::buffer(buf_to_send),
+                                        boost::asio::buffer(skinfo->send_buf()),
                                         boost::asio::transfer_all(),
                                         e);
         if (e) {
@@ -265,7 +268,7 @@ public:
             return -1;
         }
 
-        BOOST_ASSERT(ret == buf_to_send.size());
+        BOOST_ASSERT(ret == skinfo->send_buf().size());
 
         // read len_field
         std::vector<char> len_field(4, 0);
@@ -328,7 +331,7 @@ public:
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
-                    buf_to_send));
+                    skinfo->send_buf()));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -343,11 +346,12 @@ public:
             BOOST_ASSERT(!skinfo->in_use());
             skinfo->set_in_use(true);
         }
+
         std::cerr << "To write " << skinfo->remote_endpoint().address().to_string() << ":"
             << skinfo->remote_endpoint().port() << std::endl;
         boost::asio::async_write(
             skinfo->tcp_sk(),
-            boost::asio::buffer(buf_to_send),
+            boost::asio::buffer(skinfo->send_buf()),
             boost::asio::transfer_all(),
                 boost::bind(
                     &Client::HandleWriteThenReadL,
@@ -439,10 +443,11 @@ private:
 
         skinfo->set_is_connected(true);
         skinfo->set_in_use(true);
+        skinfo->SetSendBuf(buf_to_send);
 
         boost::asio::async_write(
             skinfo->tcp_sk(),
-            boost::asio::buffer(buf_to_send),
+            boost::asio::buffer(skinfo->send_buf()),
             boost::asio::transfer_all(),
                 boost::bind(
                     &Client::HandleWriteThenReadL,
