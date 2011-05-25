@@ -66,7 +66,7 @@ public:
         rsp.seq_ = req_to_bb2->seq_;
         rsp.type_ = TestPacketBase::T_RSP_FROM_BB2;
 
-        char *tmp = reinterpret_cast<char*>(&req_to_bb2);
+        char *tmp = reinterpret_cast<char*>(&rsp);
         send_buf.assign(tmp, tmp + sizeof(RspFromBB2));
 
         IPAddress addr;
