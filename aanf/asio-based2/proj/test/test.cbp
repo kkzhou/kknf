@@ -23,6 +23,8 @@
 		<Unit filename="..\..\include\http_server.hpp" />
 		<Unit filename="..\..\include\lv_client.hpp" />
 		<Unit filename="..\..\include\lv_server.hpp" />
+		<Unit filename="..\..\include\sync_client.hpp" />
+		<Unit filename="..\..\include\sync_server.hpp" />
 		<Unit filename="..\..\include\tlv_client.hpp" />
 		<Unit filename="..\..\include\tlv_server.hpp" />
 		<Unit filename="..\..\test\http\Makefile" />
@@ -41,6 +43,14 @@
 		<Unit filename="..\..\test\lv\lv_test_client.cc" />
 		<Unit filename="..\..\test\lv\lv_test_client2.cc" />
 		<Unit filename="..\..\test\lv\lv_test_packet.hpp" />
+		<Unit filename="..\..\test\sync\Makefile" />
+		<Unit filename="..\..\test\sync\README" />
+		<Unit filename="..\..\test\sync\sync_test_bb1.cc" />
+		<Unit filename="..\..\test\sync\sync_test_bb2.cc" />
+		<Unit filename="..\..\test\sync\sync_test_bf.cc" />
+		<Unit filename="..\..\test\sync\sync_test_client.cc" />
+		<Unit filename="..\..\test\sync\sync_test_client2.cc" />
+		<Unit filename="..\..\test\sync\sync_test_packet.hpp" />
 		<Unit filename="..\..\test\tlv\Makefile" />
 		<Unit filename="..\..\test\tlv\README" />
 		<Unit filename="..\..\test\tlv\tlv_test_bb1.cc" />
