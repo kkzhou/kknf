@@ -542,10 +542,10 @@ private:
             SocketInfoPtr p = it->second;
             if (p->access_time() < expire_time) {
                 tcp_server_socket_map_.erase(it++);
-                p->tcp_sk().close(e);
                 std::cerr << "This socket is to be desctructed " 
-                    << p->tcp_sk().remote_endpoint().address().to_string() << ":" 
-                    << p->tcp_sk().remote_endpoint().port() << std::endl;
+                    << p->remote_endpoint().address().to_string() << ":" 
+                    << p->remote_endpoint().port() << std::endl;
+                p->tcp_sk().close(e);
             } else {
                 it++;
             }
@@ -595,8 +595,8 @@ private:
 
         std::cerr << "A socket is accepted " << sk_info->remote_endpoint().address().to_string()
             << ":" << sk_info->remote_endpoint().port() << " from " 
-            << acceptorinfo->sk_info()->tcp_sk().local_endpoint().address().to_string() 
-            << ":" << acceptorinfo->sk_info()->tcp_sk().local_endpoint().port() << std::endl;
+            << sk_info->tcp_sk().local_endpoint().address().to_string() 
+            << ":" << sk_info->tcp_sk().local_endpoint().port() << std::endl;
 
         std::cerr << "Add the socket to map" << std::endl;
         int ret = InsertTCPServerSocket(tmp_endpoint, sk_info);
@@ -615,8 +615,8 @@ private:
         }
 
         std::cerr << "Go on accepting " 
-            << acceptorinfo->sk_info()->tcp_sk().local_endpoint().address().to_string()
-            << ":" << acceptorinfo->sk_info()->tcp_sk().local_endpoint().port() << std::endl;
+            << sk_info->tcp_sk().local_endpoint().address().to_string()
+            << ":" << sk_info->tcp_sk().local_endpoint().port() << std::endl;
 
         acceptorinfo->acceptor().async_accept(acceptorinfo->sk_info()->tcp_sk(),
                 boost::bind(
@@ -763,9 +763,9 @@ private:
             BOOST_ASSERT(skinfo->in_use());
             skinfo->set_in_use(false);
         } else if (ret == 2) {
-            // this is a client socket, send and close
+            // this is a server socket, send and close
             BOOST_ASSERT(skinfo->in_use());
-            BOOST_ASSERT(skinfo->is_client());
+            BOOST_ASSERT(!skinfo->is_client());
         } else if (ret == 3) {
             // this is a server socket, send and then read
             BOOST_ASSERT(!skinfo->is_client());
