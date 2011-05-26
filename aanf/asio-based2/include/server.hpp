@@ -522,6 +522,29 @@ private:
     };
 
 private:
+    // function for timer handler
+    void SweepServerSocket(int milliseconds) {
+        PTime expire_time = boost::posix_time::microsec_clock::local_time() 
+            - boost::posix_time::milliseconds(milliseconds);
+
+        
+        std::map<TCPEndpoint, SocketInfoPtr>::iterator  it, endit;
+        it = tcp_server_socket_map_.begin();
+        boost::system::error_code e;
+        for (; it != endit;) {
+            SocketInfoPtr p = it->second;
+            if (p->access_time() < expire_time) {
+                tcp_server_socket_map_.erase(it++);
+                p->tcp_sk().close(e);
+                std::cerr << "This socket is to be desctructed " 
+                    << p->tcp_sk().remote_endpoint().address().to_string() << ":" 
+                    << p->tcp_sk().remote_endpoint().port() << std::endl;
+            } else {
+                it++;
+            }
+        } // for
+    };
+
     // timer handler
     void HandleTimeout(const boost::system::error_code& error) {
 
