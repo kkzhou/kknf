@@ -536,6 +536,7 @@ private:
         
         std::map<TCPEndpoint, SocketInfoPtr>::iterator  it, endit;
         it = tcp_server_socket_map_.begin();
+        endit = tcp_server_socket_map_.end();
         boost::system::error_code e;
         for (; it != endit;) {
             SocketInfoPtr p = it->second;
