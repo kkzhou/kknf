@@ -52,7 +52,6 @@ public:
         T_TCP_UNKNOWN
     };
 
-
 public:
     SocketInfo(SocketType type, boost::asio::io_service &io_serv)
         : type_(type),
@@ -114,7 +113,6 @@ private:
     bool in_use_;
     std::vector<char> recv_buf_;
     std::vector<char> send_buf_;
-
 };
 
 // The skeleton of a client
@@ -195,6 +193,7 @@ public:
         skinfo->set_is_connected(true);
 
         // write
+        std::cerr << "To write " << buf_to_send.size() << " bytes" << std::endl;
         skinfo->SetSendBuf(buf_to_send);
         size_t ret = boost::asio::write(skinfo->tcp_sk(),
                                         boost::asio::buffer(skinfo->send_buf()),
@@ -212,6 +211,7 @@ public:
         std::vector<char> len_field(4, 0);
         int len = 0;
 
+        std::cerr << "To read Length_field 4 bytes" << std::endl;
         ret = boost::asio::read(skinfo->tcp_sk(),
                                 boost::asio::buffer(len_field),
                                 boost::asio::transfer_all(),
@@ -226,6 +226,7 @@ public:
 
         len = *reinterpret_cast<int*>(&len_field[0]);
         len = boost::asio::detail::socket_ops::network_to_host_long(len);
+        std::cerr << "To read " << len << " bytes" << std::endl;
         if (len < 0 || len > max_recv_buf_size()) {
             std::cerr << "len_field invalid: " << len << std::endl;
             return -2;
@@ -242,7 +243,7 @@ public:
             // shared_ptr 'skinfo' will destruct the SocketInfo
             return -3;
         }
-
+        std::cerr << "To add this socket to map " << std::endl;
         InsertTCPClientSocket(remote_endpoint, skinfo);
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -257,6 +258,7 @@ public:
             << ":" << skinfo->remote_endpoint().port() << std::endl;
         // write
         boost::system::error_code e;
+        std::cerr << "To write " << buf_to_send.size() << " bytes" << std::endl;
         skinfo->SetSendBuf(buf_to_send);
         size_t ret = boost::asio::write(skinfo->tcp_sk(),
                                         boost::asio::buffer(skinfo->send_buf()),
@@ -274,6 +276,7 @@ public:
         std::vector<char> len_field(4, 0);
         int len = 0;
 
+        std::cerr << "To read Length_field 4 bytes" << std::endl;
         ret = boost::asio::read(skinfo->tcp_sk(),
                                 boost::asio::buffer(len_field),
                                 boost::asio::transfer_all(),
@@ -288,6 +291,7 @@ public:
 
         len = *reinterpret_cast<int*>(&len_field[0]);
         len = boost::asio::detail::socket_ops::network_to_host_long(len);
+        std::cerr << "To read " << len << " bytes" << std::endl;
         if (len < 0 || len > max_recv_buf_size()) {
             std::cerr << "len_field invalid: " << len << std::endl;
             DestroySocket(skinfo);
@@ -323,6 +327,7 @@ public:
         skinfo->SetSendBuf(buf_to_send);
         skinfo->set_is_client(true);
 
+        std::cerr << "To add this socket to map" << std::endl;
         InsertTCPClientSocket(remote_endpoint, skinfo);
 
         skinfo->tcp_sk().async_connect(skinfo->remote_endpoint(),
@@ -349,6 +354,7 @@ public:
 
         std::cerr << "To write " << skinfo->remote_endpoint().address().to_string() << ":"
             << skinfo->remote_endpoint().port() << std::endl;
+
         boost::asio::async_write(
             skinfo->tcp_sk(),
             boost::asio::buffer(skinfo->send_buf()),
@@ -402,8 +408,7 @@ private:
     // timer handler
     void HandleTimeout(const boost::system::error_code& error) {
 
-        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-
+        std::cerr << "Fire timer" << std::endl;
         if (error) {
             std::cerr << "Timer error: " << error.message() << std::endl;
         } else {
@@ -415,12 +420,13 @@ private:
             }
         }
 
+        std::cerr << "Reload timer" << std::endl;
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
         timer_.async_wait(boost::bind(&Client::HandleTimeout,
                                 shared_from_this(),
                                 boost::asio::placeholders::error));
 
-        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return;
     };
 
     // Connect handlers
@@ -434,6 +440,7 @@ private:
 
         std::cerr << "To write " << skinfo->remote_endpoint().address().to_string() << ":"
             << skinfo->remote_endpoint().port() << std::endl;
+
         if (error) {
             std::cerr << "Connect error: " << error.message() << std::endl;
             DestroySocket(skinfo);
@@ -443,6 +450,8 @@ private:
 
         skinfo->set_is_connected(true);
         skinfo->set_in_use(true);
+
+        std::cerr << "To write " << buf_to_send.size() << " bytes" << std::endl;
         skinfo->SetSendBuf(buf_to_send);
 
         boost::asio::async_write(
@@ -487,6 +496,7 @@ private:
             *(int*)(&skinfo->recv_buf().at(0)) = boost::asio::detail::socket_ops::network_to_host_long(len);
         }
 
+        std::cerr << "To read" << len << " bytes" << std::endl;
         boost::asio::async_read(
             skinfo->tcp_sk(),
             boost::asio::buffer(&(skinfo->recv_buf().at(4)), len - 4),
@@ -499,16 +509,22 @@ private:
                     boost::asio::placeholders::bytes_transferred));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-
-
     };
 
+    // The whold packet has been read into skinfo->recv_buf_, then call
+    // the virtual method ProcessData to process the packet.
+    // return value:
+    // <0:  error happened
+    // 0:  this is a server socket, and to close it
+    // 1:  this is a client socket, and set it idle
+    // 2:  this is a server socket, and to read
     void HandleReadVThenProcess(const boost::system::error_code& error,
                                SocketInfoPtr skinfo, std::size_t byte_num) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
-        std::cerr << "To process " << skinfo->remote_endpoint().address().to_string() << ":"
+        std::cerr << "To process " << skinfo->recv_buf().size() << " bytes from " 
+            << skinfo->remote_endpoint().address().to_string() << ":"
             << skinfo->remote_endpoint().port() << std::endl;
 
         if (error) {
@@ -535,11 +551,19 @@ private:
             // error
             std::cerr << "ProcessData error" << std::endl;
             DestroySocket(skinfo);
+        } else if (ret == 0) {
+            // this is a server socket, to close after send
+            BOOST_ASSERT(false); // not happen in client.hpp
+            BOOST_ASSERT(!skinfo->is_client());
         } else if (ret == 1) {
-            // send and idle
+            // this is a client socket, to send and idle
             BOOST_ASSERT(skinfo->in_use());
             BOOST_ASSERT(skinfo->is_client());
             skinfo->set_in_use(false);
+        } else if (ret == 2) {
+            // this is a client socket, to send and close 
+            BOOST_ASSERT(skinfo->in_use());
+            BOOST_ASSERT(skinfo->is_client());
         } else {
             BOOST_ASSERT(false);
         }
@@ -556,6 +580,8 @@ private:
         std::cerr << "To read " << skinfo->remote_endpoint().address().to_string() << ":"
             << skinfo->remote_endpoint().port() << std::endl;
 
+        std::cerr << "To read Length_field 4 bytes" << std::endl;
+
         skinfo->SetRecvBuf(4);  // len_field
         boost::asio::async_read(
             skinfo->tcp_sk(),
@@ -571,7 +597,6 @@ private:
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     };
 
-
 protected:
 
     SocketInfoPtr FindIdleTCPClientSocket(TCPEndpoint &key) {
@@ -585,6 +610,7 @@ protected:
         if (it != tcp_client_socket_map_.end()) {
             std::list<SocketInfoPtr>::iterator list_it =
                 it->second.begin();
+            std::cerr << "There are " << it->second.size() << " sockets for this <ip, port> in use." << std::endl;
             while (list_it != it->second.end()) {
                 if ((*list_it)->in_use() || (!(*list_it)->is_connected())) {
                     list_it++;
@@ -596,7 +622,7 @@ protected:
             } // while
         }
         if (!ret) {
-            std::cerr << "Not found" << std::endl;
+            std::cerr << "No idle socket found" << std::endl;
         }
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return ret;
