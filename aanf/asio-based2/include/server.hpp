@@ -941,7 +941,7 @@ public:
     void set_timer_trigger_interval(int millisec) { timer_trigger_interval_ = millisec; };
     int timer_trigger_interval() { return timer_trigger_interval_; };
     int server_timeout() { return server_timeout_; };
-    void set_server_timout(int server_timeout) { server_timeout_ = server_timeout; };
+    void set_server_timeout(int server_timeout) { server_timeout_ = server_timeout; };
 private:
     // io_service
     boost::asio::io_service io_serv_;

@@ -283,6 +283,7 @@ int main(int argc, char **argv) {
     }
 
     bf->set_timer_trigger_interval(timer_interval);
+    bf->set_server_timeout(1000);
     bf->bb1_endpoint_ = TCPEndpoint(bb1_addr, bb1_port);
     bf->bb2_endpoint_ = TCPEndpoint(bb2_addr, bb2_port);
 
