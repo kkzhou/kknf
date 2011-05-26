@@ -321,7 +321,8 @@ public:
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
-        std::cerr << "To connect " << remote_endpoint.address().to_string() << ":" << remote_endpoint.port() << std::endl;
+        std::cerr << "To connect " << remote_endpoint.address().to_string() 
+            << ":" << remote_endpoint.port() << std::endl;
         SocketInfoPtr skinfo(new SocketInfo(SocketInfo::T_TCP_LV, io_serv_));
         skinfo->set_remote_endpoint(remote_endpoint);
         skinfo->SetSendBuf(buf_to_send);

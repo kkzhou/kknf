@@ -723,6 +723,7 @@ private:
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
+        boost:system::error_code e;
         std::cerr << "To process: " << skinfo->remote_endpoint().address().to_string()
             << ":" << skinfo->remote_endpoint().port() << std::endl;
 
@@ -737,8 +738,12 @@ private:
         BOOST_ASSERT(static_cast<int>(byte_num) == len - 4);
 
         std::string fromip, toip;
-        fromip = skinfo->tcp_sk().remote_endpoint().address().to_string();
-        toip = skinfo->tcp_sk().local_endpoint().address().to_string();
+        fromip = skinfo->remote_endpoint().address().to_string();
+        toip = skinfo->tcp_sk().local_endpoint(e).address().to_string();
+        if (e) {
+            std::cerr << "Socket error: " << e.message() << endl;
+            DestroySocket(skinfo);
+        }
 
         std::cerr << "To process " << skinfo->recv_buf().size() << " bytes from " 
             << skinfo->remote_endpoint().address().to_string() << ":"
