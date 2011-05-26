@@ -34,72 +34,26 @@ typedef boost::asio::ip::address IPAddress;
 typedef boost::asio::ip::tcp::socket TCPSocket;
 typedef boost::shared_ptr<TCPSocket> TCPSocketPtr;
 typedef boost::asio::ip::tcp::endpoint TCPEndpoint;
-typedef boost::asio::ip::udp::socket UDPSocket;
-typedef boost::shared_ptr<UDPSocket> UDPSocketPtr;
-typedef boost::asio::ip::udp::endpoint UDPEndpoint;
 typedef boost::posix_time::ptime PTime;
 
-class TCPSocketInfo;
-typedef boost::shared_ptr<TCPSocketInfo> TCPSocketInfoPtr;
-
-class UDPSocketInfo;
-typedef boost::shared_ptr<UDPSocketInfo> UDPSocketInfoPtr;
+class SocketInfo;
+typedef boost::shared_ptr<SocketInfo> SocketInfoPtr;
 
 // Simple information about a socket
-class UDPSocketInfo {
+class SocketInfo {
 public:
-    UDPSocketInfo(boost::asio::io_service &io_serv)
-        : udp_sk_(io_serv),
-        in_use_(false) {
-
-        access_time_ = create_time_ =
-            boost::posix_time::microsec_clock::local_time();
+    enum SocketType {
+        T_UDP,          // UDP is datagram no need to packetize
+        T_TCP_LINE,     // '\n to terminate a packet
+        T_TCP_LV,       // the first 4 bypes is 'length' field
+        T_TCP_TLV,      // the first 4 bytes is 'type' and the second 4 bytes is 'length'
+        T_TCP_HTTP,     // http packet
+        T_TCP_USR1,
+        T_TCP_UNKNOWN
     };
 
-    UDPEndpoint& local_endpoint() { return local_endpoint_; };
-    void set_in_use(bool in_use) { in_use_ = in_use;};
-    bool in_use() {return in_use_;};
-    UDPSocket& udp_sk() { return udp_sk_; };
-    PTime& create_time() { return create_time_; };
-    PTime& access_time() { return access_time_; };
-    std::vector<char>& recv_buf() { return recv_buf_; };
-    std::vector<char>& send_buf() { return send_buf_; };
-
-    void Touch() {
-        access_time_ = boost::posix_time::microsec_clock::local_time();
-    };
-
-    // Obtain the content using 'swap'
-    void GetData(std::vector<char> &to_swap) {
-        recv_buf_.swap(to_swap);
-    };
-
-    void SetRecvBuf(size_t byte_num) {
-        std::vector<char> tmp(byte_num);
-        recv_buf_.swap(tmp);
-    };
-
-    void SetRecvBuf(std::vector<char> &new_buf) {
-        recv_buf_.swap(new_buf);
-    };
-
-    void SetSendBuf(std::vector<char> &to_send) {
-        send_buf_.swap(to_send);
-    };
-
-private:
-    UDPEndpoint local_endpoint_;
-    UDPSocket udp_sk_;
-    PTime create_time_;
-    PTime access_time_;
-    bool in_use_;
-    std::vector<char> recv_buf_;
-    std::vector<char> send_buf_;
-};
-
-class TCPSocketInfo {
 public:
-    TCPSocketInfo(boost::asio::io_service &io_serv)
+    SocketInfo(SocketType type, boost::asio::io_service &io_serv)
         : type_(type),
         tcp_sk_(io_serv),
         is_client_(false),
@@ -110,10 +64,10 @@ public:
             boost::posix_time::microsec_clock::local_time();
     };
 
+    SocketType type() { return type_; };
     TCPEndpoint& remote_endpoint() { return remote_endpoint_; };
+
     void set_remote_endpoint(TCPEndpoint &remote_endpoint) { remote_endpoint_ = remote_endpoint;};
-    TCPEndpoint& local_endpoint() { return local_endpoint_; };
-    void set_local_endpoint(TCPEndpoint &local_endpoint) { local_endpoint_ = local_endpoint;};
     bool is_connected() { return is_connected_; };
     void set_is_connected(bool is_connected) { is_connected_ = is_connected; };
     void set_in_use(bool in_use) { in_use_ = in_use;};
@@ -150,7 +104,7 @@ public:
 
 private:
     TCPEndpoint remote_endpoint_;
-    TCPEndpoint local_endpoint_;
+    SocketType type_;
     TCPSocket tcp_sk_;
     PTime create_time_;
     PTime access_time_;
@@ -162,7 +116,7 @@ private:
 };
 
 // The skeleton of a client
-class HTTPClient : public boost::enable_shared_from_this<HTTPClient> {
+class Client : public boost::enable_shared_from_this<Client> {
 
 public:
     // Two interfaces, the only two should be overrided in derived classes
@@ -178,14 +132,14 @@ public:
     };
 
 public:
-    HTTPClient()
+    Client()
         : timer_trigger_interval_(10000),
         timer_(io_serv_),
         init_recv_buf_size_(1024),
         max_recv_buf_size_(1024 * 1024 * 2) {
 
     };
-    virtual ~HTTPClient(){};
+    virtual ~Client(){};
 
     // Register handlers to the timer(only one timer)
     void AddTimerHandler(boost::function<void()> func) {
@@ -203,7 +157,7 @@ public:
 
         std::cerr << "Start a timer in " << timer_trigger_interval_ << " milliseconds" << std::endl;
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
-        timer_.async_wait(boost::bind(&HTTPClient::HandleTimeout,
+        timer_.async_wait(boost::bind(&Client::HandleTimeout,
                                 shared_from_this(),
                                 boost::asio::placeholders::error));
         io_serv_.run();
@@ -300,7 +254,7 @@ public:
                         std::vector<char> &buf_to_fill) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To write " << skinfo->remote_endpoint().address().to_string()
+        std::cerr << "To write " << skinfo->remote_endpoint().address().to_string() 
             << ":" << skinfo->remote_endpoint().port() << std::endl;
         // write
         boost::system::error_code e;
@@ -367,7 +321,7 @@ public:
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
-        std::cerr << "To connect " << remote_endpoint.address().to_string()
+        std::cerr << "To connect " << remote_endpoint.address().to_string() 
             << ":" << remote_endpoint.port() << std::endl;
         SocketInfoPtr skinfo(new SocketInfo(SocketInfo::T_TCP_LV, io_serv_));
         skinfo->set_remote_endpoint(remote_endpoint);
@@ -379,7 +333,7 @@ public:
 
         skinfo->tcp_sk().async_connect(skinfo->remote_endpoint(),
                 boost::bind(
-                    &HTTPClient::HandleConnectThenWrite,
+                    &Client::HandleConnectThenWrite,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
@@ -407,7 +361,7 @@ public:
             boost::asio::buffer(skinfo->send_buf()),
             boost::asio::transfer_all(),
                 boost::bind(
-                    &HTTPClient::HandleWriteThenReadL,
+                    &Client::HandleWriteThenReadL,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
@@ -469,7 +423,7 @@ private:
 
         std::cerr << "Reload timer" << std::endl;
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
-        timer_.async_wait(boost::bind(&HTTPClient::HandleTimeout,
+        timer_.async_wait(boost::bind(&Client::HandleTimeout,
                                 shared_from_this(),
                                 boost::asio::placeholders::error));
 
@@ -506,7 +460,7 @@ private:
             boost::asio::buffer(skinfo->send_buf()),
             boost::asio::transfer_all(),
                 boost::bind(
-                    &HTTPClient::HandleWriteThenReadL,
+                    &Client::HandleWriteThenReadL,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
@@ -549,7 +503,7 @@ private:
             boost::asio::buffer(&(skinfo->recv_buf().at(4)), len - 4),
             boost::asio::transfer_all(),
                 boost::bind(
-                    &HTTPClient::HandleReadVThenProcess,
+                    &Client::HandleReadVThenProcess,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
@@ -570,7 +524,7 @@ private:
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
-        std::cerr << "To process " << skinfo->recv_buf().size() << " bytes from "
+        std::cerr << "To process " << skinfo->recv_buf().size() << " bytes from " 
             << skinfo->remote_endpoint().address().to_string() << ":"
             << skinfo->remote_endpoint().port() << std::endl;
 
@@ -608,7 +562,7 @@ private:
             BOOST_ASSERT(skinfo->is_client());
             skinfo->set_in_use(false);
         } else if (ret == 2) {
-            // this is a client socket, to send and close
+            // this is a client socket, to send and close 
             BOOST_ASSERT(skinfo->in_use());
             BOOST_ASSERT(skinfo->is_client());
         } else {
@@ -635,7 +589,7 @@ private:
             boost::asio::buffer(&(skinfo->recv_buf()[0]), 4),
             boost::asio::transfer_all(),
                 boost::bind(
-                    &HTTPClient::HandleReadLThenReadV,
+                    &Client::HandleReadLThenReadV,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
