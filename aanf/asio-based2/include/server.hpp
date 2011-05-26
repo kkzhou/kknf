@@ -175,7 +175,8 @@ public:
         timer_(io_serv_),
         init_recv_buf_size_(1024),
         max_recv_buf_size_(1024 * 1024 * 2),
-        tcp_backlog_(1024) {
+        tcp_backlog_(1024),
+        server_timeout_(10000) {
 
     };
     virtual ~Server(){};
@@ -227,6 +228,11 @@ public:
     void Run() {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+        AddTimerHandler(boost::function<void()>(
+            boost::bind(&Server::SweepServerSocket, 
+                shared_from_this(), 
+                server_timeout_)));
 
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
         timer_.async_wait( boost::bind(&Server::HandleTimeout,
@@ -933,6 +939,8 @@ public:
     void set_init_recv_buf_size(int init_recv_buf_size) { init_recv_buf_size_ = init_recv_buf_size; };
     void set_timer_trigger_interval(int millisec) { timer_trigger_interval_ = millisec; };
     int timer_trigger_interval() { return timer_trigger_interval_; };
+    int server_timeout() { return server_timeout_; };
+    void set_server_timout(int server_timeout) { server_timeout_ = server_timeout; };
 private:
     // io_service
     boost::asio::io_service io_serv_;
@@ -951,6 +959,7 @@ private:
     int init_recv_buf_size_;
     int max_recv_buf_size_;
     int tcp_backlog_;
+    int server_timeout_;
 };
 
 };// namespace
