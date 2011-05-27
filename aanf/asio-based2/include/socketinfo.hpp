@@ -21,6 +21,9 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+#include <iostream>
+#include <string>
+#include <sstream>
 #include <vector>
 
 
@@ -101,6 +104,15 @@ public:
 
     void SetSendBuf(std::vector<char> &to_send) {
         send_buf_.swap(to_send);
+    };
+
+    std::string GetFlow() { 
+        
+        std::stringstream s;
+        s << "(LocalIP:Port <-> RemoteIP:Port) " 
+            << local_endpoint_.address().to_string() << ":" << local_endpoint_.port() << " <-> "
+            << remote_endpoint_.address().to_string() << ":" << remote_endpoint_.port() << std::endl;
+        return s.str();
     };
 
 private:

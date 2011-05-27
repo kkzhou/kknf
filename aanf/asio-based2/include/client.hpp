@@ -128,8 +128,7 @@ public:
             skinfo->set_in_use(true);
         }
 
-        std::cerr << "To write " << skinfo->remote_endpoint().address().to_string() << ":"
-            << skinfo->remote_endpoint().port() << std::endl;
+        std::cerr << "To write " << skinfo->GetFlow() << std::endl;
 
         boost::asio::async_write(
             skinfo->tcp_sk(),
@@ -152,8 +151,7 @@ private:
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
-        std::cerr << "To destroy " << skinfo->remote_endpoint().address().to_string() << ":"
-            << skinfo->remote_endpoint().port() << std::endl;
+        std::cerr << "To destroy " << skinfo->GetFlow() << std::endl;
 
         boost::system::error_code e;
         skinfo->tcp_sk().close(e);
@@ -214,8 +212,7 @@ private:
         BOOST_ASSERT(skinfo->is_client());
         skinfo->set_in_use(true);
 
-        std::cerr << "To write " << skinfo->remote_endpoint().address().to_string() << ":"
-            << skinfo->remote_endpoint().port() << std::endl;
+        std::cerr << "To write " << skinfo->GetFlow() << std::endl;
 
         if (error) {
             std::cerr << "Connect error: " << error.message() << std::endl;
@@ -249,8 +246,7 @@ private:
                             SocketInfoPtr skinfo, std::size_t byte_num) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To read " << skinfo->remote_endpoint().address().to_string() << ":"
-            << skinfo->remote_endpoint().port() << std::endl;
+        std::cerr << "To read " << skinfo->GetFlow() << std::endl;
         if (error) {
             std::cerr << "Read error: " << error.message() << std::endl;
             DestroySocket(skinfo);
@@ -293,15 +289,14 @@ private:
     // <0:  error happened
     // 0:  this is a server socket, and to close it
     // 1:  this is a client socket, and set it idle
-    // 2:  this is a server socket, and to read
+    // 2:  this is a client socket, and to close 
     void HandleReadVThenProcess(const boost::system::error_code& error,
                                SocketInfoPtr skinfo, std::size_t byte_num) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
         std::cerr << "To process " << skinfo->recv_buf().size() << " bytes from " 
-            << skinfo->remote_endpoint().address().to_string() << ":"
-            << skinfo->remote_endpoint().port() << std::endl;
+            << skinfo->GetFlow() << std::endl;
 
         if (error) {
             std::cerr << "ReadV error: " << error.message() << std::endl;
@@ -353,8 +348,7 @@ private:
                              SocketInfoPtr skinfo, std::size_t byte_num) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To read " << skinfo->remote_endpoint().address().to_string() << ":"
-            << skinfo->remote_endpoint().port() << std::endl;
+        std::cerr << "To read " << skinfo->GetFlow() << std::endl;
 
         std::cerr << "To read Length_field 4 bytes" << std::endl;
 

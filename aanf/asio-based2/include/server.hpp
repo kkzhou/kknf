@@ -163,9 +163,7 @@ public:
             BOOST_ASSERT(!skinfo->in_use());
             skinfo->set_in_use(true);
         }
-        std::cerr << "To write " << skinfo->remote_endpoint().address().to_string()
-            << ":" << skinfo->remote_endpoint().port() << std::endl;
-        std::cerr << "To write " << buf_to_send.size() << " bytes" << std::endl;
+        std::cerr << "To write " << buf_to_send.size() << " bytes " << skinfo->GetFlow() << std::endl;
 
         skinfo->SetSendBuf(buf_to_send);
         boost::asio::async_write(
@@ -186,11 +184,10 @@ public:
     int ToWriteThenClose(SocketInfoPtr skinfo, std::vector<char> &buf_to_send) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To write " << skinfo->remote_endpoint().address().to_string()
-            << ":" << skinfo->remote_endpoint().port() << std::endl;
 
+        std::cerr << "To write " << buf_to_send.size() << " bytes " << skinfo->GetFlow() << std::endl;
         skinfo->SetSendBuf(buf_to_send);
-        std::cerr << "To write " << buf_to_send.size() << " bytes" << std::endl;
+
         boost::asio::async_write(
             skinfo->tcp_sk(),
             boost::asio::buffer(skinfo->send_buf()),
@@ -211,8 +208,7 @@ private:
     int ToReadLThenReadV(SocketInfoPtr skinfo) {
 
         std::cerr << "Eneter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To read length_field " << skinfo->remote_endpoint().address().to_string()
-            << ":" << skinfo->remote_endpoint().port() << std::endl;
+        std::cerr << "To read length_field " << skinfo->GetFlow() << std::endl;
 
         skinfo->SetRecvBuf(4);
         boost::asio::async_read(
@@ -233,8 +229,7 @@ private:
     int DestroySocket(SocketInfoPtr skinfo) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To destroy " << skinfo->remote_endpoint().address().to_string()
-            << ":" << skinfo->remote_endpoint().port() << std::endl;
+        std::cerr << "To destroy " << skinfo->GetFlow() << std::endl;
 
         boost::system::error_code e;
         skinfo->tcp_sk().close(e);
@@ -263,7 +258,6 @@ private:
     void SweepServerSocket(int milliseconds) {
         PTime expire_time = boost::posix_time::microsec_clock::local_time() 
             - boost::posix_time::milliseconds(milliseconds);
-
         
         std::map<TCPEndpoint, SocketInfoPtr>::iterator  it, endit;
         it = tcp_server_socket_map_.begin();
@@ -334,12 +328,9 @@ private:
         }
 
         sk_info->set_remote_endpoint(tmp_endpoint);
-        sk_info->set_local_endpoint(tmp_endpoint);
+        sk_info->set_local_endpoint(tmp_endpoint2);
 
-        std::cerr << "A socket is accepted " << sk_info->remote_endpoint().address().to_string()
-            << ":" << sk_info->remote_endpoint().port() << " from " 
-            << sk_info->local_endpoint().address().to_string() 
-            << ":" << sk_info->local_endpoint().port() << std::endl;
+        std::cerr << "A socket is accepted " << sk_info->GetFlow() << std::endl;
 
         std::cerr << "Add the socket to map" << std::endl;
         int ret = InsertTCPServerSocket(tmp_endpoint, sk_info);
@@ -383,8 +374,7 @@ private:
             return;
         }
 
-        std::cerr << "To write " << skinfo->remote_endpoint().address().to_string()
-            << ":" << skinfo->remote_endpoint().port() << std::endl;
+        std::cerr << "To write " << skinfo->GetFlow() << std::endl;
 
         boost::system::error_code e;
         TCPEndpoint local_endpoint = skinfo->tcp_sk().local_endpoint(e);
@@ -396,7 +386,7 @@ private:
         skinfo->set_is_connected(true);
         BOOST_ASSERT(!skinfo->in_use());
         skinfo->set_in_use(true);
-        std::cerr << "To write " << buf_to_send.size() << " bytes" << std::endl;
+        std::cerr << "To write " << buf_to_send.size() << " bytes " << skinfo->GetFlow() << std::endl;
         skinfo->SetSendBuf(buf_to_send);
 
         std::cerr << "Add the socket to map" << std::endl;
@@ -428,17 +418,13 @@ private:
             return;
         }
 
-        std::cerr << "To read " << skinfo->remote_endpoint().address().to_string()
-            << ":" << skinfo->remote_endpoint().port() << std::endl;
 
         int len = *(int*)(&((skinfo->recv_buf()[0])));
         len = boost::asio::detail::socket_ops::network_to_host_long(len);
-
-        std::cerr << "Length: " << len << " "
-            << skinfo->remote_endpoint().address().to_string()
-            << ":" << skinfo->remote_endpoint().port() << std::endl;
+        std::cerr << "Length read:  " << len << skinfo->GetFlow() << std::endl;
 
         if (len > max_recv_buf_size_) {
+
             std::cerr << "Data length is too large, so close: " << len << ">" << max_recv_buf_size_ << std::endl;
             DestroySocket(skinfo);
             return;
@@ -472,8 +458,7 @@ private:
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
         boost::system::error_code e;
-        std::cerr << "To process: " << skinfo->remote_endpoint().address().to_string()
-            << ":" << skinfo->remote_endpoint().port() << std::endl;
+        std::cerr << "To process: " << skinfo->recv_buf().size() << " bytes from "<< skinfo->GetFlow() << std::endl;
 
         if (error) {
             std::cerr << "ReadV error: " << error.message() << std::endl;
@@ -489,9 +474,6 @@ private:
         fromip = skinfo->remote_endpoint().address().to_string();
         toip = skinfo->local_endpoint().address().to_string();
 
-        std::cerr << "To process " << skinfo->recv_buf().size() << " bytes from " 
-            << skinfo->remote_endpoint().address().to_string() << ":"
-            << skinfo->remote_endpoint().port() << std::endl;
         int ret = ProcessData(skinfo->recv_buf(),
                         fromip,
                         skinfo->remote_endpoint().port(),
@@ -531,8 +513,7 @@ private:
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
-        std::cerr << "To read " << skinfo->remote_endpoint().address().to_string()
-            << ":" << skinfo->remote_endpoint().port() << std::endl;
+        std::cerr << "To read " << skinfo->GetFlow() << std::endl;
 
         std::cerr << "To read 4 bytes" << std::endl;
         skinfo->SetRecvBuf(4);
@@ -555,9 +536,7 @@ private:
                               SocketInfoPtr skinfo, std::size_t byte_num) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "Data(" << byte_num << "Bytes) is sent: " 
-            << skinfo->remote_endpoint().address().to_string()
-            << ":" << skinfo->remote_endpoint().port() << std::endl;
+        std::cerr << "Data(" << byte_num << "Bytes) is sent: " << skinfo->GetFlow() << std::endl;
 
         DestroySocket(skinfo);
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -568,7 +547,6 @@ protected:
     SocketInfoPtr FindTCPServerSocket(TCPEndpoint &key) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-
         std::cerr << "To find " << key.address().to_string() << ":" << key.port() << std::endl;
 
         SocketInfoPtr ret;
