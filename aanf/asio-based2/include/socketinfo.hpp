@@ -34,7 +34,14 @@ typedef boost::asio::ip::tcp::socket TCPSocket;
 typedef boost::shared_ptr<TCPSocket> TCPSocketPtr;
 typedef boost::asio::ip::tcp::endpoint TCPEndpoint;
 typedef boost::asio::ip::tcp::acceptor TCPAcceptor;
+typedef boost::asio::ip::udp::socket UDPSocket;
+typedef boost::shared_ptr<UDPSocket> UDPSocketPtr;
+typedef boost::asio::ip::udp::endpoint UDPEndpoint;
 typedef boost::posix_time::ptime PTime;
+
+
+class UDPSocketInfo;
+typedef boost::shared_ptr<UDPSocketInfo> UDPSocketInfoPtr;
 
 class TCPAcceptorInfo;
 class SocketInfo;
@@ -106,10 +113,10 @@ public:
         send_buf_.swap(to_send);
     };
 
-    std::string GetFlow() { 
-        
+    std::string GetFlow() {
+
         std::stringstream s;
-        s << "(LocalIP:Port <-> RemoteIP:Port) " 
+        s << "(LocalIP:Port <-> RemoteIP:Port) "
             << local_endpoint_.address().to_string() << ":" << local_endpoint_.port() << " <-> "
             << remote_endpoint_.address().to_string() << ":" << remote_endpoint_.port() << std::endl;
         return s.str();
@@ -162,6 +169,77 @@ private:
     TCPAcceptor acceptor_;
     SocketInfoPtr sk_info_;
 };
+
+
+
+// Simple information about a IDP socket
+class UDPSocketInfo {
+public:
+    UDPSocketInfo(boost::asio::io_service &io_serv)
+        : max_length_of_send_buf_list_(100),
+        udp_sk_(io_serv),
+        in_use_(false) {
+
+        access_time_ = create_time_ =
+            boost::posix_time::microsec_clock::local_time();
+    };
+
+    UDPEndpoint& local_endpoint() { return local_endpoint_; };
+    UDPEndpoint& remote_endpoint() { return remote_endpoint_; };
+    void set_in_use(bool in_use) { in_use_ = in_use;};
+    bool in_use() {return in_use_;};
+    UDPSocket& udp_sk() { return udp_sk_; };
+    std::vector<char>& recv_buf() { return recv_buf_; };
+    std::vector<char>& send_buf() { return send_buf_; };
+    void set_max_length_of_send_buf_list(int max) {max_length_of_send_buf_list_ = max;};
+
+    void SetRecvBuf(size_t byte_num) {
+        std::vector<char> tmp(byte_num);
+        recv_buf_.swap(tmp);
+    };
+
+    void SetRecvBuf(std::vector<char> &new_buf) {
+        recv_buf_.swap(new_buf);
+    };
+
+    int AddSendBuf(UDPEndpoint to_endpoint, std::vector<char> &to_send) {
+
+        std::pair<UDPEndpoint, std::vector<char> > new_item;
+        if (send_buf_list_.size() == max_length_of_send_buf_list_) {
+            return -1;
+        }
+
+        new_item.first = to_endpoint;
+        send_buf_list_.push_back(new_item);
+        send_buf_list_.back().second.swap(to_send);
+        return 0;
+    };
+
+    std::pair<UDPEndpoint, std::vector<char> >&
+        GetSendBufListFront() {
+
+        return send_buf_list_.front();
+    };
+
+    void DeleteSendBufListFront() {
+
+        return send_buf_list_.pop_front();
+    };
+
+    size_t GetSendBufListLength() {
+        return send_buf_list_.size();
+    };
+
+private:
+    int max_length_of_send_buf_list_;
+    UDPEndpoint local_endpoint_;
+    UDPEndpoint remote_endpoint_;
+    UDPSocket udp_sk_;
+    bool in_use_;
+    std::vector<char> recv_buf_;
+    std::list<std::pair<UDPEndpoint, std::vector<char> > > send_buf_list_;
+};
+
 
 };//namespace
 
