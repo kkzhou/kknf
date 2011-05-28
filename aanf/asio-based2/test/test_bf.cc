@@ -18,7 +18,7 @@
 #include <string>
 
 #include "server.hpp"
-#include "test_simple_packet.hpp"
+#include "test_packet.hpp"
 
 using namespace AANF;
 using namespace std;
@@ -62,7 +62,7 @@ public:
                 << " ReqToBF.type_ = " << req_to_bf->type_
                 << " ReqToBF.seq_ = " << req_to_bf->seq_
                 << " ReqToBF.a_ = " << req_to_bf->a_
-                << " ReqToBF.b_ = " << req_to_bf->b_ 
+                << " ReqToBF.b_ = " << req_to_bf->b_
                 << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
 
             map<int, ReqLocalData>::iterator it = ld_.find(req_to_bf->seq_);
@@ -100,7 +100,7 @@ public:
             cerr << "Send ReqToBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req1.len_)
                 << " ReqToBB1.type_ = " << req1.type_
                 << " ReqToBB1.seq_ = " << req1.seq_
-                << " ReqToBB1.a_ = " << req1.a_ 
+                << " ReqToBB1.a_ = " << req1.a_
                 << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
 
             ReqToBB2 req2;
