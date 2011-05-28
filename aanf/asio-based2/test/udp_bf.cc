@@ -90,12 +90,7 @@ public:
             char *tmp = reinterpret_cast<char*>(&req1);
             send_buf1.assign(tmp, tmp + sizeof(ReqToBB1));
 
-            SocketInfoPtr skinfo1 = FindIdleTCPClientSocket(bb1_endpoint_);
-            if (!skinfo1) {
-                ToConnectThenWrite(bb1_endpoint_, send_buf1);
-            } else {
-                ToWriteThenRead(skinfo1, send_buf1);
-            }
+            UDPToWrite(bb1_endpoint_, send_buf1);
 
             cerr << "Send ReqToBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req1.len_)
                 << " ReqToBB1.type_ = " << req1.type_
@@ -112,12 +107,7 @@ public:
             tmp = reinterpret_cast<char*>(&req2);
             send_buf2.assign(tmp, tmp + sizeof(ReqToBB2));
 
-            SocketInfoPtr skinfo2 = FindIdleTCPClientSocket(bb2_endpoint_);
-            if (!skinfo2) {
-                ToConnectThenWrite(bb2_endpoint_, send_buf2);
-            } else {
-                ToWriteThenRead(skinfo2, send_buf2);
-            }
+            UDPToWrite(bb2_endpoint_, send_buf2);
             cerr << "Send ReqToBB2.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req2.len_)
                 << " ReqToBB2.type_ = " << req2.type_
                 << " ReqToBB2.seq_ = " << req2.seq_
@@ -177,14 +167,8 @@ public:
 
             IPAddress addr;
             addr = IPAddress::from_string(tmpit->second.client_ip_);
-            TCPEndpoint client_endpoint(addr, tmpit->second.client_port_);
-            SocketInfoPtr skinfo3 = FindTCPServerSocket(client_endpoint);
-            if (!skinfo3) {
-                cerr << "The socket from client is not found" << endl;
-                return -1;
-            } else {
-                ToWriteThenRead(skinfo3, send_buf3);
-            }
+            UDPEndpoint client_endpoint(addr, tmpit->second.client_port_);
+            UDPToWrite(client_endpoint, send_buf3);
 
             cerr << "Send RspFromBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(tmpit->second.rsp_.len_)
                 << " RspFromBF.type_ = " << tmpit->second.rsp_.type_
@@ -195,12 +179,9 @@ public:
         return 1;
     };
 public:
-    string local_ip_;
-    uint16_t port_low_;
-    uint16_t port_high_;
     map<int, ReqLocalData> ld_;
-    TCPEndpoint bb1_endpoint_;
-    TCPEndpoint bb2_endpoint_;
+    UDPEndpoint bb1_endpoint_;
+    UDPEndpoint bb2_endpoint_;
 };
 
 int main(int argc, char **argv) {
@@ -211,12 +192,14 @@ int main(int argc, char **argv) {
 
     int oc;
     const char *helpstr =
-        " USAGE: ./test_bf -n threadnum -i timerinterval -L listenip -p listenport_low -P listenport_high -a bb1ip -b bbiport -c bb2ip -d bb2port -h";
+        " USAGE: ./test_bf -n threadnum -i timerinterval -L listenip -p listenport -a bb1ip -b bbiport -c bb2ip -d bb2port -h";
 
     int option_num = 0;
     IPAddress bb1_addr, bb2_addr;
     uint16_t bb1_port, bb2_port;
     boost::system::error_code e;
+    string local_udp_ip;
+    uint16_t local_udp_port;
 
     while ((oc = getopt(argc, argv, "i:L:n:p:P:a:b:c:d:h")) != -1) {
         switch (oc) {
@@ -224,15 +207,11 @@ int main(int argc, char **argv) {
                 timer_interval = atoi( optarg );
                 break;
             case 'L':
-                bf->local_ip_ = optarg;
+                local_udp_ip = optarg;
                 option_num++;
                 break;
             case 'p':
-                bf->port_low_ = atoi(optarg);
-                option_num++;
-                break;
-            case 'P':
-                bf->port_high_ = atoi(optarg);
+                local_udp_port = atoi(optarg);
                 option_num++;
                 break;
             case 'a':
@@ -277,27 +256,19 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    if (bf->port_high_ < bf->port_low_) {
-        cerr << "Parameter invalid: listenport_low must be less than listenport_high" << endl;
-        return -1;
-    }
-
     bf->set_timer_trigger_interval(timer_interval);
     bf->set_server_timeout(1000);
-    bf->bb1_endpoint_ = TCPEndpoint(bb1_addr, bb1_port);
-    bf->bb2_endpoint_ = TCPEndpoint(bb2_addr, bb2_port);
+    bf->bb1_endpoint_ = UDPEndpoint(bb1_addr, bb1_port);
+    bf->bb2_endpoint_ = UDPEndpoint(bb2_addr, bb2_port);
 
     IPAddress addr;
-    addr = IPAddress::from_string(bf->local_ip_, e);
+    addr = IPAddress::from_string(local_udp_ip, e);
     if (e) {
-        cerr << "IP address format invalid: " << bf->local_ip_ << endl;
+        cerr << "IP address format invalid: " << local_udp_ip << endl;
         exit(1);
     }
 
-    for (uint16_t port = bf->port_low_; port <= bf->port_high_; port++) {
-        bf->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_LV);
-    }
-
+    bf->InitUDPSocket(UDPEndpoint(addr, local_udp_port));
     bf->AddTimerHandler(boost::bind(&TestBF::PrintHeartBeat, bf));
     bf->Run();
     std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;

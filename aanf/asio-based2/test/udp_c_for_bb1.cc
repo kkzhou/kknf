@@ -62,15 +62,7 @@ public:
         char *tmp = reinterpret_cast<char*>(&req);
         send_buf.assign(tmp, tmp + len);
 
-        cerr << "To find an idle Socket." << endl;
-        SocketInfoPtr skinfo = FindIdleTCPClientSocket(server_endpoint_);
-        if (!skinfo) {
-            cerr << "No idle Socket, to create a new one." << endl;
-            ToConnectThenWrite(server_endpoint_, send_buf);
-        } else {
-            cerr << "Idle Socket found." << endl;
-            ToWriteThenRead(skinfo, send_buf);
-        }
+        UDPToWrite(server_endpoint_, send_buf);
 
         cerr << "Send ReqToBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req.len_)
             << " ReqToBB1.type_ = " << req.type_
@@ -91,24 +83,32 @@ int main(int argc, char **argv) {
     cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << endl;
     boost::shared_ptr<TestClient> client(new TestClient);
     int timer_interval = 10000;
-    IPAddress addr;
-    uint16_t port;
+    IPAddress addr1, addr2;
+    uint16_t port1, port2;
 
     int oc;
     int option_num = 0;
     boost::system::error_code e;
-    const char *helpstr = " USAGE: ./test_simple_client -i timerinterval -I bfip -p bfport -h";
+    const char *helpstr = " USAGE: ./test_simple_client -i timerinterval -L local_ip -p local_port -I bfip -P bfport -h";
     while ((oc = getopt(argc, argv, "i:I:p:h")) != -1) {
         switch (oc) {
             case 'i':
                 timer_interval = atoi(optarg);
                 break;
+            case 'L':
+                addr1 = IPAddress::from_string(optarg, e);
+                option_num++;
+                break;
             case 'I':
-                addr = IPAddress::from_string(optarg, e);
+                addr2 = IPAddress::from_string(optarg, e);
                 option_num++;
                 break;
             case 'p':
-                port = atoi(optarg);
+                port1 = atoi(optarg);
+                option_num++;
+                break;
+            case 'P':
+                port2 = atoi(optarg);
                 option_num++;
                 break;
             case 'h':
@@ -135,7 +135,8 @@ int main(int argc, char **argv) {
 
     client->set_timer_trigger_interval(timer_interval);
 
-    client->server_endpoint_ = TCPEndpoint(addr, port);
+    client->server_endpoint_ = UDPEndpoint(addr2, port2);
+    client->InitUDPSocket(UDPEndpoint(addr1, port1));
     client->AddTimerHandler(boost::bind(&Client::PrepareDataThenSend, client));
 
     client->Run();
