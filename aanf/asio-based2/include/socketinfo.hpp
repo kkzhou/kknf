@@ -180,18 +180,17 @@ public:
         udp_sk_(io_serv),
         in_use_(false) {
 
-        access_time_ = create_time_ =
-            boost::posix_time::microsec_clock::local_time();
     };
 
     UDPEndpoint& local_endpoint() { return local_endpoint_; };
+    void set_local_endpoint(UDPEndpoint local_endpoint) { local_endpoint_ = local_endpoint;};
     UDPEndpoint& remote_endpoint() { return remote_endpoint_; };
+    void set_remote_endpoint(UDPEndpoint remote_endpoint) { remote_endpoint_ = remote_endpoint;};
     void set_in_use(bool in_use) { in_use_ = in_use;};
     bool in_use() {return in_use_;};
     UDPSocket& udp_sk() { return udp_sk_; };
     std::vector<char>& recv_buf() { return recv_buf_; };
-    std::vector<char>& send_buf() { return send_buf_; };
-    void set_max_length_of_send_buf_list(int max) {max_length_of_send_buf_list_ = max;};
+    void set_max_length_of_send_buf_list(size_t max) {max_length_of_send_buf_list_ = max;};
 
     void SetRecvBuf(size_t byte_num) {
         std::vector<char> tmp(byte_num);
@@ -231,7 +230,7 @@ public:
     };
 
 private:
-    int max_length_of_send_buf_list_;
+    size_t max_length_of_send_buf_list_;
     UDPEndpoint local_endpoint_;
     UDPEndpoint remote_endpoint_;
     UDPSocket udp_sk_;

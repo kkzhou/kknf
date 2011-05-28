@@ -66,7 +66,7 @@ public:
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         udp_socket_.reset(new UDPSocketInfo(io_serv_));
         boost::system::error_code e;
-        udp_socket_->upd_sk().bind(local_endpoint, e);
+        udp_socket_->udp_sk().bind(local_endpoint, e);
 
         if (e) {
             std::cerr << "Bind UDP socket error: " << e.message() << std::endl;
@@ -299,8 +299,8 @@ public:
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
         std::cerr << "To write LocalIP:Port <-> RemoteIP:Port "
-            << skinfo->local_endpoint().address().to_string() << ":"
-            << skinfo->local_endpoint().port() << " <-> " << to_endpoint.address().to_string()
+            << udp_socket_->local_endpoint().address().to_string() << ":"
+            << udp_socket_->local_endpoint().port() << " <-> " << to_endpoint.address().to_string()
             << ":" << to_endpoint.port() << std::endl;
 
         int ret = udp_socket_->AddSendBuf(to_endpoint, buf_to_send);
@@ -313,15 +313,16 @@ public:
         if (!udp_socket_->in_use()) {
             // not in sending, so async_send_to
 
-            std::pair<UDPEndpoint, std::vector<char> > > ret =
+            std::pair<UDPEndpoint, std::vector<char> > front_item =
                 udp_socket_->GetSendBufListFront();
-            std::cerr << "To write " << ret.second.size() << " bytes" << std::endl;
-            udp_socket_->async_send_to(boost::asio::buffer(ret.second),
-                                       ret.first,
-                                       boost::bind(&HTTPClient::HandleUDPWrite,
+            std::cerr << "To write " << front_item.second.size() << " bytes" << std::endl;
+            udp_socket_->udp_sk().async_send_to(boost::asio::buffer(front_item.second),
+                                       front_item.first,
+                                       boost::bind(&Server::HandleUDPWrite,
                                                    shared_from_this(),
+                                                   boost::asio::placeholders::error,
                                                    udp_socket_,
-                                                   ret.first,
+                                                   front_item.first,
                                                    boost::asio::placeholders::bytes_transferred));
             udp_socket_->set_in_use(true);
         }
@@ -334,10 +335,11 @@ public:
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
         udp_socket_->SetRecvBuf(udp_recv_buf_size_);
-        udp_socket_->async_receive_from(boost::asio::buffer(udp_socket_->recv_buf()),
+        udp_socket_->udp_sk().async_receive_from(boost::asio::buffer(udp_socket_->recv_buf()),
                                        udp_socket_->remote_endpoint(),
-                                       boost::bind(&Client::HandleUDPRead,
+                                       boost::bind(&Server::HandleUDPRead,
                                                    shared_from_this(),
+                                                   boost::asio::placeholders::error,
                                                    udp_socket_,
                                                    boost::asio::placeholders::bytes_transferred));
 
@@ -772,14 +774,16 @@ private:
 
         if (skinfo->GetSendBufListLength() != 0) {
 
-            std::pair<UDPEndpoint, std::vector<char> > > ret =
+            std::pair<UDPEndpoint, std::vector<char> > ret =
                 udp_socket_->GetSendBufListFront();
             std::cerr << "To write " << ret.second.size() << " bytes" << std::endl;
-            udp_socket_->async_send_to(boost::asio::buffer(ret.second),
+            udp_socket_->udp_sk().async_send_to(boost::asio::buffer(ret.second),
                                        ret.first,
-                                       boost::bind(&HTTPClient::HandleUDPWrite,
+                                       boost::bind(&Server::HandleUDPWrite,
                                                    shared_from_this(),
+                                                   boost::asio::placeholders::error,
                                                    udp_socket_,
+                                                   ret.first,
                                                    boost::asio::placeholders::bytes_transferred));
         } else {
             BOOST_ASSERT(udp_socket_->in_use());
@@ -799,8 +803,9 @@ private:
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         std::cerr << "Read in " << byte_num << " bytes from LocalIP:Port <-> RemoteIP:Port "
             << skinfo->local_endpoint().address().to_string() << ":"
-            << skinfo->local_endpoint().port() << " <-> " << to_endpoint.address().to_string()
-            << ":" << to_endpoint.port() << std::endl;
+            << skinfo->local_endpoint().port() << " <-> " 
+            << skinfo->remote_endpoint().address().to_string()
+            << ":" << skinfo->remote_endpoint().port() << std::endl;
 
         std::string fromip, toip;
         fromip = skinfo->remote_endpoint().address().to_string();

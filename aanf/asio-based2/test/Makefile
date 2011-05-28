@@ -1,7 +1,7 @@
 CC = g++ -g -O0 -Wall
 
-BOOST_DIR = /usr/local/environment/boost/
-#BOOST_DIR = /usr/local/boost/
+#BOOST_DIR = /usr/local/environment/boost/
+BOOST_DIR = /usr/local/boost/
 INC_DIR = -I../include/ -I$(BOOST_DIR)/include/
 LIB_DIR = -L$(BOOST_DIR)/lib/
 LIBS = -lboost_system -lboost_date_time -lboost_random -lboost_thread
