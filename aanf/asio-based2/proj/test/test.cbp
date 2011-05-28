@@ -22,7 +22,6 @@
 		<Unit filename="..\..\include\client.hpp" />
 		<Unit filename="..\..\include\server.hpp" />
 		<Unit filename="..\..\include\socketinfo.hpp" />
-		<Unit filename="..\..\include\sync_server.hpp" />
 		<Unit filename="..\..\test\Makefile" />
 		<Unit filename="..\..\test\README" />
 		<Unit filename="..\..\test\test_simple_bb1.cc" />
