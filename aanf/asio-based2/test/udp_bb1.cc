@@ -72,15 +72,8 @@ public:
         IPAddress addr;
         boost::system::error_code e;
         addr = IPAddress::from_string(from_ip, e);
-        TCPEndpoint endpoint(addr, from_port);
-        SocketInfoPtr skinfo = FindTCPServerSocket(endpoint);
-
-        if (!skinfo) {
-            cerr << "Socket not found " << from_ip << ":" << from_port << endl;
-            return -1;
-        }
-
-        ToWriteThenRead(skinfo, send_buf);
+        UDPEndpoint endpoint(addr, from_port);
+        UDPToWrite(endpoint, send_buf);
 
         cerr << "Send RspFromBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp.len_)
             << " RspFromBB1.type_ = " << rsp.type_
@@ -91,10 +84,6 @@ public:
         return 2;
     };
 public:
-    string local_ip_;
-    uint16_t port_low_;
-    uint16_t port_high_;
-
 private:
     boost::mt19937 gen;
     boost::uniform_int<> dist;
@@ -106,25 +95,23 @@ int main(int argc, char **argv) {
     std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     boost::shared_ptr<TestBB1> bb1(new TestBB1);
     int timer_interval = 10000;
+    string local_udp_ip;
+    uint16_t local_udp_port;
 
     int oc;
     int option_num = 0;
-    const char *helpstr = " USAGE: ./test_bb1 -i timerinterval -L listenip -p listenport_low -P listenport_high -h";
-    while ((oc = getopt(argc, argv, "i:L:p:P:h")) != -1) {
+    const char *helpstr = " USAGE: ./test_bb1 -i timerinterval -L listenip -p listenport -h";
+    while ((oc = getopt(argc, argv, "i:L:p:h")) != -1) {
         switch (oc) {
             case 'i':
-                timer_interval = atoi( optarg );
+                timer_interval = atoi(optarg);
                 break;
             case 'L':
-                bb1->local_ip_ = optarg;
+                local_udp_ip= optarg;
                 option_num++;
                 break;
             case 'p':
-                bb1->port_low_ = atoi(optarg);
-                option_num++;
-                break;
-            case 'P':
-                bb1->port_high_ = atoi(optarg);
+                local_udp_port = atoi(optarg);
                 option_num++;
                 break;
             case 'h':
@@ -145,23 +132,17 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    if (bb1->port_high_ < bb1->port_low_) {
-        cerr << "Parameter invalid: listenport_low must be less than listenport_high" << endl;
-        return -1;
-    }
     bb1->set_timer_trigger_interval(timer_interval);
     IPAddress addr;
     boost::system::error_code e;
-    addr = IPAddress::from_string(bb1->local_ip_, e);
+    addr = IPAddress::from_string(local_udp_ip_, e);
     if (e) {
         cerr << "IP address format invalid: " << bb1->local_ip_ << endl;
         exit(1);
     }
-    for (uint16_t port = bb1->port_low_; port <= bb1->port_high_; port++) {
 
-        bb1->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_LV);
-    }
-
+    bb1->InitUDPSocket(UDPEndpoint(addr, local_udp_port));
+    bb1->UDPToRead();
     bb1->AddTimerHandler(boost::bind(&TestBB1::PrintHeartBeat, bb1));
     bb1->Run();
     std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;

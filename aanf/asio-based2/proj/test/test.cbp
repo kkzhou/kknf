@@ -34,7 +34,7 @@
 		<Unit filename="..\..\test\lv_bf.cc" />
 		<Unit filename="..\..\test\lv_c.cc" />
 		<Unit filename="..\..\test\lv_c_for_bb1.cc" />
-		<Unit filename="..\..\test\lv_packet.hpp" />
+		<Unit filename="..\..\test\test_packet.hpp" />
 		<Unit filename="..\..\test\udp_bb1.cc" />
 		<Unit filename="..\..\test\udp_bb2.cc" />
 		<Unit filename="..\..\test\udp_bf.cc" />

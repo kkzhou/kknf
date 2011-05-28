@@ -803,7 +803,7 @@ private:
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         std::cerr << "Read in " << byte_num << " bytes from LocalIP:Port <-> RemoteIP:Port "
             << skinfo->local_endpoint().address().to_string() << ":"
-            << skinfo->local_endpoint().port() << " <-> " 
+            << skinfo->local_endpoint().port() << " <-> "
             << skinfo->remote_endpoint().address().to_string()
             << ":" << skinfo->remote_endpoint().port() << std::endl;
 
@@ -968,6 +968,7 @@ public:
     void set_server_timeout(int server_timeout) { server_timeout_ = server_timeout; };
     void set_udp_recv_buf_size(int udp_recv_buf_size) { udp_recv_buf_size_ = udp_recv_buf_size;};
     int udp_recv_buf_size() { return udp_recv_buf_size_;};
+    UDPSocketInfoPtr udp_socket() { return udp_socket_;};
 private:
     // io_service
     boost::asio::io_service io_serv_;
