@@ -396,6 +396,13 @@ private:
         return;
     };
 
+    void HandleReadHTTPHeadThenReadHTTPContent(const boost::system::error_code& error,
+                            SocketInfoPtr skinfo, std::size_t byte_num) }{
+    };
+    void HandleReadHTTPContentThenProcess(const boost::system::error_code& error,
+                               SocketInfoPtr skinfo, std::size_t byte_num) {
+    };
+
     // Write handlers
     void HandleWriteThenReadL(const boost::system::error_code& error,
                              SocketInfoPtr skinfo, std::size_t byte_num) {
