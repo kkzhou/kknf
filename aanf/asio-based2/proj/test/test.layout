@@ -10,13 +10,16 @@
 	<File name="..\..\include\socketinfo.hpp" open="1" top="0" tabpos="3">
 		<Cursor position="6009" topLine="212" />
 	</File>
-	<File name="..\..\test\test_simple_bb1.cc" open="1" top="1" tabpos="7">
-		<Cursor position="850" topLine="72" />
+	<File name="..\..\test\Makefile" open="1" top="1" tabpos="5">
+		<Cursor position="244" topLine="0" />
 	</File>
-	<File name="..\..\test\test_simple_client.cc" open="1" top="0" tabpos="4">
-		<Cursor position="797" topLine="60" />
+	<File name="..\..\test\README" open="1" top="0" tabpos="4">
+		<Cursor position="0" topLine="0" />
 	</File>
-	<File name="..\..\test\test_simple_packet.hpp" open="1" top="0" tabpos="6">
-		<Cursor position="1431" topLine="25" />
+	<File name="..\..\test\lv_client.cc" open="1" top="0" tabpos="7">
+		<Cursor position="4638" topLine="28" />
+	</File>
+	<File name="..\..\test\lv_client2.cc" open="1" top="0" tabpos="6">
+		<Cursor position="4411" topLine="28" />
 	</File>
 </CodeBlocks_layout_file>

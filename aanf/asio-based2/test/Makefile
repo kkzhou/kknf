@@ -7,24 +7,24 @@ LIB_DIR = -L$(BOOST_DIR)/lib/
 LIBS = -lboost_system -lboost_date_time -lboost_random -lboost_thread
 
 
-all : client bb1 bb2 bf client2
+all : lv_c lv_bb1 lv_bb2 lv_bf lv_c_for_bb1
 
-client :
-	$(CC) -o client $(INC_DIR) $(LIB_DIR) $(LIBS) test_client.cc
+lv_c :
+	$(CC) -o lv_c $(INC_DIR) $(LIB_DIR) $(LIBS) lv_c.cc
 
-client2 :
-	$(CC) -o client2 $(INC_DIR) $(LIB_DIR) $(LIBS) test_client2.cc
+lv_c_for_bb1 :
+	$(CC) -o lv_c_for_bb1 $(INC_DIR) $(LIB_DIR) $(LIBS) lv_c_for_bb1.cc
 
-bb1 :
-	$(CC) -o bb1  $(INC_DIR) $(LIB_DIR) $(LIBS) test_bb1.cc
+lv_bb1 :
+	$(CC) -o lv_bb1  $(INC_DIR) $(LIB_DIR) $(LIBS) lv_bb1.cc
 
-bb2 :
-	$(CC) -o bb2  $(INC_DIR) $(LIB_DIR) $(LIBS) test_bb2.cc
+lv_bb2 :
+	$(CC) -o lv_bb2  $(INC_DIR) $(LIB_DIR) $(LIBS) lv_bb2.cc
 
-bf :
-	$(CC) -o bf $(INC_DIR) $(LIB_DIR) $(LIBS) test_bf.cc
+lv_bf :
+	$(CC) -o bf $(INC_DIR) $(LIB_DIR) $(LIBS) lv_bf.cc
 
 .PHONY : clean
 
 clean:
-	rm -f bb1 bb2 bf client client2
+	rm -f lv_c lv_bb1 lv_bb2 lv_bf lv_c_for_bb1
