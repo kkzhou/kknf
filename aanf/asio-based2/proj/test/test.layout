@@ -16,10 +16,4 @@
 	<File name="..\..\test\README" open="1" top="0" tabpos="4">
 		<Cursor position="0" topLine="0" />
 	</File>
-	<File name="..\..\test\lv_client.cc" open="1" top="0" tabpos="7">
-		<Cursor position="4638" topLine="28" />
-	</File>
-	<File name="..\..\test\lv_client2.cc" open="1" top="0" tabpos="6">
-		<Cursor position="4411" topLine="28" />
-	</File>
 </CodeBlocks_layout_file>

@@ -24,12 +24,22 @@
 		<Unit filename="..\..\include\socketinfo.hpp" />
 		<Unit filename="..\..\test\Makefile" />
 		<Unit filename="..\..\test\README" />
+		<Unit filename="..\..\test\http_bb1.cc" />
+		<Unit filename="..\..\test\http_bb2.cc" />
+		<Unit filename="..\..\test\http_bf.cc" />
+		<Unit filename="..\..\test\http_c.cc" />
+		<Unit filename="..\..\test\http_c_for_bb1.cc" />
 		<Unit filename="..\..\test\lv_bb1.cc" />
 		<Unit filename="..\..\test\lv_bb2.cc" />
 		<Unit filename="..\..\test\lv_bf.cc" />
-		<Unit filename="..\..\test\lv_client.cc" />
-		<Unit filename="..\..\test\lv_client2.cc" />
+		<Unit filename="..\..\test\lv_c.cc" />
+		<Unit filename="..\..\test\lv_c_for_bb1.cc" />
 		<Unit filename="..\..\test\lv_packet.hpp" />
+		<Unit filename="..\..\test\udp_bb1.cc" />
+		<Unit filename="..\..\test\udp_bb2.cc" />
+		<Unit filename="..\..\test\udp_bf.cc" />
+		<Unit filename="..\..\test\udp_c.cc" />
+		<Unit filename="..\..\test\udp_c_for_bb1.cc" />
 		<Extensions>
 			<code_completion />
 			<debugger />
