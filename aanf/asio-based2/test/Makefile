@@ -10,19 +10,19 @@ LIBS = -lboost_system -lboost_date_time -lboost_random -lboost_thread
 all : client bb1 bb2 bf client2
 
 client :
-	$(CC) -o client $(INC_DIR) $(LIB_DIR) $(LIBS) test_simple_client.cc
+	$(CC) -o client $(INC_DIR) $(LIB_DIR) $(LIBS) test_client.cc
 
 client2 :
-	$(CC) -o client2 $(INC_DIR) $(LIB_DIR) $(LIBS) test_simple_client2.cc
+	$(CC) -o client2 $(INC_DIR) $(LIB_DIR) $(LIBS) test_client2.cc
 
 bb1 :
-	$(CC) -o bb1  $(INC_DIR) $(LIB_DIR) $(LIBS) test_simple_bb1.cc
+	$(CC) -o bb1  $(INC_DIR) $(LIB_DIR) $(LIBS) test_bb1.cc
 
 bb2 :
-	$(CC) -o bb2  $(INC_DIR) $(LIB_DIR) $(LIBS) test_simple_bb2.cc
+	$(CC) -o bb2  $(INC_DIR) $(LIB_DIR) $(LIBS) test_bb2.cc
 
 bf :
-	$(CC) -o bf $(INC_DIR) $(LIB_DIR) $(LIBS) test_simple_bf.cc
+	$(CC) -o bf $(INC_DIR) $(LIB_DIR) $(LIBS) test_bf.cc
 
 .PHONY : clean
 
