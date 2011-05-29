@@ -74,6 +74,15 @@ public:
             return -1;
         }
         udp_socket_->set_local_endpoint(local_endpoint);
+
+        udp_socket_->SetRecvBuf(udp_recv_buf_size_);
+        udp_socket_->udp_sk().async_receive_from(boost::asio::buffer(udp_socket_->recv_buf()),
+                                       udp_socket_->remote_endpoint(),
+                                       boost::bind(&Server::HandleUDPRead,
+                                                   shared_from_this(),
+                                                   boost::asio::placeholders::error,
+                                                   udp_socket_,
+                                                   boost::asio::placeholders::bytes_transferred));
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
     };
@@ -149,8 +158,7 @@ public:
 public:
     // Sync interfaces
     // Called when sending request to the server behind and the connection hasn't established yet.
-    int ToWriteThenReadSync(TCPEndpoint &remote_endpoint,
-                        std::vector<char> &buf_to_send/*content swap*/,
+    int ToWriteThenReadSync(TCPEndpoint &remote_endpoint, std::vector<char> &buf_to_send/*content swap*/,
                         std::vector<char> &buf_to_fill) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -228,7 +236,7 @@ public:
     };
 
     // Called when sending request to the server behind and the connection has already established.
-    int ToWriteThenReadSync(SocketInfoPtr skinfo, std::vector<char> &buf_to_send,
+    int ToWriteThenReadSync(SocketInfoPtr skinfo, std::vector<char> &buf_to_send/*content swap*/,
                         std::vector<char> &buf_to_fill) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -294,7 +302,7 @@ public:
     };
 
     // Async interfaces
-    int UDPToWrite(UDPEndpoint to_endpoint, std::vector<char> &buf_to_send) {
+    int UDPToWrite(UDPEndpoint to_endpoint, std::vector<char> &buf_to_send/*content swap*/) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
@@ -330,23 +338,6 @@ public:
         return 0;
     };
 
-    int UDPToRead() {
-
-        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-
-        udp_socket_->SetRecvBuf(udp_recv_buf_size_);
-        udp_socket_->udp_sk().async_receive_from(boost::asio::buffer(udp_socket_->recv_buf()),
-                                       udp_socket_->remote_endpoint(),
-                                       boost::bind(&Server::HandleUDPRead,
-                                                   shared_from_this(),
-                                                   boost::asio::placeholders::error,
-                                                   udp_socket_,
-                                                   boost::asio::placeholders::bytes_transferred));
-
-        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        return 0;
-    };
-
     // Called when sending request to the server behind and the connection hasn't established yet.
     int ToConnectThenWrite(TCPEndpoint &remote_endpoint, std::vector<char> &buf_to_send/*content swap*/) {
 
@@ -375,7 +366,7 @@ public:
     };
 
     // Called when sending request to the server behind and the connection has already established.
-    int ToWriteThenRead(SocketInfoPtr skinfo, std::vector<char> &buf_to_send) {
+    int ToWriteThenRead(SocketInfoPtr skinfo, std::vector<char> &buf_to_send/*content swap*/) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         if (skinfo->is_client()) {
@@ -431,7 +422,7 @@ public:
         return 0;
     };
 
-    int ToWriteThenClose(SocketInfoPtr skinfo, std::vector<char> &buf_to_send) {
+    int ToWriteThenClose(SocketInfoPtr skinfo, std::vector<char> &buf_to_send/*content swap*/) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
@@ -455,7 +446,7 @@ public:
 
 private:
     // Called when beginning to read data from a socket
-    ToReadHTTPHeadThenReadHTTPContent(SocketInfoPtr skinfo) {
+    int ToReadHTTPHeadThenReadHTTPContent(SocketInfoPtr skinfo) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
@@ -520,6 +511,23 @@ private:
         } else {
             tcp_server_socket_map_.erase(skinfo->remote_endpoint());
         }
+
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return 0;
+    };
+
+    int UDPToRead() {
+
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+        udp_socket_->SetRecvBuf(udp_recv_buf_size_);
+        udp_socket_->udp_sk().async_receive_from(boost::asio::buffer(udp_socket_->recv_buf()),
+                                       udp_socket_->remote_endpoint(),
+                                       boost::bind(&Server::HandleUDPRead,
+                                                   shared_from_this(),
+                                                   boost::asio::placeholders::error,
+                                                   udp_socket_,
+                                                   boost::asio::placeholders::bytes_transferred));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -626,12 +634,19 @@ private:
 
         boost::system::error_code read_ec;
         sk_info->SetRecvBuf(init_recv_buf_size_);
-
-        if (ToReadLThenReadV(sk_info) < 0) {
-            DestroySocket(sk_info);
-            std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-            return;
+        if (sk_info->type() == SocketInfo::T_TCP_HTTP) {
+            if (ToReadHTTPHeadThenReadHTTPContent(sk_info) < 0) {
+                DestroySocket(sk_info);
+            }
+        } else if (sk_info->type() == SocketInfo::T_TCP_LV) {
+            if (ToReadLThenReadV(sk_info) < 0) {
+                DestroySocket(sk_info);
+            }
+        } else {
+            std::cerr << "Not supported socket type" << std::endl;
+            BOOST_ASSERT(false);
         }
+
 
         std::cerr << "Go on accepting "  << std::endl;
 
@@ -1023,10 +1038,8 @@ private:
     };
 
     // UDP write handler
-    void HandleUDPWrite(const boost::system::error_code& error,
-                             UDPSocketInfoPtr skinfo,
-                             UDPEndpoint remote_endpoint,
-                             std::size_t byte_num) {
+    void HandleUDPWrite(const boost::system::error_code& error, UDPSocketInfoPtr skinfo,
+                             UDPEndpoint remote_endpoint, std::size_t byte_num) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         std::cerr << "To write " << remote_endpoint.address().to_string() << ":"
@@ -1057,8 +1070,7 @@ private:
 
     // UDP read handler
     void HandleUDPRead(const boost::system::error_code& error,
-                             UDPSocketInfoPtr skinfo,
-                             std::size_t byte_num) {
+                             UDPSocketInfoPtr skinfo, std::size_t byte_num) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         std::cerr << "Read in " << byte_num << " bytes from LocalIP:Port <-> RemoteIP:Port "
