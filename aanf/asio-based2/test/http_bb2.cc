@@ -22,7 +22,7 @@
 #include <string>
 
 #include "server.hpp"
-#include "lv_packet.hpp"
+#include "test_packet.hpp"
 
 using namespace AANF;
 using namespace std;

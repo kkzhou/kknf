@@ -385,7 +385,24 @@ public:
         std::cerr << "To write " << buf_to_send.size() << " bytes " << skinfo->GetFlow() << std::endl;
 
         skinfo->SetSendBuf(buf_to_send);
-        boost::asio::async_write(
+
+        std::cerr << "Socket type:" << skinfo->type() << std::endl;
+        if (skinfo->type() == SocketInfo::T_TCP_HTTP) {
+            // this socket handles(read/write) TCP_LV packet
+            boost::asio::async_write(
+            skinfo->tcp_sk(),
+            boost::asio::buffer(skinfo->send_buf()),
+            boost::asio::transfer_all(),
+                boost::bind(
+                    &Server::HandleWriteThenReadHTTPHead,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    skinfo,
+                    boost::asio::placeholders::bytes_transferred));
+
+        } else if (skinfo->type() == SocketInfo::T_TCP_LV) {
+            // this socket handles(read/write) TCP_LV packet
+            boost::asio::async_write(
             skinfo->tcp_sk(),
             boost::asio::buffer(skinfo->send_buf()),
             boost::asio::transfer_all(),
@@ -395,6 +412,20 @@ public:
                     boost::asio::placeholders::error,
                     skinfo,
                     boost::asio::placeholders::bytes_transferred));
+
+        } else if (skinfo->type() == SocketInfo::T_TCP_TLV) {
+            // this socket handles(read/write) TCP_LV packet
+            std::cerr << "To be supported socket type:" << skinfo->type() << std::endl;
+            BOOST_ASSERT(false);
+        } else if (skinfo->type() == SocketInfo::T_TCP_LINE) {
+            // this socket handles(read/write) TCP_LV packet
+            std::cerr << "To be supported socket type:" << skinfo->type() << std::endl;
+            BOOST_ASSERT(false);
+        } else {
+            std::cerr << "Not supported socket type:" << skinfo->type() << std::endl;
+            BOOST_ASSERT(false);
+        }
+
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -424,6 +455,28 @@ public:
 
 private:
     // Called when beginning to read data from a socket
+    ToReadHTTPHeadThenReadHTTPContent(SocketInfoPtr skinfo) {
+
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+        std::cerr << "To read " << skinfo->GetFlow() << std::endl;
+
+        std::cerr << "To read HTTPHead bytes" << std::endl;
+        skinfo->SetRecvBuf(init_recv_buf_size_);
+        boost::asio::async_read(
+            skinfo->tcp_sk(),
+            boost::buffer(skinfo->recv_buf()),
+            boost::bind(
+                &Server::HandleReadHTTPHeadThenReadHTTPContent,
+                shared_from_this(),
+                boost::asio::placeholders::error,
+                skinfo,
+                boost::asio::placeholders::bytes_transferred));
+
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return;
+    };
+
     int ToReadLThenReadV(SocketInfoPtr skinfo) {
 
         std::cerr << "Eneter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -473,6 +526,19 @@ private:
     };
 
 private:
+    // handler placeholder
+    void HandleAnythingThenNothing(const boost::system::error_code& error,
+                               SocketInfoPtr skinfo, std::size_t byte_num) {
+
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+        if (error) {
+            std::cerr << "Do things error: " << error.message() << std::endl;
+            DestroySocket(skinfo);
+            return;
+        }
+        return;
+    };
     // function for timer handler
     void SweepServerSocket(int milliseconds) {
         PTime expire_time = boost::posix_time::microsec_clock::local_time()
@@ -625,51 +691,6 @@ private:
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     };
 
-    // Read handlers
-    void HandleReadLThenReadV(const boost::system::error_code& error,
-                            SocketInfoPtr skinfo, std::size_t byte_num) {
-
-        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-
-        if (error) {
-            std::cerr << "Read error: " << error.message() << std::endl;
-            DestroySocket(skinfo);
-            return;
-        }
-
-
-        int len = *(int*)(&((skinfo->recv_buf()[0])));
-        len = boost::asio::detail::socket_ops::network_to_host_long(len);
-        std::cerr << "Length read:  " << len << skinfo->GetFlow() << std::endl;
-
-        if (len > max_recv_buf_size_) {
-
-            std::cerr << "Data length is too large, so close: " << len << ">" << max_recv_buf_size_ << std::endl;
-            DestroySocket(skinfo);
-            return;
-        }
-
-        if (len > static_cast<int>(skinfo->recv_buf().size())) {
-            skinfo->SetRecvBuf(len);
-            *(int*)(&skinfo->recv_buf()[0]) = boost::asio::detail::socket_ops::network_to_host_long(len);
-        }
-
-        std::cerr << "To read " << len << " bytes" << std::endl;
-        boost::asio::async_read(
-            skinfo->tcp_sk(),
-            boost::asio::buffer(&(skinfo->recv_buf()[4]), len - 4),
-            boost::asio::transfer_all(),
-                boost::bind(
-                    &Server::HandleReadVThenProcess,
-                    shared_from_this(),
-                    boost::asio::placeholders::error,
-                    skinfo,
-                    boost::asio::placeholders::bytes_transferred));
-
-        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-
-
-    };
 
     void HandleReadVThenProcess(const boost::system::error_code& error,
                                SocketInfoPtr skinfo, std::size_t byte_num) {
@@ -720,6 +741,8 @@ private:
             // this is a server socket, send and then read
             BOOST_ASSERT(!skinfo->is_client());
             ToReadLThenReadV(skinfo);
+
+
         }
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -727,6 +750,199 @@ private:
     };
 
     // Write handlers
+    void HandleWriteThenReadHTTPHead(const boost::system::error_code& error,
+                             SocketInfoPtr skinfo, std::size_t byte_num) {
+
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+        std::cerr << "To read " << skinfo->GetFlow() << std::endl;
+
+        std::cerr << "To read HTTPHead bytes" << std::endl;
+        skinfo->SetRecvBuf(init_recv_buf_size_);
+        boost::asio::async_read(
+            skinfo->tcp_sk(),
+            boost::buffer(skinfo->recv_buf()),
+            boost::bind(
+                &Server::HandleReadHTTPHeadThenReadHTTPContent,
+                shared_from_this(),
+                boost::asio::placeholders::error,
+                skinfo,
+                boost::asio::placeholders::bytes_transferred));
+
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return;
+    };
+
+    void HandleReadHTTPHeadThenReadHTTPContent(const boost::system::error_code &error,
+                                               SocketInfoPtr skinfo, std::size_t byte_num) {
+
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+        if (error) {
+            std::cerr << "Read error: " << error.message() << std::endl;
+            DestroySocket(skinfo);
+            return;
+        }
+
+        bool continue_field_found = false;
+        std::vector<char>::iterator head_it1, head_it2, head_it3, head_it4;
+        char key1[] = "Content-Length ";
+        char key3[] = "\r\n\r\n";
+        char key4[] = "100-continue";
+        int head_len = 0;
+
+        // check "\r\n\r\n"
+        head_it3 = std::search(skinfo->recv_buf().begin(),
+                          skinfo->recv_buf().end(),
+                          key3,
+                          key3 + 4);
+        if (head_it3 == skinfo->recv_buf().end()) {
+            std::cerr << "HTTP head invalid: No \"\r\n\r\n\" found. "
+                << string(skinfo->recv_buf().begin(), skinfo->recv_buf().end()) << std::endl;
+            return;
+        }
+        head_len = head_it3 - skinfo->recv_buf().begin() + 4;
+
+        // check 'expect 100-continue'
+        head_it4 = std::search(skinfo->recv_buf().begin(),
+                          skinfo->recv_buf().end(),
+                          key4,
+                          key4 + 12);
+        if (head_it4 ！= skinfo->recv_buf().end()) {
+            std::cerr << "HTTP head contains 'Expect 100-continue'. " << std::endl;
+            continue_field_found = true;;
+        }
+
+        // to extract content-length
+        head_it1 = std::search(skinfo->recv_buf().begin(),
+                          skinfo->recv_buf().end(),
+                          length_key1,
+                          length_key1 + 15);
+
+        int len = 0;
+        if (head_it1 != skinfo->recv_buf().end()) {
+            //extract length_field
+            head_it1 += 15;
+            head_it2 = std::find(head_it1, skinfo->recv_buf().end(), '\r');
+            std::string tmps;
+            tmps.assign(head_it1, head_it2);
+            try {
+                len = lexical_cast<int>(tmps);
+            } catch (boost::bak_lexical_cast &e) {
+                std::cerr << "Extract Content-Length(" << tmps <<") error: " << e.what() << std::endl;
+                return;
+            }
+        }
+
+        std::cerr << "Length read:  " << len << skinfo->GetFlow() << std::endl;
+
+        if (len + head_len > max_recv_buf_size_) {
+
+            std::cerr << "Data length is too large, so close: " << len << ">" << max_recv_buf_size_ << std::endl;
+            DestroySocket(skinfo);
+            return;
+        }
+
+        int bytes_left_to_read = len + head_len - skinfo->recv_buf().size();
+
+        if (len + head_len > static_cast<int>(skinfo->recv_buf().size())) {
+            // realloc recv_buf
+            std::vector<char> new_recv_buf;
+            new_recv_buf.resize(len + head_len);
+            std::copy(skinfo->recv_buf().begin(), skinfo->recv_buf().end(), new_recv_buf.begin());
+            skinfo->SetRecvBuf(new_recv_buf);
+        }
+        std::cerr << "HTTP Head length " << head_len << " bytes" << std::endl;
+        std::cerr << "HTTP Content length " << len << " bytes" << std::endl;
+        std::cerr << "Has read " << byte_num << " bytes" << std::endl;
+        std::cerr << "To read the left " << bytes_left_to_read << " bytes" << std::endl;
+
+        boost::asio::async_read(
+            skinfo->tcp_sk(),
+            boost::asio::buffer(&(skinfo->recv_buf()[byte_num]),  bytes_left_to_read),
+            boost::asio::transfer_all(),
+                boost::bind(
+                    &Server::HandleReadHTTPContentThenProcess,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    skinfo,
+                    boost::asio::placeholders::bytes_transferred));
+        // dealing with 100-continue
+        if (continue_field_found) {
+            static std::string continue_head = "HTTP/1.1 100\r\n\r\n";
+            std::vector<char> new_send_buf;
+            new_send_buf.resize(continue_head.length());
+            std::copy(continue_head.begin(), continue_head.end(), new_send_buf.begin());
+            skinfo->SetSendBuf(new_send_buf);
+
+            boost::asio::async_write(
+                skinfo->tcp_sk(),
+                boost::asio::buffer(skinfo->send_buf()),
+                boost::asio::transfer_all(),
+                    boost::bind(
+                        &Server::HandleAnythingThenNothing,
+                        shared_from_this(),
+                        boost::asio::placeholders::error,
+                        skinfo,
+                        boost::asio::placeholders::bytes_transferred));
+        }
+
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+    };
+
+    void HandleReadHTTPContentThenProcess(const boost::system::error_code& error,
+                               SocketInfoPtr skinfo, std::size_t byte_num) {
+
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+        boost::system::error_code e;
+        std::cerr << "To process http request: " << skinfo->recv_buf().size() << " bytes from "<< skinfo->GetFlow() << std::endl;
+
+        if (error) {
+            std::cerr << "Read HTTPContent error: " << error.message() << std::endl;
+            std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+            return;
+        }
+
+        std::string fromip, toip;
+        fromip = skinfo->remote_endpoint().address().to_string();
+        toip = skinfo->local_endpoint().address().to_string();
+
+        int ret = ProcessData(skinfo->recv_buf(),
+                        fromip,
+                        skinfo->remote_endpoint().port(),
+                        toip,
+                        skinfo->local_endpoint().port(),
+                        boost::posix_time::microsec_clock::local_time());
+
+        if (ret < 0) {
+            // error
+            std::cerr << "ProcessData error" << std::endl;
+            DestroySocket(skinfo);
+        } else if (ret == 0) {
+            // this is a server socket, and to idle
+            BOOST_ASSERT(!skinfo->is_client());
+        } else if (ret == 1) {
+            // this is a client socket, send and idle
+            BOOST_ASSERT(skinfo->is_client());
+            BOOST_ASSERT(skinfo->in_use());
+            skinfo->set_in_use(false);
+        } else if (ret == 2) {
+            // this is a server socket, send and close
+            BOOST_ASSERT(skinfo->in_use());
+            BOOST_ASSERT(!skinfo->is_client());
+        } else if (ret == 3) {
+            // this is a server socket, send and then read
+            BOOST_ASSERT(!skinfo->is_client());
+            ToReadHTTPHeadThenReadHTTPContent(skinfo);
+
+        }
+
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return;
+    };
+
     void HandleWriteThenReadL(const boost::system::error_code& error,
                              SocketInfoPtr skinfo, std::size_t byte_num) {
 
@@ -750,7 +966,51 @@ private:
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return;
     };
+    // Read handlers
+    void HandleReadLThenReadV(const boost::system::error_code& error,
+                            SocketInfoPtr skinfo, std::size_t byte_num) {
 
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+        if (error) {
+            std::cerr << "Read error: " << error.message() << std::endl;
+            DestroySocket(skinfo);
+            return;
+        }
+
+
+        int len = *(int*)(&((skinfo->recv_buf()[0])));
+        len = boost::asio::detail::socket_ops::network_to_host_long(len);
+        std::cerr << "Length read:  " << len << skinfo->GetFlow() << std::endl;
+
+        if (len > max_recv_buf_size_) {
+
+            std::cerr << "Data length is too large, so close: " << len << ">" << max_recv_buf_size_ << std::endl;
+            DestroySocket(skinfo);
+            return;
+        }
+
+        if (len > static_cast<int>(skinfo->recv_buf().size())) {
+            skinfo->SetRecvBuf(len);
+            *(int*)(&skinfo->recv_buf()[0]) = boost::asio::detail::socket_ops::network_to_host_long(len);
+        }
+
+        std::cerr << "To read " << len << " bytes" << std::endl;
+        boost::asio::async_read(
+            skinfo->tcp_sk(),
+            boost::asio::buffer(&(skinfo->recv_buf()[4]), len - 4),
+            boost::asio::transfer_all(),
+                boost::bind(
+                    &Server::HandleReadVThenProcess,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    skinfo,
+                    boost::asio::placeholders::bytes_transferred));
+
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+
+    };
     void HandleWriteThenClose(const boost::system::error_code& error,
                               SocketInfoPtr skinfo, std::size_t byte_num) {
 

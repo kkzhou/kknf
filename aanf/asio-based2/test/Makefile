@@ -43,9 +43,6 @@ udp_bf :
 http_c :
 	$(CC) -o http_c $(INC_DIR) $(LIB_DIR) $(LIBS) http_c.cc
 
-http_c_for_bb1 :
-	$(CC) -o http_c_for_bb1 $(INC_DIR) $(LIB_DIR) $(LIBS) http_c_for_bb1.cc
-
 http_bb1 :
 	$(CC) -o http_bb1  $(INC_DIR) $(LIB_DIR) $(LIBS) http_bb1.cc
 

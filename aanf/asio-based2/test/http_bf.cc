@@ -16,6 +16,7 @@
 */
 #include <map>
 #include <string>
+#include <algorithm>
 
 #include "server.hpp"
 #include "test_packet.hpp"
@@ -51,9 +52,29 @@ public:
     virtual int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
                     std::string &to_ip, uint16_t to_port, PTime arrive_time) {
 
-        vector<char> send_buf1, send_buf2, send_buf3;
 
-        TestPacketBase *baseptr = reinterpret_cast<TestPacketBase*>(&input_data[0]);
+        vector<char> send_buf1, send_buf2, send_buf3;
+        static string http_rsp_header1 = "HTTP/1.1\r\nContent-Length: ";
+        static string http_rsp_header2 = "\r\nServer: Nginx\r\n\r\n";
+        TestPacketBase *baseptr;
+
+        if (to_ip == local_ip_ && to_port >= port_low_ && to_port <= port_high_) {
+            // this packet is form client, that is, it is an http request
+            vector<char>::iterator input_it;
+            char delimiter[] = "\r\n\r\n";
+            input_it = search(input_data.begin(), input_data.end(), delimiter, delimiter + 4);
+
+            if (input_it == input_data.end()) {
+                cerr << "Not a valid http request" << endl;
+                return -1;
+            }
+            int content_start = input_it - input_data.begin() + 4;
+
+            baseptr = reinterpret_cast<TestPacketBase*>(&input_data[content_start]);
+        } else {
+            // paket from bb1 or bb2, just an lv packet
+            baseptr = reinterpret_cast<TestPacketBase*>(&input_data[0]);
+        }
 
         if (baseptr->type_ == TestPacketBase::T_REQ_TO_BF) {
             // request from client
@@ -172,8 +193,20 @@ public:
         }
         if (tmpit->second.bb1_rsp_arrived_ && tmpit->second.bb2_rsp_arrived_) {
             // build rsp to client
+
+            static string http_rsp_header1 = "HTTP/1.1\r\nContent-Length: ";
+            static string http_rsp_header2 = "\r\nServer: Nginx\r\n\r\n";
+            stringstream tmps;
+            tmps << sizeof(RspFromBF);
             char *tmp = reinterpret_cast<char*>(&tmpit->second.rsp_);
-            send_buf3.assign(tmp, tmp + sizeof(RspFromBF));
+            send_buf3.reserve(sizeof(RspFromBF) + http_rsp_header1.size() + http_rsp_header2.size() + tmps.str().length());
+
+            vector<char>::iterator ret_it =
+                copy(http_rsp_header1.begin(), http_rsp_header1.end(), send_buf3.begin());
+
+            ret_it = copy(tmps.str().begin(), tmps.str().end(), ret_it + 1);
+            ret_it = copy(http_rsp_header2.begin(), http_rsp_header2.end(), ret_it + 1);
+            ret_it = copy(tmp, tmp + sizeof(RspFromBF), ret_it + 1);
 
             IPAddress addr;
             addr = IPAddress::from_string(tmpit->second.client_ip_);

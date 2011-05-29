@@ -31,9 +31,24 @@ public:
     virtual int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
                     std::string &to_ip, uint16_t to_port, PTime arrive_time) {
 
-       std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-       RspFromBF *rsp = reinterpret_cast<RspFromBF*>(&input_data[0]);
-       cerr << "Recieve RspFromBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp->len_)
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+
+        TestPacketBase *baseptr;
+
+        vector<char>::iterator input_it;
+        char delimiter[] = {'\r', '\n', '\r', '\n'};
+        input_it = search(input_data.begin(), input_data.end(), delimiter, delimiter + 4);
+
+        if (input_it == input_data.end()) {
+            cerr << "Not a valid http request" << endl;
+            return -1;
+        }
+        int content_start = input_it - input_data.begin() + 4;
+
+        baseptr = reinterpret_cast<TestPacketBase*>(&input_data[content_start]);
+
+        RspFromBF *rsp = reinterpret_cast<RspFromBF*>(baseptr);
+        cerr << "Recieve RspFromBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp->len_)
             << " RspFromBF.type_ = " << rsp->type_
             << " RspFromBF.seq_ = " << rsp->seq_
             << " RspFromBF.sum_ = " << rsp->sum_
@@ -61,10 +76,19 @@ public:
 
 
         vector<char> send_buf;
-
-
+        static string http_req_header1 = "POST /\r\nHTTP/1.1\r\nContent-Length: ";
+        static string http_req_header2 = "\r\n\r\n";
+        stringstream tmps;
+        tmps << sizeof(ReqToBF);
         char *tmp = reinterpret_cast<char*>(&req);
-        send_buf.assign(tmp, tmp + len);
+        send_buf.resize(sizeof(ReqToBF) + http_rsp_header1.size() + http_rsp_header2.size() + tmps.str().length());
+
+        vector<char>::iterator ret_it =
+            copy(http_rsp_header1.begin(), http_rsp_header1.end(), send_buf.begin());
+
+        ret_it = copy(tmps.str().begin(), tmps.str().end(), ret_it + 1);
+        ret_it = copy(http_rsp_header2.begin(), http_rsp_header2.end(), ret_it + 1);
+        ret_it = copy(tmp, tmp + sizeof(ReqToBF), ret_it + 1);
 
         cerr << "To find an idle Socket." << endl;
         SocketInfoPtr skinfo = FindIdleTCPClientSocket(server_endpoint_);

@@ -28,7 +28,6 @@
 		<Unit filename="..\..\test\http_bb2.cc" />
 		<Unit filename="..\..\test\http_bf.cc" />
 		<Unit filename="..\..\test\http_c.cc" />
-		<Unit filename="..\..\test\http_c_for_bb1.cc" />
 		<Unit filename="..\..\test\lv_bb1.cc" />
 		<Unit filename="..\..\test\lv_bb2.cc" />
 		<Unit filename="..\..\test\lv_bf.cc" />
