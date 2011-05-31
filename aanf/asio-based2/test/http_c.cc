@@ -78,15 +78,14 @@ public:
         vector<char> send_buf;
         static string http_req_header1 = "POST /\r\nHTTP/1.1\r\nContent-Length: ";
         static string http_req_header2 = "\r\n\r\n";
-        stringstream tmps;
-        tmps << sizeof(ReqToBF);
+        string length_str = boost::lexical_cast<string>(sizeof(ReqToBF));
         char *tmp = reinterpret_cast<char*>(&req);
-        send_buf.resize(sizeof(ReqToBF) + http_req_header1.size() + http_req_header2.size() + tmps.str().length());
+        send_buf.resize(sizeof(ReqToBF) + http_req_header1.size() + http_req_header2.size() + length_str.length());
 
         vector<char>::iterator ret_it =
             copy(http_req_header1.begin(), http_req_header1.end(), send_buf.begin());
 
-        ret_it = copy(tmps.str().begin(), tmps.str().end(), ret_it + 1);
+        ret_it = copy(length_str.begin(), length_str.end(), ret_it + 1);
         ret_it = copy(http_req_header2.begin(), http_req_header2.end(), ret_it + 1);
         ret_it = copy(tmp, tmp + sizeof(ReqToBF), ret_it + 1);
 

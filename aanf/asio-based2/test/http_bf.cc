@@ -196,15 +196,14 @@ public:
 
             static string http_rsp_header1 = "HTTP/1.1\r\nContent-Length: ";
             static string http_rsp_header2 = "\r\nServer: Nginx\r\n\r\n";
-            stringstream tmps;
-            tmps << sizeof(RspFromBF);
+            string tmps = boost::lexical_cast<string>(sizeof(RspFromBF));
             char *tmp = reinterpret_cast<char*>(&tmpit->second.rsp_);
-            send_buf3.reserve(sizeof(RspFromBF) + http_rsp_header1.size() + http_rsp_header2.size() + tmps.str().length());
+            send_buf3.reserve(sizeof(RspFromBF) + http_rsp_header1.size() + http_rsp_header2.size() + tmps.length());
 
             vector<char>::iterator ret_it =
                 copy(http_rsp_header1.begin(), http_rsp_header1.end(), send_buf3.begin());
 
-            ret_it = copy(tmps.str().begin(), tmps.str().end(), ret_it + 1);
+            ret_it = copy(tmps.begin(), tmps.end(), ret_it + 1);
             ret_it = copy(http_rsp_header2.begin(), http_rsp_header2.end(), ret_it + 1);
             ret_it = copy(tmp, tmp + sizeof(RspFromBF), ret_it + 1);
 
