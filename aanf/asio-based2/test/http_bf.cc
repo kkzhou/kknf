@@ -18,7 +18,7 @@
 #include <string>
 #include <algorithm>
 
-#include "server.hpp"
+#include "skeleton.hpp"
 #include "test_packet.hpp"
 
 using namespace AANF;
@@ -40,7 +40,7 @@ public:
 };
 
 
-class TestBF : public Server {
+class TestBF : public Skeleton {
 public:
     TestBF(){};
     virtual ~TestBF(){};

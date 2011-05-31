@@ -14,8 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
-#ifndef _CLIENT_HPP_
-#define _CLIENT_HPP_
+#ifndef _SYNC_CLIENT_HPP_
+#define _SYNC_CLIENT_HPP_
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
@@ -70,7 +70,7 @@ public:
     };
 
 public:
-   // Sync interfaces
+    // Sync interfaces
     // Called when sending request to the server behind and the connection hasn't established yet.
     int ToWriteThenReadSync(TCPEndpoint &remote_endpoint, std::vector<char> &buf_to_send/*content swap*/,
                         std::vector<char> &buf_to_fill) {

@@ -17,13 +17,13 @@
 
 #include <iostream>
 
-#include "client.hpp"
+#include "skeleton.hpp"
 #include "test_packet.hpp"
 
 using namespace AANF;
 using namespace std;
 
-class TestClient : public Client {
+class TestClient : public Skeleton {
 public:
     TestClient(){};
     virtual ~TestClient(){};
@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
     client->set_timer_trigger_interval(timer_interval);
 
     client->server_endpoint_ = TCPEndpoint(addr, port);
-    client->AddTimerHandler(boost::bind(&Client::PrepareDataThenSend, client));
+    client->AddTimerHandler(boost::bind(&Skeleton::PrepareDataThenSend, client));
 
     client->Run();
     cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;

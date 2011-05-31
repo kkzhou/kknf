@@ -17,13 +17,13 @@
 
 #include <iostream>
 
-#include "client.hpp"
+#include "skeleton.hpp"
 #include "test_packet.hpp"
 
 using namespace AANF;
 using namespace std;
 
-class TestClient : public Client {
+class TestClient : public Skeleton {
 public:
     TestClient(){};
     virtual ~TestClient(){};
@@ -66,15 +66,7 @@ public:
         char *tmp = reinterpret_cast<char*>(&req);
         send_buf.assign(tmp, tmp + len);
 
-        cerr << "To find an idle Socket." << endl;
-        SocketInfoPtr skinfo = FindIdleTCPClientSocket(server_endpoint_);
-        if (!skinfo) {
-            cerr << "No idle Socket, to create a new one." << endl;
-            ToConnectThenWrite(server_endpoint_, send_buf);
-        } else {
-            cerr << "Idle Socket found." << endl;
-            ToWriteThenRead(skinfo, send_buf);
-        }
+        UDPToWrite(server_endpoint_, send_buf);
 
         cerr << "Send ReqToBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req.len_)
             << " ReqToBF.type_ = " << req.type_
@@ -150,7 +142,7 @@ int main(int argc, char **argv) {
 
     client->server_endpoint_ = UDPEndpoint(addr2, port2);
     client->InitUDPSocket(UDPEndpoint(addr1, port1));
-    client->AddTimerHandler(boost::bind(&Client::PrepareDataThenSend, client));
+    client->AddTimerHandler(boost::bind(&Skeleton::PrepareDataThenSend, client));
 
     client->Run();
     std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;

@@ -17,13 +17,13 @@
 
 #include <iostream>
 
-#include "client.hpp"
+#include "skeleton.hpp"
 #include "test_packet.hpp"
 
 using namespace AANF;
 using namespace std;
 
-class TestClient : public Client {
+class TestClient : public Skeleton {
 public:
     TestClient(){};
     virtual ~TestClient(){};
@@ -74,7 +74,7 @@ public:
         return;
     };
 public:
-    TCPEndpoint server_endpoint_;
+    UDPEndpoint server_endpoint_;
 };
 
 
@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
 
     client->server_endpoint_ = UDPEndpoint(addr2, port2);
     client->InitUDPSocket(UDPEndpoint(addr1, port1));
-    client->AddTimerHandler(boost::bind(&Client::PrepareDataThenSend, client));
+    client->AddTimerHandler(boost::bind(&Skeleton::PrepareDataThenSend, client));
 
     client->Run();
     cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;

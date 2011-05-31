@@ -21,13 +21,13 @@
 #include <map>
 #include <string>
 
-#include "server.hpp"
+#include "skeleton.hpp"
 #include "test_packet.hpp"
 
 using namespace AANF;
 using namespace std;
 
-class TestBB1 : public Server {
+class TestBB1 : public Skeleton {
 public:
     TestBB1()
         : dist(1, 1000000),

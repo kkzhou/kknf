@@ -22,7 +22,6 @@
 		<Unit filename="..\..\include\skeleton.hpp" />
 		<Unit filename="..\..\include\socketinfo.hpp" />
 		<Unit filename="..\..\include\sync_client.hpp" />
-		<Unit filename="sync_client.hpp" />
 		<Unit filename="..\..\test\Makefile" />
 		<Unit filename="..\..\test\README" />
 		<Unit filename="..\..\test\http_bb1.cc" />
