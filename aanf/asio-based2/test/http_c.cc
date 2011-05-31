@@ -81,13 +81,13 @@ public:
         stringstream tmps;
         tmps << sizeof(ReqToBF);
         char *tmp = reinterpret_cast<char*>(&req);
-        send_buf.resize(sizeof(ReqToBF) + http_rsp_header1.size() + http_rsp_header2.size() + tmps.str().length());
+        send_buf.resize(sizeof(ReqToBF) + http_req_header1.size() + http_req_header2.size() + tmps.str().length());
 
         vector<char>::iterator ret_it =
-            copy(http_rsp_header1.begin(), http_rsp_header1.end(), send_buf.begin());
+            copy(http_req_header1.begin(), http_req_header1.end(), send_buf.begin());
 
         ret_it = copy(tmps.str().begin(), tmps.str().end(), ret_it + 1);
-        ret_it = copy(http_rsp_header2.begin(), http_rsp_header2.end(), ret_it + 1);
+        ret_it = copy(http_req_header2.begin(), http_req_header2.end(), ret_it + 1);
         ret_it = copy(tmp, tmp + sizeof(ReqToBF), ret_it + 1);
 
         cerr << "To find an idle Socket." << endl;

@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
     client->set_timer_trigger_interval(timer_interval);
 
     client->server_endpoint_ = TCPEndpoint(addr, port);
-    client->AddTimerHandler(boost::bind(&Skeleton::PrepareDataThenSend, client));
+    client->AddTimerHandler(boost::bind(&TestClient::PrepareDataThenSend, client));
 
     client->Run();
     std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;

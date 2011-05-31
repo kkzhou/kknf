@@ -83,7 +83,6 @@ public:
 
         return 2;
     };
-public:
 private:
     boost::mt19937 gen;
     boost::uniform_int<> dist;
@@ -107,7 +106,7 @@ int main(int argc, char **argv) {
                 timer_interval = atoi(optarg);
                 break;
             case 'L':
-                local_udp_ip= optarg;
+                local_udp_ip = optarg;
                 option_num++;
                 break;
             case 'p':
@@ -135,14 +134,13 @@ int main(int argc, char **argv) {
     bb1->set_timer_trigger_interval(timer_interval);
     IPAddress addr;
     boost::system::error_code e;
-    addr = IPAddress::from_string(local_udp_ip_, e);
+    addr = IPAddress::from_string(local_udp_ip, e);
     if (e) {
-        cerr << "IP address format invalid: " << bb1->local_ip_ << endl;
+        cerr << "IP address format invalid: " << local_udp_ip << endl;
         exit(1);
     }
 
     bb1->InitUDPSocket(UDPEndpoint(addr, local_udp_port));
-    bb1->UDPToRead();
     bb1->AddTimerHandler(boost::bind(&TestBB1::PrintHeartBeat, bb1));
     bb1->Run();
     std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;

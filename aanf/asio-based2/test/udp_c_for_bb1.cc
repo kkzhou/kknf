@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
 
     client->server_endpoint_ = UDPEndpoint(addr2, port2);
     client->InitUDPSocket(UDPEndpoint(addr1, port1));
-    client->AddTimerHandler(boost::bind(&Skeleton::PrepareDataThenSend, client));
+    client->AddTimerHandler(boost::bind(&TestClient::PrepareDataThenSend, client));
 
     client->Run();
     cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;

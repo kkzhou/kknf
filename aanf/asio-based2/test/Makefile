@@ -8,7 +8,7 @@ LIBS = -lboost_system -lboost_date_time -lboost_random -lboost_thread
 
 
 all : lv_c lv_bb1 lv_bb2 lv_bf lv_c_for_bb1 udp_c udp_bb1 udp_bb2 udp_bf \
-        udp_c_for_bb1 http_c http_bb1 http_bb2 http_bf http_c_for_bb1
+        udp_c_for_bb1 http_c http_bb1 http_bb2 http_bf
 
 lv_c :
 	$(CC) -o lv_c $(INC_DIR) $(LIB_DIR) $(LIBS) lv_c.cc
@@ -55,4 +55,6 @@ http_bf :
 .PHONY : clean
 
 clean:
-	rm -f lv_c lv_bb1 lv_bb2 lv_bf lv_c_for_bb1
+	rm -f lv_c_for_bb1 lv_c lv_bb1 lv_bb2 lv_bf 
+	rm -f udp_bb1 udp_bb2 udp_bf udp_c udp_c_for_bb1 
+	rm -f http_bb1 http_bb2 http_bf http_c

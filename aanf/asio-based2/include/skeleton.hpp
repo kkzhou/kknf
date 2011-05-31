@@ -23,6 +23,7 @@
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -495,7 +496,7 @@ private:
         skinfo->SetRecvBuf(init_recv_buf_size_);
         boost::asio::async_read(
             skinfo->tcp_sk(),
-            boost::buffer(skinfo->recv_buf()),
+            boost::asio::buffer(skinfo->recv_buf()),
             boost::bind(
                 &Skeleton::HandleReadHTTPHeadThenReadHTTPContent,
                 shared_from_this(),
@@ -504,7 +505,7 @@ private:
                 boost::asio::placeholders::bytes_transferred));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        return;
+        return 0;
     };
 
     int ToReadLThenReadV(SocketInfoPtr skinfo) {
@@ -852,7 +853,7 @@ private:
         skinfo->SetRecvBuf(init_recv_buf_size_);
         boost::asio::async_read(
             skinfo->tcp_sk(),
-            boost::buffer(skinfo->recv_buf()),
+            boost::asio::buffer(skinfo->recv_buf()),
             boost::bind(
                 &Skeleton::HandleReadHTTPHeadThenReadHTTPContent,
                 shared_from_this(),
@@ -891,7 +892,7 @@ private:
 
         if (head_it3 == skinfo->recv_buf().end()) {
             std::cerr << "HTTP head invalid: No \"\r\n\r\n\" found. "
-                << string(skinfo->recv_buf().begin(), skinfo->recv_buf().end()) << std::endl;
+                << std::string(skinfo->recv_buf().begin(), skinfo->recv_buf().end()) << std::endl;
             return;
         }
 
@@ -911,8 +912,8 @@ private:
         // to extract content-length
         head_it1 = std::search(skinfo->recv_buf().begin(),
                           skinfo->recv_buf().end(),
-                          length_key1,
-                          length_key1 + 15);
+                          key1,
+                          key1 + 15);
 
         int len = 0;
         if (head_it1 != skinfo->recv_buf().end()) {
@@ -922,8 +923,8 @@ private:
             std::string tmps;
             tmps.assign(head_it1, head_it2);
             try {
-                len = lexical_cast<int>(tmps);
-            } catch (boost::bak_lexical_cast &e) {
+                len = boost::lexical_cast<int>(tmps);
+            } catch (boost::bad_lexical_cast &e) {
                 std::cerr << "Extract Content-Length(" << tmps <<") error: " << e.what() << std::endl;
                 std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
                 return;
