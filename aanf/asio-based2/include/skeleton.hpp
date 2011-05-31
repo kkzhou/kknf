@@ -15,8 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef _SERVER_HPP_
-#define _SERVER_HPP_
+#ifndef _SKELETON_HPP_
+#define _SKELETON_HPP_
 
 #include <stdlib.h>
 
@@ -38,7 +38,7 @@
 namespace AANF {
 
 // The skeleton of a server
-class Server : public boost::enable_shared_from_this<Server> {
+class Skeleton : public boost::enable_shared_from_this<Skeleton> {
 
 public:
     // The only interface should be overrided in derived classes to deal with business logic
@@ -56,7 +56,7 @@ public:
     };
 
 public:
-    Server()
+    Skeleton()
         : timer_trigger_interval_(10000),
         timer_(io_serv_),
         init_recv_buf_size_(1024),
@@ -68,7 +68,7 @@ public:
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
     };
-    virtual ~Server(){
+    virtual ~Skeleton(){
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -92,7 +92,7 @@ public:
         udp_socket_->udp_sk().async_receive_from(
                 boost::asio::buffer(udp_socket_->recv_buf()),
                 udp_socket_->remote_endpoint(),
-                boost::bind(&Server::HandleUDPRead,
+                boost::bind(&Skeleton::HandleUDPRead,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     udp_socket_,
@@ -138,7 +138,7 @@ public:
         std::cerr << "The acceptor is added, to accept" << std::endl;
         new_acceptorinfo->acceptor().async_accept(new_acceptorinfo->sk_info()->tcp_sk(),
                 boost::bind(
-                    &Server::HandleAccept,
+                    &Skeleton::HandleAccept,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     new_acceptorinfo));
@@ -155,12 +155,12 @@ public:
         // Add a default timerhandler which is to dealing with
         // idle server sockets
         AddTimerHandler(boost::function<void()>(
-            boost::bind(&Server::SweepServerSocket,
+            boost::bind(&Skeleton::SweepServerSocket,
                 shared_from_this(),
                 server_timeout_)));
 
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
-        timer_.async_wait( boost::bind(&Server::HandleTimeout,
+        timer_.async_wait( boost::bind(&Skeleton::HandleTimeout,
                                         shared_from_this(),
                                         boost::asio::placeholders::error));
 
@@ -369,7 +369,7 @@ public:
             udp_socket_->udp_sk().async_send_to(
                 boost::asio::buffer(front_item.second),
                 front_item.first,
-                boost::bind(&Server::HandleUDPWrite,
+                boost::bind(&Skeleton::HandleUDPWrite,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     udp_socket_,
@@ -399,7 +399,7 @@ public:
         skinfo->tcp_sk().async_connect(
             skinfo->remote_endpoint(),
             boost::bind(
-                &Server::HandleConnectThenWrite,
+                &Skeleton::HandleConnectThenWrite,
                 shared_from_this(),
                 boost::asio::placeholders::error,
                 skinfo,
@@ -428,7 +428,7 @@ public:
                 boost::asio::buffer(skinfo->send_buf()),
                 boost::asio::transfer_all(),
                 boost::bind(
-                    &Server::HandleWriteThenReadHTTPHead,
+                    &Skeleton::HandleWriteThenReadHTTPHead,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
@@ -441,7 +441,7 @@ public:
                 boost::asio::buffer(skinfo->send_buf()),
                 boost::asio::transfer_all(),
                 boost::bind(
-                    &Server::HandleWriteThenReadL,
+                    &Skeleton::HandleWriteThenReadL,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
@@ -475,7 +475,7 @@ public:
             boost::asio::buffer(skinfo->send_buf()),
             boost::asio::transfer_all(),
             boost::bind(
-                &Server::HandleWriteThenClose,
+                &Skeleton::HandleWriteThenClose,
                 shared_from_this(),
                 boost::asio::placeholders::error,
                 skinfo,
@@ -497,7 +497,7 @@ private:
             skinfo->tcp_sk(),
             boost::buffer(skinfo->recv_buf()),
             boost::bind(
-                &Server::HandleReadHTTPHeadThenReadHTTPContent,
+                &Skeleton::HandleReadHTTPHeadThenReadHTTPContent,
                 shared_from_this(),
                 boost::asio::placeholders::error,
                 skinfo,
@@ -518,7 +518,7 @@ private:
             boost::asio::buffer(&(skinfo->recv_buf().at(0)), 4),
             boost::asio::transfer_all(),
             boost::bind(
-                &Server::HandleReadLThenReadV,
+                &Skeleton::HandleReadLThenReadV,
                 shared_from_this(),
                 boost::asio::placeholders::error,
                 skinfo,
@@ -564,7 +564,7 @@ private:
             boost::asio::buffer(udp_socket_->recv_buf()),
             udp_socket_->remote_endpoint(),
             boost::bind(
-                &Server::HandleUDPRead,
+                &Skeleton::HandleUDPRead,
                 shared_from_this(),
                 boost::asio::placeholders::error,
                 udp_socket_,
@@ -643,7 +643,7 @@ private:
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
         timer_.async_wait(
             boost::bind(
-                &Server::HandleTimeout,
+                &Skeleton::HandleTimeout,
                 shared_from_this(),
                 boost::asio::placeholders::error));
 
@@ -722,7 +722,7 @@ private:
         acceptorinfo->acceptor().async_accept(
             acceptorinfo->sk_info()->tcp_sk(),
             boost::bind(
-                &Server::HandleAccept,
+                &Skeleton::HandleAccept,
                 shared_from_this(),
                 boost::asio::placeholders::error,
                 acceptorinfo));
@@ -773,7 +773,7 @@ private:
             boost::asio::buffer(skinfo->send_buf()),
             boost::asio::transfer_all(),
             boost::bind(
-                &Server::HandleWriteThenReadL,
+                &Skeleton::HandleWriteThenReadL,
                 shared_from_this(),
                 boost::asio::placeholders::error,
                 skinfo,
@@ -854,7 +854,7 @@ private:
             skinfo->tcp_sk(),
             boost::buffer(skinfo->recv_buf()),
             boost::bind(
-                &Server::HandleReadHTTPHeadThenReadHTTPContent,
+                &Skeleton::HandleReadHTTPHeadThenReadHTTPContent,
                 shared_from_this(),
                 boost::asio::placeholders::error,
                 skinfo,
@@ -960,7 +960,7 @@ private:
             boost::asio::buffer(&(skinfo->recv_buf()[byte_num]),  bytes_left_to_read),
             boost::asio::transfer_all(),
             boost::bind(
-                &Server::HandleReadHTTPContentThenProcess,
+                &Skeleton::HandleReadHTTPContentThenProcess,
                 shared_from_this(),
                 boost::asio::placeholders::error,
                 skinfo,
@@ -980,7 +980,7 @@ private:
                 boost::asio::buffer(skinfo->send_buf()),
                 boost::asio::transfer_all(),
                 boost::bind(
-                    &Server::HandleAnythingThenNothing,
+                    &Skeleton::HandleAnythingThenNothing,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     skinfo,
@@ -1056,7 +1056,7 @@ private:
             boost::asio::buffer(&(skinfo->recv_buf()[0]), 4),
             boost::asio::transfer_all(),
             boost::bind(
-                &Server::HandleReadLThenReadV,
+                &Skeleton::HandleReadLThenReadV,
                 shared_from_this(),
                 boost::asio::placeholders::error,
                 skinfo,
@@ -1104,7 +1104,7 @@ private:
             boost::asio::buffer(&(skinfo->recv_buf()[4]), len - 4),
             boost::asio::transfer_all(),
             boost::bind(
-                &Server::HandleReadVThenProcess,
+                &Skeleton::HandleReadVThenProcess,
                 shared_from_this(),
                 boost::asio::placeholders::error,
                 skinfo,
@@ -1143,7 +1143,7 @@ private:
                 boost::asio::buffer(ret.second),
                 ret.first,
                 boost::bind(
-                    &Server::HandleUDPWrite,
+                    &Skeleton::HandleUDPWrite,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     udp_socket_,

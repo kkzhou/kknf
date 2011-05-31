@@ -21,13 +21,13 @@
 #include <map>
 #include <string>
 
-#include "server.hpp"
+#include "skeleton.hpp"
 #include "test_packet.hpp"
 
 using namespace AANF;
 using namespace std;
 
-class TestBB1 : public Server {
+class TestBB1 : public Skeleton {
 public:
     TestBB1()
         : dist(1, 1000000),
@@ -157,6 +157,7 @@ int main(int argc, char **argv) {
         cerr << "IP address format invalid: " << bb1->local_ip_ << endl;
         exit(1);
     }
+
     for (uint16_t port = bb1->port_low_; port <= bb1->port_high_; port++) {
 
         bb1->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_LV);
