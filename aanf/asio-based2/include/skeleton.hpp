@@ -38,7 +38,8 @@
 
 namespace AANF {
 
-// The skeleton of a server
+// The skeleton of a server/client
+// Support event-driven mode, thread-pool mode, sync mode
 class Skeleton : public boost::enable_shared_from_this<Skeleton> {
 
 public:
@@ -58,7 +59,8 @@ public:
 
 public:
     Skeleton()
-        : timer_trigger_interval_(10000),
+        : strand_(io_serv_),
+        timer_trigger_interval_(10000),
         timer_(io_serv_),
         init_recv_buf_size_(1024),
         max_recv_buf_size_(1024 * 1024 * 2),
@@ -69,9 +71,11 @@ public:
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
     };
+
     virtual ~Skeleton(){
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        // TODO: release system resources
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     };
 
@@ -93,11 +97,12 @@ public:
         udp_socket_->udp_sk().async_receive_from(
                 boost::asio::buffer(udp_socket_->recv_buf()),
                 udp_socket_->remote_endpoint(),
-                boost::bind(&Skeleton::HandleUDPRead,
-                    shared_from_this(),
-                    boost::asio::placeholders::error,
-                    udp_socket_,
-                    boost::asio::placeholders::bytes_transferred));
+                strand_.wrap(
+                    boost::bind(&Skeleton::HandleUDPRead,
+                        shared_from_this(),
+                        boost::asio::placeholders::error,
+                        udp_socket_,
+                        boost::asio::placeholders::bytes_transferred)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -137,12 +142,14 @@ public:
         }
 
         std::cerr << "The acceptor is added, to accept" << std::endl;
-        new_acceptorinfo->acceptor().async_accept(new_acceptorinfo->sk_info()->tcp_sk(),
+        new_acceptorinfo->acceptor().async_accept(
+            new_acceptorinfo->sk_info()->tcp_sk(),
+            strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleAccept,
                     shared_from_this(),
                     boost::asio::placeholders::error,
-                    new_acceptorinfo));
+                    new_acceptorinfo)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -161,9 +168,12 @@ public:
                 server_timeout_)));
 
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
-        timer_.async_wait( boost::bind(&Skeleton::HandleTimeout,
-                                        shared_from_this(),
-                                        boost::asio::placeholders::error));
+        timer_.async_wait(
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleTimeout,
+                    shared_from_this(),
+                    boost::asio::placeholders::error)));
 
         io_serv_.run();
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -370,12 +380,13 @@ public:
             udp_socket_->udp_sk().async_send_to(
                 boost::asio::buffer(front_item.second),
                 front_item.first,
-                boost::bind(&Skeleton::HandleUDPWrite,
-                    shared_from_this(),
-                    boost::asio::placeholders::error,
-                    udp_socket_,
-                    front_item.first,
-                    boost::asio::placeholders::bytes_transferred));
+                strand_.wrap(
+                    boost::bind(&Skeleton::HandleUDPWrite,
+                        shared_from_this(),
+                        boost::asio::placeholders::error,
+                        udp_socket_,
+                        front_item.first,
+                        boost::asio::placeholders::bytes_transferred));
 
             udp_socket_->set_in_use(true);
         }
@@ -399,12 +410,13 @@ public:
 
         skinfo->tcp_sk().async_connect(
             skinfo->remote_endpoint(),
-            boost::bind(
-                &Skeleton::HandleConnectThenWrite,
-                shared_from_this(),
-                boost::asio::placeholders::error,
-                skinfo,
-                skinfo->send_buf()));
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleConnectThenWrite,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    skinfo,
+                    skinfo->send_buf())));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -428,12 +440,13 @@ public:
                 skinfo->tcp_sk(),
                 boost::asio::buffer(skinfo->send_buf()),
                 boost::asio::transfer_all(),
-                boost::bind(
-                    &Skeleton::HandleWriteThenReadHTTPHead,
-                    shared_from_this(),
-                    boost::asio::placeholders::error,
-                    skinfo,
-                    boost::asio::placeholders::bytes_transferred));
+                strand_.wrap(
+                    boost::bind(
+                        &Skeleton::HandleWriteThenReadHTTPHead,
+                        shared_from_this(),
+                        boost::asio::placeholders::error,
+                        skinfo,
+                        boost::asio::placeholders::bytes_transferred)));
 
         } else if (skinfo->type() == SocketInfo::T_TCP_LV) {
             // this socket handles(read/write) TCP_LV packet
@@ -441,12 +454,13 @@ public:
                 skinfo->tcp_sk(),
                 boost::asio::buffer(skinfo->send_buf()),
                 boost::asio::transfer_all(),
-                boost::bind(
-                    &Skeleton::HandleWriteThenReadL,
-                    shared_from_this(),
-                    boost::asio::placeholders::error,
-                    skinfo,
-                    boost::asio::placeholders::bytes_transferred));
+                strand_.wrap(
+                    boost::bind(
+                        &Skeleton::HandleWriteThenReadL,
+                        shared_from_this(),
+                        boost::asio::placeholders::error,
+                        skinfo,
+                        boost::asio::placeholders::bytes_transferred)));
 
         } else if (skinfo->type() == SocketInfo::T_TCP_TLV) {
             // this socket handles(read/write) TCP_TLV packet
@@ -475,12 +489,13 @@ public:
             skinfo->tcp_sk(),
             boost::asio::buffer(skinfo->send_buf()),
             boost::asio::transfer_all(),
-            boost::bind(
-                &Skeleton::HandleWriteThenClose,
-                shared_from_this(),
-                boost::asio::placeholders::error,
-                skinfo,
-                boost::asio::placeholders::bytes_transferred));
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleWriteThenClose,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    skinfo,
+                    boost::asio::placeholders::bytes_transferred)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -497,12 +512,13 @@ private:
         boost::asio::async_read(
             skinfo->tcp_sk(),
             boost::asio::buffer(skinfo->recv_buf()),
-            boost::bind(
-                &Skeleton::HandleReadHTTPHeadThenReadHTTPContent,
-                shared_from_this(),
-                boost::asio::placeholders::error,
-                skinfo,
-                boost::asio::placeholders::bytes_transferred));
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleReadHTTPHeadThenReadHTTPContent,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    skinfo,
+                    boost::asio::placeholders::bytes_transferred)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -518,12 +534,13 @@ private:
             skinfo->tcp_sk(),
             boost::asio::buffer(&(skinfo->recv_buf().at(0)), 4),
             boost::asio::transfer_all(),
-            boost::bind(
-                &Skeleton::HandleReadLThenReadV,
-                shared_from_this(),
-                boost::asio::placeholders::error,
-                skinfo,
-                boost::asio::placeholders::bytes_transferred));
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleReadLThenReadV,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    skinfo,
+                    boost::asio::placeholders::bytes_transferred));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -564,12 +581,13 @@ private:
         udp_socket_->udp_sk().async_receive_from(
             boost::asio::buffer(udp_socket_->recv_buf()),
             udp_socket_->remote_endpoint(),
-            boost::bind(
-                &Skeleton::HandleUDPRead,
-                shared_from_this(),
-                boost::asio::placeholders::error,
-                udp_socket_,
-                boost::asio::placeholders::bytes_transferred));
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleUDPRead,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    udp_socket_,
+                    boost::asio::placeholders::bytes_transferred)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
@@ -643,10 +661,11 @@ private:
         std::cerr << "Reload timer" << std::endl;
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
         timer_.async_wait(
-            boost::bind(
-                &Skeleton::HandleTimeout,
-                shared_from_this(),
-                boost::asio::placeholders::error));
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleTimeout,
+                    shared_from_this(),
+                    boost::asio::placeholders::error)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return;
@@ -722,11 +741,12 @@ private:
 
         acceptorinfo->acceptor().async_accept(
             acceptorinfo->sk_info()->tcp_sk(),
-            boost::bind(
-                &Skeleton::HandleAccept,
-                shared_from_this(),
-                boost::asio::placeholders::error,
-                acceptorinfo));
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleAccept,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    acceptorinfo)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return;
@@ -773,12 +793,13 @@ private:
             skinfo->tcp_sk(),
             boost::asio::buffer(skinfo->send_buf()),
             boost::asio::transfer_all(),
-            boost::bind(
-                &Skeleton::HandleWriteThenReadL,
-                shared_from_this(),
-                boost::asio::placeholders::error,
-                skinfo,
-                boost::asio::placeholders::bytes_transferred));
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleWriteThenReadL,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    skinfo,
+                    boost::asio::placeholders::bytes_transferred)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     };
@@ -854,12 +875,13 @@ private:
         boost::asio::async_read(
             skinfo->tcp_sk(),
             boost::asio::buffer(skinfo->recv_buf()),
-            boost::bind(
-                &Skeleton::HandleReadHTTPHeadThenReadHTTPContent,
-                shared_from_this(),
-                boost::asio::placeholders::error,
-                skinfo,
-                boost::asio::placeholders::bytes_transferred));
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleReadHTTPHeadThenReadHTTPContent,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    skinfo,
+                    boost::asio::placeholders::bytes_transferred)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return;
@@ -960,12 +982,13 @@ private:
             skinfo->tcp_sk(),
             boost::asio::buffer(&(skinfo->recv_buf()[byte_num]),  bytes_left_to_read),
             boost::asio::transfer_all(),
-            boost::bind(
-                &Skeleton::HandleReadHTTPContentThenProcess,
-                shared_from_this(),
-                boost::asio::placeholders::error,
-                skinfo,
-                boost::asio::placeholders::bytes_transferred));
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleReadHTTPContentThenProcess,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    skinfo,
+                    boost::asio::placeholders::bytes_transferred)));
 
         // dealing with 100-continue
         if (continue_field_found) {
@@ -980,12 +1003,13 @@ private:
                 skinfo->tcp_sk(),
                 boost::asio::buffer(skinfo->send_buf()),
                 boost::asio::transfer_all(),
-                boost::bind(
-                    &Skeleton::HandleAnythingThenNothing,
-                    shared_from_this(),
-                    boost::asio::placeholders::error,
-                    skinfo,
-                    boost::asio::placeholders::bytes_transferred));
+                strand_.wrap(
+                    boost::bind(
+                        &Skeleton::HandleAnythingThenNothing,
+                        shared_from_this(),
+                        boost::asio::placeholders::error,
+                        skinfo,
+                        boost::asio::placeholders::bytes_transferred)));
         }
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -1056,12 +1080,13 @@ private:
             skinfo->tcp_sk(),
             boost::asio::buffer(&(skinfo->recv_buf()[0]), 4),
             boost::asio::transfer_all(),
-            boost::bind(
-                &Skeleton::HandleReadLThenReadV,
-                shared_from_this(),
-                boost::asio::placeholders::error,
-                skinfo,
-                boost::asio::placeholders::bytes_transferred));
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleReadLThenReadV,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    skinfo,
+                    boost::asio::placeholders::bytes_transferred)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return;
@@ -1104,12 +1129,13 @@ private:
             skinfo->tcp_sk(),
             boost::asio::buffer(&(skinfo->recv_buf()[4]), len - 4),
             boost::asio::transfer_all(),
-            boost::bind(
-                &Skeleton::HandleReadVThenProcess,
-                shared_from_this(),
-                boost::asio::placeholders::error,
-                skinfo,
-                boost::asio::placeholders::bytes_transferred));
+            strand_.wrap(
+                boost::bind(
+                    &Skeleton::HandleReadVThenProcess,
+                    shared_from_this(),
+                    boost::asio::placeholders::error,
+                    skinfo,
+                    boost::asio::placeholders::bytes_transferred)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
     };
@@ -1143,13 +1169,14 @@ private:
             udp_socket_->udp_sk().async_send_to(
                 boost::asio::buffer(ret.second),
                 ret.first,
-                boost::bind(
-                    &Skeleton::HandleUDPWrite,
-                    shared_from_this(),
-                    boost::asio::placeholders::error,
-                    udp_socket_,
-                    ret.first,
-                    boost::asio::placeholders::bytes_transferred));
+                strand_.wrap(
+                    boost::bind(
+                        &Skeleton::HandleUDPWrite,
+                        shared_from_this(),
+                        boost::asio::placeholders::error,
+                        udp_socket_,
+                        ret.first,
+                        boost::asio::placeholders::bytes_transferred)));
 
         } else {
             BOOST_ASSERT(udp_socket_->in_use());
@@ -1323,6 +1350,7 @@ protected:
 
 public:
     // setter/getter
+    boost::asio::io_service& io_serv() { return io_serv_; };
     int tcp_backlog() { return tcp_backlog_; };
     void set_tcp_backlog(int backlog) { tcp_backlog_ = backlog; };
     int max_recv_buf_size() { return max_recv_buf_size_; };
@@ -1339,6 +1367,8 @@ public:
 private:
     // io_service
     boost::asio::io_service io_serv_;
+    boost::asio::io_service::strand strand_;
+
     // Data structure to maintain sockets(connections)
     UDPSocketInfoPtr udp_socket_;
     std::map<TCPEndpoint, SocketInfoPtr> tcp_server_socket_map_;

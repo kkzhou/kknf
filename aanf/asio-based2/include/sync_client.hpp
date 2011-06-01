@@ -238,7 +238,7 @@ public:
         return 0;
     };
 
-    // Async interfaces
+    // sync interfaces
     // To write data into the UDP socket
     int UDPToWriteThenReadSync(UDPEndpoint to_endpoint, std::vector<char> &buf_to_send,
                                std::vector<char> &buf_to_fill, UDPEndpoint &from_endpoint) {
@@ -311,6 +311,7 @@ private:
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
     };
+
 protected:
     SocketInfoPtr FindIdleTCPClientSocket(TCPEndpoint &key) {
 

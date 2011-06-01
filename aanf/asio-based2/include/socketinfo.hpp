@@ -48,11 +48,10 @@ class SocketInfo;
 typedef boost::shared_ptr<TCPAcceptorInfo> TCPAcceptorInfoPtr;
 typedef boost::shared_ptr<SocketInfo> SocketInfoPtr;
 
-// Simple information about a socket
+// Simple information about a TCP socket
 class SocketInfo {
 public:
     enum SocketType {
-        T_UDP,          // UDP is datagram, no need to packetize
         T_TCP_LINE,     // '\n' is the terminator of a packet
         T_TCP_LV,       // the first 4 bytes is an 'int' field to indicate the length
         T_TCP_TLV,      // the first 4 bytes indicates 'type' and the second 4 bytes indicates 'length'
@@ -74,6 +73,7 @@ public:
 
     };
 
+    // setters/getters
     SocketType type() { return type_; };
     TCPEndpoint& remote_endpoint() { return remote_endpoint_; };
     void set_remote_endpoint(TCPEndpoint &remote_endpoint) { remote_endpoint_ = remote_endpoint;};
@@ -91,13 +91,9 @@ public:
     std::vector<char>& recv_buf() { return recv_buf_; };
     std::vector<char>& send_buf() { return send_buf_; };
 
+
     void Touch() {
         access_time_ = boost::posix_time::microsec_clock::local_time();
-    };
-
-    // Obtain the content of 'recv_buf_' using 'swap'
-    void GetData(std::vector<char> &to_swap) {
-        recv_buf_.swap(to_swap);
     };
 
     void SetRecvBuf(size_t byte_num) {
@@ -137,7 +133,7 @@ private:
 
 };
 
-// Information about an acceptor
+// Information about a TCP acceptor
 class TCPAcceptorInfo {
 public:
     TCPAcceptorInfo(SocketInfo::SocketType type, boost::asio::io_service &io_serv)
@@ -167,12 +163,12 @@ public:
 private:
     SocketInfo::SocketType type_;
     TCPAcceptor acceptor_;
-    SocketInfoPtr sk_info_;
+    SocketInfoPtr sk_info_; // contains the new socket returned by accept()
 };
 
 
 
-// Simple information about a IDP socket
+// Simple information about a UDP socket
 class UDPSocketInfo {
 public:
     UDPSocketInfo(boost::asio::io_service &io_serv)
@@ -182,6 +178,7 @@ public:
 
     };
 
+    // setters/getters
     UDPEndpoint& local_endpoint() { return local_endpoint_; };
     void set_local_endpoint(UDPEndpoint local_endpoint) { local_endpoint_ = local_endpoint;};
     UDPEndpoint& remote_endpoint() { return remote_endpoint_; };
