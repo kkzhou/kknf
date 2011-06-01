@@ -150,6 +150,7 @@ int main(int argc, char **argv) {
         return -1;
     }
     bb1->set_timer_trigger_interval(timer_interval);
+    bb1->set_server_timeout(10000);
     IPAddress addr;
     boost::system::error_code e;
     addr = IPAddress::from_string(bb1->local_ip_, e);
@@ -159,7 +160,7 @@ int main(int argc, char **argv) {
     }
     for (uint16_t port = bb1->port_low_; port <= bb1->port_high_; port++) {
 
-        bb1->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_LV);
+        bb1->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_HTTP);
     }
 
     bb1->AddTimerHandler(boost::bind(&TestBB1::PrintHeartBeat, bb1));

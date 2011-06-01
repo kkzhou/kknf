@@ -66,7 +66,7 @@ public:
         SocketInfoPtr skinfo = FindIdleTCPClientSocket(server_endpoint_);
         if (!skinfo) {
             cerr << "No idle Socket, to create a new one." << endl;
-            ToConnectThenWrite(server_endpoint_, send_buf);
+            ToConnectThenWrite(server_endpoint_, SocketInfo::T_TCP_LV, send_buf);
         } else {
             cerr << "Idle Socket found." << endl;
             ToWriteThenRead(skinfo, send_buf);

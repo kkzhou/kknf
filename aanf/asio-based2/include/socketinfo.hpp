@@ -75,6 +75,7 @@ public:
 
     // setters/getters
     SocketType type() { return type_; };
+    void set_type(SocketInfo::SocketType type) { type_ = type; };
     TCPEndpoint& remote_endpoint() { return remote_endpoint_; };
     void set_remote_endpoint(TCPEndpoint &remote_endpoint) { remote_endpoint_ = remote_endpoint;};
     TCPEndpoint& local_endpoint() { return local_endpoint_; };
@@ -89,6 +90,8 @@ public:
     PTime& create_time() { return create_time_; };
     PTime& access_time() { return access_time_; };
     std::vector<char>& recv_buf() { return recv_buf_; };
+    void set_recv_buf_filled(std::size_t filled) { recv_buf_filled_ = filled; };
+    std::size_t recv_buf_filled() { return recv_buf_filled_; };
     std::vector<char>& send_buf() { return send_buf_; };
 
 
@@ -129,6 +132,7 @@ private:
     bool is_client_;
     bool is_connected_;
     std::vector<char> recv_buf_;
+    std::size_t recv_buf_filled_;
     std::vector<char> send_buf_;
 
 };

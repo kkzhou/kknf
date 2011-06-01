@@ -149,7 +149,9 @@ int main(int argc, char **argv) {
         cerr << "Parameter invalid: listenport_low must be less than listenport_high" << endl;
         return -1;
     }
+
     bb2->set_timer_trigger_interval(timer_interval);
+    bb2->set_server_timeout(10000);
 
     IPAddress addr;
     boost::system::error_code e;

@@ -92,7 +92,7 @@ public:
 
             SocketInfoPtr skinfo1 = FindIdleTCPClientSocket(bb1_endpoint_);
             if (!skinfo1) {
-                ToConnectThenWrite(bb1_endpoint_, send_buf1);
+                ToConnectThenWrite(bb1_endpoint_, SocketInfo::T_TCP_LV, send_buf1);
             } else {
                 ToWriteThenRead(skinfo1, send_buf1);
             }
@@ -114,7 +114,7 @@ public:
 
             SocketInfoPtr skinfo2 = FindIdleTCPClientSocket(bb2_endpoint_);
             if (!skinfo2) {
-                ToConnectThenWrite(bb2_endpoint_, send_buf2);
+                ToConnectThenWrite(bb2_endpoint_, SocketInfo::T_TCP_LV, send_buf2);
             } else {
                 ToWriteThenRead(skinfo2, send_buf2);
             }
@@ -283,7 +283,7 @@ int main(int argc, char **argv) {
     }
 
     bf->set_timer_trigger_interval(timer_interval);
-    bf->set_server_timeout(1000);
+    bf->set_server_timeout(10000);
     bf->bb1_endpoint_ = TCPEndpoint(bb1_addr, bb1_port);
     bf->bb2_endpoint_ = TCPEndpoint(bb2_addr, bb2_port);
 

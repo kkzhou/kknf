@@ -149,8 +149,9 @@ int main(int argc, char **argv) {
         cerr << "Parameter invalid: listenport_low must be less than listenport_high" << endl;
         return -1;
     }
-    bb2->set_timer_trigger_interval(timer_interval);
 
+    bb2->set_timer_trigger_interval(timer_interval);
+    bb2->set_server_timeout(10000);
     IPAddress addr;
     boost::system::error_code e;
     addr = IPAddress::from_string(bb2->local_ip_, e);
@@ -161,7 +162,7 @@ int main(int argc, char **argv) {
     }
 
     for (uint16_t port = bb2->port_low_; port <= bb2->port_high_; port++) {
-        bb2->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_LV);
+        bb2->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_HTTP);
     }
 
     bb2->AddTimerHandler(boost::bind(&TestBB2::PrintHeartBeat, bb2));

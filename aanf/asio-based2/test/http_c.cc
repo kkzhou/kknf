@@ -15,6 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
+#include <boost/numeric/conversion/cast.hpp>
 #include <iostream>
 
 #include "skeleton.hpp"
@@ -78,7 +79,7 @@ public:
         vector<char> send_buf;
         static string http_req_header1 = "POST /\r\nHTTP/1.1\r\nContent-Length: ";
         static string http_req_header2 = "\r\n\r\n";
-        string length_str = boost::lexical_cast<string>(sizeof(ReqToBF));
+        string length_str = boost::lexical_cast<string>(boost::numeric_cast<int>(sizeof(ReqToBF)));
         char *tmp = reinterpret_cast<char*>(&req);
         send_buf.resize(sizeof(ReqToBF) + http_req_header1.size() + http_req_header2.size() + length_str.length());
 
@@ -93,7 +94,7 @@ public:
         SocketInfoPtr skinfo = FindIdleTCPClientSocket(server_endpoint_);
         if (!skinfo) {
             cerr << "No idle Socket, to create a new one." << endl;
-            ToConnectThenWrite(server_endpoint_, send_buf);
+            ToConnectThenWrite(server_endpoint_, SocketInfo::T_TCP_HTTP, send_buf);
         } else {
             cerr << "Idle Socket found." << endl;
             ToWriteThenRead(skinfo, send_buf);
