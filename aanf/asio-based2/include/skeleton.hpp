@@ -1040,9 +1040,11 @@ private:
             std::string tmps;
             tmps.assign(head_it1, head_it2);
             try {
-                len = boost::lexical_cast<int>(tmps);
+                //len = boost::lexical_cast<int>("20");
+                len = boost::lexical_cast<int>(tmps.c_str());
             } catch (boost::bad_lexical_cast &e) {
-                std::cerr << "Extract Content-Length(" << tmps <<") error: " << e.what() << std::endl;
+                std::cerr << "Extract Content-Length(" << tmps <<") error: " 
+                    << len << " " << e.what() << std::endl;
                 std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
                 return;
             }

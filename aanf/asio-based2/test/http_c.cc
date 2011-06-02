@@ -60,7 +60,7 @@ public:
        return 1;
     };
 
-    virtual void PrepareDataThenSend() {
+    void PrepareDataThenSend() {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         static int a = 0;
@@ -77,9 +77,10 @@ public:
 
 
         vector<char> send_buf;
-        static string http_req_header1 = "POST /\r\nHTTP/1.1\r\nContent-Length: ";
+        static string http_req_header1 = "POST /xxx\r\nHTTP/1.1\r\nContent-Length ";
         static string http_req_header2 = "\r\n\r\n";
         string length_str = boost::lexical_cast<string>(boost::numeric_cast<int>(sizeof(ReqToBF)));
+        cerr << "length_str=" << length_str << endl;
         char *tmp = reinterpret_cast<char*>(&req);
         send_buf.resize(sizeof(ReqToBF) + http_req_header1.size() + http_req_header2.size() + length_str.length());
 
