@@ -1038,23 +1038,33 @@ private:
             head_it1 += 15;
             head_it2 = std::find(head_it1, skinfo->recv_buf().end(), '\r');
             std::string tmps;
-            tmps.assign(head_it1, head_it2);
+            //tmps.assign(head_it1, head_it2);
+            tmps.append(head_it1, head_it2);
+            std::cerr << "Content-Length field is " << tmps << std::endl;
+
             try {
-                //len = boost::lexical_cast<int>("20");
-                len = boost::lexical_cast<int>(tmps.c_str());
+                len = boost::lexical_cast<int>(tmps);
             } catch (boost::bad_lexical_cast &e) {
                 std::cerr << "Extract Content-Length(" << tmps <<") error: " 
                     << len << " " << e.what() << std::endl;
                 std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
                 return;
             }
+
+        } else {
+
+            DestroySocket(skinfo);
+            std::cerr << "No Content-Length found" << std::endl;
+            std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+            return;
         }
 
         std::cerr << "Length read:  " << len << skinfo->GetFlow() << std::endl;
 
         if (len + head_len > max_recv_buf_size_) {
 
-            std::cerr << "Data length is too large, so close: " << len << ">" << max_recv_buf_size_ << std::endl;
+            std::cerr << "Data length is too large, so close: " << len << ">" 
+                << max_recv_buf_size_ << std::endl;
             DestroySocket(skinfo);
             std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
             return;
@@ -1073,20 +1083,28 @@ private:
         std::cerr << "HTTP Head length " << head_len << " bytes" << std::endl;
         std::cerr << "HTTP Content length " << len << " bytes" << std::endl;
         std::cerr << "Has read " << byte_num << " bytes" << std::endl;
-        std::cerr << "To read the left " << bytes_left_to_read << " bytes" << std::endl;
+        std::cerr << "Left " << bytes_left_to_read << " bytes" << std::endl;
 
-        boost::asio::async_read(
-            skinfo->tcp_sk(),
-            boost::asio::buffer(&(skinfo->recv_buf()[byte_num]),  bytes_left_to_read),
-            boost::asio::transfer_all(),
-            strand_.wrap(
-                boost::bind(
-                    &Skeleton::HandleReadHTTPContentThenProcess,
-                    shared_from_this(),
-                    boost::asio::placeholders::error,
-                    skinfo,
-                    boost::asio::placeholders::bytes_transferred)));
+        if (bytes_left_to_read == 0) {
+            std::cerr << "Already read the whole request" << std::endl;
+            HandleReadHTTPContentThenProcess(error, skinfo, byte_num);
 
+        } else {
+            boost::asio::async_read(
+                skinfo->tcp_sk(),
+                boost::asio::buffer(&(skinfo->recv_buf()[byte_num]),  bytes_left_to_read),
+                boost::asio::transfer_all(),
+                strand_.wrap(
+                    boost::bind(
+                        &Skeleton::HandleReadHTTPContentThenProcess,
+                        shared_from_this(),
+                        boost::asio::placeholders::error,
+                        skinfo,
+                        boost::asio::placeholders::bytes_transferred)));
+
+        }
+
+        
         // dealing with 100-continue
         if (continue_field_found) {
 
@@ -1117,14 +1135,15 @@ private:
                                SocketInfoPtr skinfo, std::size_t byte_num) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To process http request: " << skinfo->recv_buf().size()
-            << " bytes from "<< skinfo->GetFlow() << std::endl;
 
         if (error) {
             std::cerr << "Read HTTPContent error: " << error.message() << std::endl;
             std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
             return;
         }
+        std::cerr << "To process http request: " << skinfo->recv_buf_filled()
+            << " bytes from "<< skinfo->GetFlow() << std::endl;
+        skinfo->recv_buf().resize(skinfo->recv_buf_filled());
 
         skinfo->Touch();
         std::string fromip, toip;

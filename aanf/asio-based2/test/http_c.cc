@@ -77,7 +77,7 @@ public:
 
 
         vector<char> send_buf;
-        static string http_req_header1 = "POST /xxx\r\nHTTP/1.1\r\nContent-Length ";
+        static string http_req_header1 = "POST /xxx HTTP/1.1\r\nContent-Length ";
         static string http_req_header2 = "\r\n\r\n";
         string length_str = boost::lexical_cast<string>(boost::numeric_cast<int>(sizeof(ReqToBF)));
         cerr << "length_str=" << length_str << endl;
@@ -87,9 +87,9 @@ public:
         vector<char>::iterator ret_it =
             copy(http_req_header1.begin(), http_req_header1.end(), send_buf.begin());
 
-        ret_it = copy(length_str.begin(), length_str.end(), ret_it + 1);
-        ret_it = copy(http_req_header2.begin(), http_req_header2.end(), ret_it + 1);
-        ret_it = copy(tmp, tmp + sizeof(ReqToBF), ret_it + 1);
+        ret_it = copy(length_str.begin(), length_str.end(), ret_it);
+        ret_it = copy(http_req_header2.begin(), http_req_header2.end(), ret_it);
+        ret_it = copy(tmp, tmp + sizeof(ReqToBF), ret_it);
 
         cerr << "To find an idle Socket." << endl;
         SocketInfoPtr skinfo = FindIdleTCPClientSocket(server_endpoint_);

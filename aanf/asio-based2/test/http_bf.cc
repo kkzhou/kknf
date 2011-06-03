@@ -205,9 +205,9 @@ public:
             vector<char>::iterator ret_it =
                 copy(http_rsp_header1.begin(), http_rsp_header1.end(), send_buf3.begin());
 
-            ret_it = copy(tmps.begin(), tmps.end(), ret_it + 1);
-            ret_it = copy(http_rsp_header2.begin(), http_rsp_header2.end(), ret_it + 1);
-            ret_it = copy(tmp, tmp + sizeof(RspFromBF), ret_it + 1);
+            ret_it = copy(tmps.begin(), tmps.end(), ret_it);
+            ret_it = copy(http_rsp_header2.begin(), http_rsp_header2.end(), ret_it);
+            ret_it = copy(tmp, tmp + sizeof(RspFromBF), ret_it);
 
             IPAddress addr;
             addr = IPAddress::from_string(tmpit->second.client_ip_);
