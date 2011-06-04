@@ -59,10 +59,7 @@ public:
         int len = sizeof(ReqToBF);
         req.len_ = boost::asio::detail::socket_ops::network_to_host_long(len);
 
-
         vector<char> send_buf;
-
-
         char *tmp = reinterpret_cast<char*>(&req);
         send_buf.assign(tmp, tmp + len);
 

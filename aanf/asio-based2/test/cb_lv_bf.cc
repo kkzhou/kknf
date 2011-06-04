@@ -97,7 +97,7 @@ public:
                             boost::bind(
                                 &TestClient::ReceiveRspFromBB1,
                                 shared_from_this(),
-                                _2, _3, _4, _5, _6, _7);
+                                _1, _2, _3, _4, _5, _6);
 
             cerr << "Send ReqToBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req1.len_)
                 << " ReqToBB1.type_ = " << req1.type_

@@ -73,7 +73,7 @@ public:
                             boost::bind(
                                 &TestClient::MyReceiveCallBack,
                                 shared_from_this(),
-                                _2, _3, _4, _5, _6, _7);
+                                _1, _2, _3, _4, _5, _6));
 
         cerr << "Send ReqToBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req.len_)
             << " ReqToBF.type_ = " << req.type_

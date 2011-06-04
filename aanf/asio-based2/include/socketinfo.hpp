@@ -49,7 +49,7 @@ class SocketInfo;
 typedef boost::shared_ptr<TCPAcceptorInfo> TCPAcceptorInfoPtr;
 typedef boost::shared_ptr<SocketInfo> SocketInfoPtr;
 
-typedef boost::functor<int(std::vector<char>&, std::string&,
+typedef boost::function<int(std::vector<char>&, std::string&,
                             uint16_t, std::string&, uint16_t, PTime)> PacketCallBack;
 
 // Simple information about a TCP socket

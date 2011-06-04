@@ -336,7 +336,7 @@ public:
     };
 
     int ToWriteThenCallBack(TCPEndpoint &remote_endpoint, SocketInfo::SocketType type,
-                            std::vector<char> &buf_to_send/*content swap*/,
+                            std::vector<char> &buf_to_send/*content swap*/, bool i_am_server,
                             PacketCallBack cb) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
