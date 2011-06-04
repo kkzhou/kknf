@@ -66,7 +66,8 @@ public:
         tcp_sk_(io_serv),
         in_use_(false),
         is_client_(false),
-        is_connected_(false) {
+        is_connected_(false),
+        recv_buf_filled_(0) {
 
         access_time_ = create_time_ =
             boost::posix_time::microsec_clock::local_time();

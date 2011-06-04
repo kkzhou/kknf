@@ -526,7 +526,9 @@ private:
 
         std::vector<char>::iterator it;
         char key[] = "\r\n\r\n";
-
+        std::cerr << byte_num << " bytes comes, already recveived " 
+            << skinfo->recv_buf_filled() << " total recv buf is " 
+            << skinfo->recv_buf().size() << std::endl;
         skinfo->set_recv_buf_filled(skinfo->recv_buf_filled() + byte_num);
 
         it = std::search(skinfo->recv_buf().begin(), skinfo->recv_buf().end(), key, key + 4);
@@ -550,6 +552,7 @@ private:
         std::cerr << "To read HTTPHead from " << skinfo->GetFlow() << std::endl;
 
         skinfo->SetRecvBuf(init_recv_buf_size_);
+
         boost::asio::async_read(
             skinfo->tcp_sk(),
             boost::asio::buffer(skinfo->recv_buf()),
@@ -774,7 +777,7 @@ private:
 
         } else if (sk_info->type() == SocketInfo::T_TCP_LV) {
 
-            std::cerr << "It's a LV connection, to read http head" << std::endl;
+            std::cerr << "It's a LV connection, to read Length-field" << std::endl;
             if (ToReadLThenReadV(sk_info) < 0) {
                 std::cerr << "To read L field error" << std::endl;
                 DestroySocket(sk_info);
@@ -970,6 +973,12 @@ private:
         boost::asio::async_read(
             skinfo->tcp_sk(),
             boost::asio::buffer(skinfo->recv_buf()),
+            boost::bind(
+                &Skeleton::HTTPHeadReadCompletionCondition,
+                shared_from_this(),
+                boost::asio::placeholders::error,
+                skinfo,
+                boost::asio::placeholders::bytes_transferred),
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleReadHTTPHeadThenReadHTTPContent,
@@ -1144,7 +1153,10 @@ private:
         }
         std::cerr << "To process http request: " << skinfo->recv_buf_filled()
             << " bytes from "<< skinfo->GetFlow() << std::endl;
+
+        // reset the recv state
         skinfo->recv_buf().resize(skinfo->recv_buf_filled());
+        skinfo->set_recv_buf_filled(0);
 
         skinfo->Touch();
         std::string fromip, toip;
@@ -1372,9 +1384,9 @@ protected:
         }
 
         if (ret) {
-            std::cerr << "Found:" << std::endl;
+            std::cerr << "Found" << std::endl;
         } else {
-            std::cerr << "Not found:" << std::endl;
+            std::cerr << "Not found" << std::endl;
         }
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;

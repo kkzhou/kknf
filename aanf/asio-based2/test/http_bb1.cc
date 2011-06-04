@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
     }
     for (uint16_t port = bb1->port_low_; port <= bb1->port_high_; port++) {
 
-        bb1->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_HTTP);
+        bb1->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_LV);
     }
 
     bb1->AddTimerHandler(boost::bind(&TestBB1::PrintHeartBeat, bb1));

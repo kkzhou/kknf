@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
     }
 
     for (uint16_t port = bb2->port_low_; port <= bb2->port_high_; port++) {
-        bb2->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_HTTP);
+        bb2->AddTCPAcceptor(TCPEndpoint(addr, port), SocketInfo::T_TCP_LV);
     }
 
     bb2->AddTimerHandler(boost::bind(&TestBB2::PrintHeartBeat, bb2));

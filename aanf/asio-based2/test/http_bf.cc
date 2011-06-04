@@ -115,7 +115,7 @@ public:
 
             SocketInfoPtr skinfo1 = FindIdleTCPClientSocket(bb1_endpoint_);
             if (!skinfo1) {
-                ToConnectThenWrite(bb1_endpoint_, SocketInfo::T_TCP_HTTP, send_buf1);
+                ToConnectThenWrite(bb1_endpoint_, SocketInfo::T_TCP_LV, send_buf1);
             } else {
                 ToWriteThenRead(skinfo1, send_buf1);
             }
@@ -137,7 +137,7 @@ public:
 
             SocketInfoPtr skinfo2 = FindIdleTCPClientSocket(bb2_endpoint_);
             if (!skinfo2) {
-                ToConnectThenWrite(bb2_endpoint_, SocketInfo::T_TCP_HTTP, send_buf2);
+                ToConnectThenWrite(bb2_endpoint_, SocketInfo::T_TCP_LV, send_buf2);
             } else {
                 ToWriteThenRead(skinfo2, send_buf2);
             }
@@ -196,11 +196,21 @@ public:
         if (tmpit->second.bb1_rsp_arrived_ && tmpit->second.bb2_rsp_arrived_) {
             // build rsp to client
 
-            static string http_rsp_header1 = "HTTP/1.1\r\nContent-Length: ";
+            cerr << "To build RSP to client" << endl;
+            static string http_rsp_header1 = "HTTP/1.1 200\r\nContent-Length ";
             static string http_rsp_header2 = "\r\nServer: Nginx\r\n\r\n";
-            string tmps = boost::lexical_cast<string>(boost::numeric_cast<int>(sizeof(RspFromBF)));
+            string tmps;
+            try {
+                tmps = boost::lexical_cast<string>(boost::numeric_cast<int>(sizeof(RspFromBF)));
+            } catch (boost::bad_lexical_cast &e) {
+                cerr << "lexical cast error: " << e.what() << endl;
+                return -1;
+            }
+            string http_rsp_header = http_rsp_header1 + tmps + http_rsp_header2;
+            cerr << "HTTP RSP Header is: \n" << http_rsp_header << endl;
             char *tmp = reinterpret_cast<char*>(&tmpit->second.rsp_);
-            send_buf3.reserve(sizeof(RspFromBF) + http_rsp_header1.size() + http_rsp_header2.size() + tmps.length());
+            send_buf3.resize(sizeof(RspFromBF) + http_rsp_header1.length() 
+                + http_rsp_header2.length() + tmps.length());
 
             vector<char>::iterator ret_it =
                 copy(http_rsp_header1.begin(), http_rsp_header1.end(), send_buf3.begin());
