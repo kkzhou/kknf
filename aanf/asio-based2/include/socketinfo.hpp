@@ -19,6 +19,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/function.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <iostream>
@@ -47,6 +48,9 @@ class TCPAcceptorInfo;
 class SocketInfo;
 typedef boost::shared_ptr<TCPAcceptorInfo> TCPAcceptorInfoPtr;
 typedef boost::shared_ptr<SocketInfo> SocketInfoPtr;
+
+typedef boost::functor<int(std::vector<char>&, std::string&,
+                            uint16_t, std::string&, uint16_t, PTime)> PacketCallBack;
 
 // Simple information about a TCP socket
 class SocketInfo {
@@ -94,6 +98,8 @@ public:
     void set_recv_buf_filled(std::size_t filled) { recv_buf_filled_ = filled; };
     std::size_t recv_buf_filled() { return recv_buf_filled_; };
     std::vector<char>& send_buf() { return send_buf_; };
+    PacketCallBack cb() { return cb_; };
+    void set_cb(PacketCallBack cb) { cb_ = cb; };
 
 
     void Touch() {
@@ -135,6 +141,7 @@ private:
     std::vector<char> recv_buf_;
     std::size_t recv_buf_filled_;
     std::vector<char> send_buf_;
+    PacketCallBack cb_;
 
 };
 

@@ -335,9 +335,37 @@ public:
         return 0;
     };
 
+    int ToWriteThenCallBack(TCPEndpoint &remote_endpoint, SocketInfo::SocketType type,
+                            std::vector<char> &buf_to_send/*content swap*/,
+                            PacketCallBack cb) {
+
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        SocketInfoPtr skinfo = FindIdleTCPClientSocket(remote_endpoint);
+
+        int ret = 0;
+        if (!skinfo) {
+            if (i_am_server) {
+                std::cerr << "Not found the server socket" << std::endl;
+                std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+                return -1;
+            }
+            ret = ToConnectThenWrite(remote_endpoint, type, buf_to_send, cb);
+
+        } else {
+
+            std::cerr << "To write " << buf_to_send.size() << " bytes "
+                << skinfo->GetFlow() << std::endl;
+            skinfo->set_cb(cb);
+            ret = ToWriteThenRead(skinfo, buf_to_send);
+        }
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
+        return 0;
+    };
+
     // Called when sending request to the server behind and the connection has already established.
     int ToWriteThenRead(TCPEndpoint &remote_endpoint, SocketInfo::SocketType type,
                             std::vector<char> &buf_to_send/*content swap*/, bool i_am_server) {
+
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
 
         SocketInfoPtr skinfo;
@@ -354,7 +382,8 @@ public:
                 std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
                 return -1;
             }
-            ret = ToConnectThenWrite(remote_endpoint, type, buf_to_send);
+            PacketCallBack tmp_cb;
+            ret = ToConnectThenWrite(remote_endpoint, type, buf_to_send, tmp_cb/*empty*/);
 
         } else {
 
@@ -405,13 +434,14 @@ public:
 private:
    // Called when sending request to the server behind and the connection hasn't established yet.
     int ToConnectThenWrite(TCPEndpoint &remote_endpoint, SocketInfo::SocketType type,
-                            std::vector<char> &buf_to_send/*content swap*/) {
+                            std::vector<char> &buf_to_send/*content swap*/, PacketCallBack cb) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         std::cerr << "To connect " << remote_endpoint.address().to_string() << ":"
             << remote_endpoint.port() << std::endl;
 
         SocketInfoPtr skinfo(new SocketInfo(type, io_serv_));
+        skinfo->set_cb(cb);
         skinfo->SetSendBuf(buf_to_send);
         skinfo->set_remote_endpoint(remote_endpoint);
         skinfo->set_is_client(true);
@@ -889,13 +919,29 @@ private:
         fromip = skinfo->remote_endpoint().address().to_string();
         toip = skinfo->local_endpoint().address().to_string();
 
-        int ret = ProcessData(
-                        skinfo->recv_buf(),
-                        fromip,
-                        skinfo->remote_endpoint().port(),
-                        toip,
-                        skinfo->local_endpoint().port(),
-                        boost::posix_time::microsec_clock::local_time());
+        int ret = 0;
+
+        if (skinfo->cb()) {
+
+            ret = (skinfo->cb())(
+                    skinfo->recv_buf(),
+                    fromip,
+                    skinfo->remote_endpoint().port(),
+                    toip,
+                    skinfo->local_endpoint().port(),
+                    boost::posix_time::microsec_clock::local_time());
+
+        } else {
+
+            ret = ProcessData(
+                    skinfo->recv_buf(),
+                    fromip,
+                    skinfo->remote_endpoint().port(),
+                    toip,
+                    skinfo->local_endpoint().port(),
+                    boost::posix_time::microsec_clock::local_time());
+        }
+
 
         if (ret < 0) {
             // error
@@ -1136,12 +1182,28 @@ private:
         fromip = skinfo->remote_endpoint().address().to_string();
         toip = skinfo->local_endpoint().address().to_string();
 
-        int ret = ProcessData(skinfo->recv_buf(),
-                        fromip,
-                        skinfo->remote_endpoint().port(),
-                        toip,
-                        skinfo->local_endpoint().port(),
-                        boost::posix_time::microsec_clock::local_time());
+        int ret = 0;
+
+        if (skinfo->cb()) {
+
+            ret = (skinfo->cb())(
+                    skinfo->recv_buf(),
+                    fromip,
+                    skinfo->remote_endpoint().port(),
+                    toip,
+                    skinfo->local_endpoint().port(),
+                    boost::posix_time::microsec_clock::local_time());
+
+        } else {
+
+            ret = ProcessData(
+                    skinfo->recv_buf(),
+                    fromip,
+                    skinfo->remote_endpoint().port(),
+                    toip,
+                    skinfo->local_endpoint().port(),
+                    boost::posix_time::microsec_clock::local_time());
+        }
 
         if (ret < 0) {
             // error

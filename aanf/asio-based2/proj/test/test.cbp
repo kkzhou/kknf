@@ -24,6 +24,10 @@
 		<Unit filename="..\..\include\sync_client.hpp" />
 		<Unit filename="..\..\test\Makefile" />
 		<Unit filename="..\..\test\README" />
+		<Unit filename="..\..\test\cb_lv_bb1.cc" />
+		<Unit filename="..\..\test\cb_lv_bb2.cc" />
+		<Unit filename="..\..\test\cb_lv_bf.cc" />
+		<Unit filename="..\..\test\cb_lv_c.cc" />
 		<Unit filename="..\..\test\http_bb1.cc" />
 		<Unit filename="..\..\test\http_bb2.cc" />
 		<Unit filename="..\..\test\http_bf.cc" />

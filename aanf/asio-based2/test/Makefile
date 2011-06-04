@@ -8,7 +8,8 @@ LIBS = -lboost_system -lboost_date_time -lboost_random -lboost_thread
 
 
 all : lv_c lv_bb1 lv_bb2 lv_bf lv_c_for_bb1 udp_c udp_bb1 udp_bb2 udp_bf \
-        udp_c_for_bb1 http_c http_bb1 http_bb2 http_bf
+        udp_c_for_bb1 http_c http_bb1 http_bb2 http_bf cb_lv_c cb_lv_bb1 \
+        cb_lv_bb2 cb_lv_bf
 
 lv_c :
 	$(CC) -o lv_c $(INC_DIR) $(LIB_DIR) $(LIBS) lv_c.cc
@@ -52,9 +53,22 @@ http_bb2 :
 http_bf :
 	$(CC) -o http_bf $(INC_DIR) $(LIB_DIR) $(LIBS) http_bf.cc
 
+cb_lv_c :
+	$(CC) -o cb_lv_c $(INC_DIR) $(LIB_DIR) $(LIBS) cb_lv_c.cc
+
+cb_lv_bb1 :
+	$(CC) -o cb_lv_bb1  $(INC_DIR) $(LIB_DIR) $(LIBS) cb_lv_bb1.cc
+
+cb_lv_bb2 :
+	$(CC) -o cb_lv_bb2  $(INC_DIR) $(LIB_DIR) $(LIBS) cb_lv_bb2.cc
+
+cb_lv_bf :
+	$(CC) -o cb_lv_bf $(INC_DIR) $(LIB_DIR) $(LIBS) cb_lv_bf.cc
+
 .PHONY : clean
 
 clean:
-	rm -f lv_c_for_bb1 lv_c lv_bb1 lv_bb2 lv_bf 
-	rm -f udp_bb1 udp_bb2 udp_bf udp_c udp_c_for_bb1 
+	rm -f lv_c_for_bb1 lv_c lv_bb1 lv_bb2 lv_bf
+	rm -f udp_bb1 udp_bb2 udp_bf udp_c udp_c_for_bb1
 	rm -f http_bb1 http_bb2 http_bf http_c
+	rm -f cb_lv_c cb_lv_bb1 cb_lv_bb2 cb_lv_bf
