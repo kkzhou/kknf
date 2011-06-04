@@ -520,7 +520,8 @@ private:
                                                 SocketInfoPtr skinfo, std::size_t byte_num) {
 
         if (error) {
-            std::cerr << "Read error: " << std::endl;
+            std::cerr << "Read error: " << error.message() << std::endl;
+            return 0;
         }
 
         std::vector<char>::iterator it;
