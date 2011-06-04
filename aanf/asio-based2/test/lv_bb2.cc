@@ -73,13 +73,8 @@ public:
         boost::system::error_code e;
         addr = IPAddress::from_string(from_ip, e);
         TCPEndpoint endpoint(addr, from_port);
-        SocketInfoPtr skinfo = FindTCPServerSocket(endpoint);
-        if (!skinfo) {
-            cerr << "Socket not found " << from_ip << ":" << from_port << endl;
-            return -1;
-        }
 
-        ToWriteThenRead(skinfo, send_buf);
+        ToWriteThenRead(endpoint, SocketInfo::T_TCP_LV, send_buf, true);
 
 
         cerr << "Send RspFromBB2.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp.len_)

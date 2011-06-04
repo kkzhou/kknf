@@ -62,15 +62,7 @@ public:
         char *tmp = reinterpret_cast<char*>(&req);
         send_buf.assign(tmp, tmp + len);
 
-        cerr << "To find an idle Socket." << endl;
-        SocketInfoPtr skinfo = FindIdleTCPClientSocket(server_endpoint_);
-        if (!skinfo) {
-            cerr << "No idle Socket, to create a new one." << endl;
-            ToConnectThenWrite(server_endpoint_, SocketInfo::T_TCP_LV, send_buf);
-        } else {
-            cerr << "Idle Socket found." << endl;
-            ToWriteThenRead(skinfo, send_buf);
-        }
+        ToWriteThenRead(server_endpoint_, SocketInfo::T_TCP_LV, send_buf, false);
 
         cerr << "Send ReqToBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req.len_)
             << " ReqToBB1.type_ = " << req.type_

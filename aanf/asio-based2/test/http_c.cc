@@ -93,15 +93,7 @@ public:
         ret_it = copy(http_req_header2.begin(), http_req_header2.end(), ret_it);
         ret_it = copy(tmp, tmp + sizeof(ReqToBF), ret_it);
 
-        cerr << "To find an idle Socket." << endl;
-        SocketInfoPtr skinfo = FindIdleTCPClientSocket(server_endpoint_);
-        if (!skinfo) {
-            cerr << "No idle Socket, to create a new one." << endl;
-            ToConnectThenWrite(server_endpoint_, SocketInfo::T_TCP_HTTP, send_buf);
-        } else {
-            cerr << "Idle Socket found." << endl;
-            ToWriteThenRead(skinfo, send_buf);
-        }
+        ToWriteThenRead(server_endpoint_, SocketInfo::T_TCP_HTTP, send_buf, false);
 
         cerr << "Send ReqToBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req.len_)
             << " ReqToBF.type_ = " << req.type_
