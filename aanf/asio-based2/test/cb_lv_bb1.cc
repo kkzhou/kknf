@@ -44,6 +44,7 @@ public:
     virtual int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
                     std::string &to_ip, uint16_t to_port, PTime arrive_time) {
 
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         vector<char> send_buf;
 
         TestPacketBase *baseptr = reinterpret_cast<TestPacketBase*>(&input_data[0]);
@@ -82,6 +83,7 @@ public:
             << " RspFromBB1.another_a_ = " << rsp.another_a_
             << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
 
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 2;
     };
 public:

@@ -31,14 +31,14 @@ public:
     virtual int ProcessData(vector<char> &input_data, string &from_ip, uint16_t from_port,
                     string &to_ip, uint16_t to_port, PTime arrive_time) {
 
-       cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << endl;
+       std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
        RspFromBB1 *rsp = reinterpret_cast<RspFromBB1*>(&input_data[0]);
        cerr << "Recieve RspFromBB1.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(rsp->len_)
             << " RspFromBB1.type_ = " << rsp->type_
             << " RspFromBB1.seq_ = " << rsp->another_a_
             << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
 
-       cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << endl;
+       std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
        return 1;
     };
 

@@ -26,7 +26,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
-#include <boost/enable_shared_from_this.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <map>
@@ -40,7 +39,7 @@ namespace AANF {
 
 // The skeleton of a server/client
 // Support event-driven mode, thread-pool mode, sync mode
-class Skeleton : public boost::enable_shared_from_this<Skeleton> {
+class Skeleton {
 
 public:
     // The only interface should be overrided in derived classes to deal with business logic
@@ -99,7 +98,7 @@ public:
                 udp_socket_->remote_endpoint(),
                 strand_.wrap(
                     boost::bind(&Skeleton::HandleUDPRead,
-                        shared_from_this(),
+                        this,
                         boost::asio::placeholders::error,
                         udp_socket_,
                         boost::asio::placeholders::bytes_transferred)));
@@ -147,7 +146,7 @@ public:
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleAccept,
-                    shared_from_this(),
+                    this,
                     boost::asio::placeholders::error,
                     new_acceptorinfo)));
 
@@ -164,7 +163,7 @@ public:
         // idle server sockets
         AddTimerHandler(boost::function<void()>(
             boost::bind(&Skeleton::SweepServerSocket,
-                shared_from_this(),
+                this,
                 server_timeout_)));
 
         timer_.expires_from_now(boost::posix_time::milliseconds(timer_trigger_interval_));
@@ -172,7 +171,7 @@ public:
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleTimeout,
-                    shared_from_this(),
+                    this,
                     boost::asio::placeholders::error)));
 
         io_serv_.run();
@@ -323,7 +322,7 @@ public:
                 front_item.first,
                 strand_.wrap(
                     boost::bind(&Skeleton::HandleUDPWrite,
-                        shared_from_this(),
+                        this,
                         boost::asio::placeholders::error,
                         udp_socket_,
                         front_item.first,
@@ -422,7 +421,7 @@ public:
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleWriteThenClose,
-                    shared_from_this(),
+                    this,
                     boost::asio::placeholders::error,
                     skinfo,
                     boost::asio::placeholders::bytes_transferred)));
@@ -453,7 +452,7 @@ private:
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleConnectThenWrite,
-                    shared_from_this(),
+                    this,
                     boost::asio::placeholders::error,
                     skinfo,
                     skinfo->send_buf())));
@@ -482,7 +481,7 @@ private:
                 strand_.wrap(
                     boost::bind(
                         &Skeleton::HandleWriteThenReadHTTPHead,
-                        shared_from_this(),
+                        this,
                         boost::asio::placeholders::error,
                         skinfo,
                         boost::asio::placeholders::bytes_transferred)));
@@ -496,7 +495,7 @@ private:
                 strand_.wrap(
                     boost::bind(
                         &Skeleton::HandleWriteThenReadL,
-                        shared_from_this(),
+                        this,
                         boost::asio::placeholders::error,
                         skinfo,
                         boost::asio::placeholders::bytes_transferred)));
@@ -561,14 +560,14 @@ private:
             boost::asio::buffer(skinfo->recv_buf()),
             boost::bind(
                 &Skeleton::HTTPHeadReadCompletionCondition,
-                shared_from_this(),
+                this,
                 boost::asio::placeholders::error,
                 skinfo,
                 boost::asio::placeholders::bytes_transferred),
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleReadHTTPHeadThenReadHTTPContent,
-                    shared_from_this(),
+                    this,
                     boost::asio::placeholders::error,
                     skinfo,
                     boost::asio::placeholders::bytes_transferred)));
@@ -590,7 +589,7 @@ private:
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleReadLThenReadV,
-                    shared_from_this(),
+                    this,
                     boost::asio::placeholders::error,
                     skinfo,
                     boost::asio::placeholders::bytes_transferred)));
@@ -637,7 +636,7 @@ private:
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleUDPRead,
-                    shared_from_this(),
+                    this,
                     boost::asio::placeholders::error,
                     udp_socket_,
                     boost::asio::placeholders::bytes_transferred)));
@@ -718,7 +717,7 @@ private:
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleTimeout,
-                    shared_from_this(),
+                    this,
                     boost::asio::placeholders::error)));
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
@@ -799,7 +798,7 @@ private:
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleAccept,
-                    shared_from_this(),
+                    this,
                     boost::asio::placeholders::error,
                     acceptorinfo)));
 
@@ -855,7 +854,7 @@ private:
                 strand_.wrap(
                     boost::bind(
                         &Skeleton::HandleWriteThenReadL,
-                        shared_from_this(),
+                        this,
                         boost::asio::placeholders::error,
                         skinfo,
                         boost::asio::placeholders::bytes_transferred)));
@@ -879,7 +878,7 @@ private:
                 strand_.wrap(
                     boost::bind(
                         &Skeleton::HandleWriteThenReadHTTPHead,
-                        shared_from_this(),
+                        this,
                         boost::asio::placeholders::error,
                         skinfo,
                         boost::asio::placeholders::bytes_transferred)));
@@ -994,14 +993,14 @@ private:
             boost::asio::buffer(skinfo->recv_buf()),
             boost::bind(
                 &Skeleton::HTTPHeadReadCompletionCondition,
-                shared_from_this(),
+                this,
                 boost::asio::placeholders::error,
                 skinfo,
                 boost::asio::placeholders::bytes_transferred),
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleReadHTTPHeadThenReadHTTPContent,
-                    shared_from_this(),
+                    this,
                     boost::asio::placeholders::error,
                     skinfo,
                     boost::asio::placeholders::bytes_transferred)));
@@ -1126,7 +1125,7 @@ private:
                 strand_.wrap(
                     boost::bind(
                         &Skeleton::HandleReadHTTPContentThenProcess,
-                        shared_from_this(),
+                        this,
                         boost::asio::placeholders::error,
                         skinfo,
                         boost::asio::placeholders::bytes_transferred)));
@@ -1150,7 +1149,7 @@ private:
                 strand_.wrap(
                     boost::bind(
                         &Skeleton::HandleAnythingThenNothing,
-                        shared_from_this(),
+                        this,
                         boost::asio::placeholders::error,
                         skinfo,
                         boost::asio::placeholders::bytes_transferred)));
@@ -1255,7 +1254,7 @@ private:
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleReadLThenReadV,
-                    shared_from_this(),
+                    this,
                     boost::asio::placeholders::error,
                     skinfo,
                     boost::asio::placeholders::bytes_transferred)));
@@ -1305,7 +1304,7 @@ private:
             strand_.wrap(
                 boost::bind(
                     &Skeleton::HandleReadVThenProcess,
-                    shared_from_this(),
+                    this,
                     boost::asio::placeholders::error,
                     skinfo,
                     boost::asio::placeholders::bytes_transferred)));
@@ -1345,7 +1344,7 @@ private:
                 strand_.wrap(
                     boost::bind(
                         &Skeleton::HandleUDPWrite,
-                        shared_from_this(),
+                        this,
                         boost::asio::placeholders::error,
                         udp_socket_,
                         ret.first,

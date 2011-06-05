@@ -51,6 +51,7 @@ public:
     virtual int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
                     std::string &to_ip, uint16_t to_port, PTime arrive_time) {
 
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         vector<char> send_buf1, send_buf2, send_buf3;
 
         TestPacketBase *baseptr = reinterpret_cast<TestPacketBase*>(&input_data[0]);
@@ -68,6 +69,7 @@ public:
             map<int, ReqLocalData>::iterator it = ld_.find(req_to_bf->seq_);
             if (it != ld_.end()) {
                 cerr << "Seq error: seqnum(" << req_to_bf->seq_ << ") is taken." << endl;
+                std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
                 return -1;
             }
 
@@ -113,6 +115,7 @@ public:
                 << " ReqToBB2.seq_ = " << req2.seq_
                 << " ReqToBB2.b_ = " << req2.b_
                 << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
+            std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
             return 0;
 
         } else if (baseptr->type_ == TestPacketBase::T_RSP_FROM_BB1) {
@@ -127,6 +130,7 @@ public:
             map<int, ReqLocalData>::iterator it = ld_.find(rsp_from_bb1->seq_);
             if (it == ld_.end()) {
                 cerr << "Seq error: seqnum(" << rsp_from_bb1->seq_ << ") doesn't exist." << endl;
+                std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
                 return -1;
             }
 
@@ -145,6 +149,7 @@ public:
             map<int, ReqLocalData>::iterator it = ld_.find(rsp_from_bb2->seq_);
             if (it == ld_.end()) {
                 cerr << "Seq error: seqnum(" << rsp_from_bb2->seq_ << ") doesn't exist." << endl;
+                std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
                 return -1;
             }
 
@@ -152,12 +157,14 @@ public:
             it->second.bb2_rsp_arrived_= true;
         } else {
             cerr << "Not supported packet type: " << baseptr->type_ << endl;
+            std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
             return -1;
         }
 
         map<int, ReqLocalData>::iterator tmpit = ld_.find(baseptr->seq_);
         if (tmpit == ld_.end()) {
             cerr << "Seq error: seqnum(" << baseptr->seq_ << ") doesn't exist." << endl;
+            std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
             return -1;
         }
         if (tmpit->second.bb1_rsp_arrived_ && tmpit->second.bb2_rsp_arrived_) {
@@ -177,6 +184,7 @@ public:
                 << " RspFromBF.sum_ = " << tmpit->second.rsp_.sum_
                 << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
         }
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 1;
     };
 public:

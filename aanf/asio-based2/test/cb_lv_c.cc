@@ -66,14 +66,15 @@ public:
         char *tmp = reinterpret_cast<char*>(&req);
         send_buf.assign(tmp, tmp + len);
 
+        PacketCallBack cb = boost::bind(&TestClient::MyReceiveCallBack, 
+                                        this,
+                                        _1, _2, _3, _4, _5, _6);
+
         ToWriteThenCallBack(server_endpoint_,
                             SocketInfo::T_TCP_LV,
                             send_buf,
                             false,
-                            boost::bind(
-                                &TestClient::MyReceiveCallBack,
-                                shared_from_this(),
-                                _1, _2, _3, _4, _5, _6));
+                            cb);
 
         cerr << "Send ReqToBF.len_ = " << boost::asio::detail::socket_ops::network_to_host_long(req.len_)
             << " ReqToBF.type_ = " << req.type_
@@ -93,7 +94,7 @@ public:
 int main(int argc, char **argv) {
 
     std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-    boost::shared_ptr<TestClient> client(new TestClient);
+    TestClient *client = new TestClient;
     int timer_interval = 10000;
     IPAddress addr;
     uint16_t port;

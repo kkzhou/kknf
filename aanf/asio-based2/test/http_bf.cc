@@ -55,6 +55,7 @@ public:
                     std::string &to_ip, uint16_t to_port, PTime arrive_time) {
 
 
+        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         vector<char> send_buf1, send_buf2, send_buf3;
         static string http_rsp_header1 = "HTTP/1.1\r\nContent-Length: ";
         static string http_rsp_header2 = "\r\nServer: Nginx\r\n\r\n";
@@ -68,6 +69,7 @@ public:
 
             if (input_it == input_data.end()) {
                 cerr << "Not a valid http request" << endl;
+                std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
                 return -1;
             }
             int content_start = input_it - input_data.begin() + 4;
@@ -91,6 +93,7 @@ public:
             map<int, ReqLocalData>::iterator it = ld_.find(req_to_bf->seq_);
             if (it != ld_.end()) {
                 cerr << "Seq error: seqnum(" << req_to_bf->seq_ << ") is taken." << endl;
+                std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
                 return -1;
             }
 
@@ -137,6 +140,7 @@ public:
                 << " ReqToBB2.seq_ = " << req2.seq_
                 << " ReqToBB2.b_ = " << req2.b_
                 << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
+            std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
             return 0;
 
         } else if (baseptr->type_ == TestPacketBase::T_RSP_FROM_BB1) {
@@ -151,6 +155,7 @@ public:
             map<int, ReqLocalData>::iterator it = ld_.find(rsp_from_bb1->seq_);
             if (it == ld_.end()) {
                 cerr << "Seq error: seqnum(" << rsp_from_bb1->seq_ << ") doesn't exist." << endl;
+                std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
                 return -1;
             }
 
@@ -169,6 +174,7 @@ public:
             map<int, ReqLocalData>::iterator it = ld_.find(rsp_from_bb2->seq_);
             if (it == ld_.end()) {
                 cerr << "Seq error: seqnum(" << rsp_from_bb2->seq_ << ") doesn't exist." << endl;
+                std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
                 return -1;
             }
 
@@ -176,12 +182,14 @@ public:
             it->second.bb2_rsp_arrived_= true;
         } else {
             cerr << "Not supported packet type: " << baseptr->type_ << endl;
+            std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
             return -1;
         }
 
         map<int, ReqLocalData>::iterator tmpit = ld_.find(baseptr->seq_);
         if (tmpit == ld_.end()) {
             cerr << "Seq error: seqnum(" << baseptr->seq_ << ") doesn't exist." << endl;
+            std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
             return -1;
         }
         if (tmpit->second.bb1_rsp_arrived_ && tmpit->second.bb2_rsp_arrived_) {
@@ -195,6 +203,7 @@ public:
                 tmps = boost::lexical_cast<string>(boost::numeric_cast<int>(sizeof(RspFromBF)));
             } catch (boost::bad_lexical_cast &e) {
                 cerr << "lexical cast error: " << e.what() << endl;
+                std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
                 return -1;
             }
             string http_rsp_header = http_rsp_header1 + tmps + http_rsp_header2;
@@ -221,6 +230,7 @@ public:
                 << " RspFromBF.sum_ = " << tmpit->second.rsp_.sum_
                 << " time = " << boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time()) << endl;
         }
+        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 1;
     };
 public:
