@@ -18,12 +18,37 @@
 #ifndef __SERVER_HPP__
 #define __SERVER_HPP__
 
+#include <vector>
+#include <map>
+#include <list>
+
 namespace NF {
+
+class SocketAddr {
+public:
+    std::string ip_;
+    uint16_t port_;
+};
 
 class Server {
 public:
+    // constructor/destructor
+    Server() {};
+    ~Server() {};
 
+    int AddListenSocket(std::string &ip, uint16_t port) {
+    };
+    int AddUDPSocket(std::string &ip, uint16_t port) {
+    };
 private:
+    std::vector<Socket> listen_socket_list_;
+    std::vector<Socket> udp_socket_list_;
+
+    std::list<Socket> server_socket_ready_list_;
+    std::map<SocketAddr, std::list<Socket> > client_socket_list_;
+
+
+
 };
 }; // namespace NF
 

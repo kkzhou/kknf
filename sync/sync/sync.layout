@@ -4,13 +4,13 @@
 	<File name="client.hpp" open="1" top="0" tabpos="3">
 		<Cursor position="0" topLine="0" />
 	</File>
-	<File name="connection.hpp" open="1" top="0" tabpos="5">
+	<File name="connection.hpp" open="1" top="0" tabpos="4">
 		<Cursor position="811" topLine="0" />
 	</File>
 	<File name="server.hpp" open="1" top="1" tabpos="1">
-		<Cursor position="810" topLine="0" />
+		<Cursor position="1337" topLine="21" />
 	</File>
 	<File name="socket.hpp" open="1" top="0" tabpos="2">
-		<Cursor position="719" topLine="0" />
+		<Cursor position="853" topLine="66" />
 	</File>
 </CodeBlocks_layout_file>

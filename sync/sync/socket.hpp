@@ -25,9 +25,7 @@
 
 namespace NF{
 
-
 class Socket {
-
 public:
     // constructors/destructors
     Socket(int sk) {
@@ -61,13 +59,24 @@ public:
     int GetError() {
         return 0;
     };
-    int SetNonBlocking() {
+    int SetNonBlock() {
         int flags = 0;
         flags = fcntl(sk_, F_GETFL, 0);
         if (flags == -1) {
             return -1;
         }
         if (fcntl(sk_, F_SETFL, flags | O_NONBLOCK) == -1) {
+            return -1;
+        }
+        return 0;
+    };
+    int SetBlock() {
+        int flags = 0;
+        flags = fcntl(sk_, F_GETFL, 0);
+        if (flags == -1) {
+            return -1;
+        }
+        if (fcntl(sk_, F_SETFL, flags & (~O_NONBLOCK) == -1) {
             return -1;
         }
         return 0;
