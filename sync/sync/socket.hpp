@@ -28,16 +28,27 @@ namespace NF{
 class Socket {
 public:
     // constructors/destructors
-    Socket(int sk) {
+    Socket(int sk = -1) {
         sk_ = sk;
     };
 
     ~Socket() { };
+    Socket& operator=(Socket &o){
 
+        sk_ = o.sk();
+
+        my_ipstr_ = o.my_ipstr();
+        my_ip_ = o.my_ip();
+        my_port_ = o.my_port();
+
+        peer_ipstr_ = o.peer_ipstr();
+        peer_ip_ = o.peer_ip();
+        peer_port_ = o.peer_port();
+        return *this;
+    };
     // setters/getters
-    void set_sk(int sk) { sk_ = sk; };
     int sk() { return sk_; };
-
+    void set_sk(int sk) { sk_ = sk; };
     void set_my_ipstr(std::string &ipstr) { my_ipstr_ = ipstr;};
     std::string& my_ipstr() { return my_ipstr_; };
     void set_my_ip(struct in_addr &ip) { my_ip_ = ip; };
@@ -81,6 +92,15 @@ public:
         }
         return 0;
     };
+    int SetReuse() {
+
+        int optval = 0;
+        size_t optlen = sizeof(optval);
+        if (setsockopt(sk_, SOL_SOCKET, SO_REUSEADDR, &optval, optlen) < 0) {
+            return -1;
+        }
+        return 0;
+    };
 private:
     int sk_;
 
@@ -95,7 +115,7 @@ private:
 private:
     // prohibits
     Socket(Socket&){};
-    Socket& operator=(Socket&){};
+
 
 };
 
