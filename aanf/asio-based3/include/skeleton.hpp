@@ -42,21 +42,6 @@ namespace AANF {
 class Skeleton {
 
 public:
-    // The only interface should be overrided in derived classes to deal with business logic
-    // Process data
-    // return value:
-    // <0:  error happened
-    // 0:  this is a server socket, to set idle
-    // 1:  this is a client socket, to set idle
-    // 2:  this is a server socket, to close
-    // 3:  this is a server socket, to read
-    virtual int ProcessData(std::vector<char> &input_data, std::string &from_ip, uint16_t from_port,
-                    std::string &to_ip, uint16_t to_port, PTime arrive_time) {
-        BOOST_ASSERT(false);
-        return 0;
-    };
-
-public:
     Skeleton()
         : strand_(io_serv_),
         timer_trigger_interval_(10000),
@@ -185,115 +170,6 @@ public:
     };
 
 public:
-    // Sync interfaces
-    // Called when sending request to the server behind and the connection hasn't established yet.
-    int ToWriteThenReadSync(TCPEndpoint &remote_endpoint, std::vector<char> &buf_to_send/*content swap*/,
-                        SocketInfo::SocketType type, std::vector<char> &buf_to_fill) {
-
-        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        bool socket_exist = false;
-
-        SocketInfoPtr skinfo = FindIdleTCPClientSocket(remote_endpoint);
-        if (skinfo) {
-            socket_exist = true;
-            BOOST_ASSERT(type == skinfo->type());
-        }
-
-        if (type != SocketInfo::T_TCP_LV) {
-            std::cerr << "Not supported socket type" << std::endl;
-            return -1;
-        }
-
-        boost::system::error_code e;
-        if (!socket_exist) {
-
-            std::cerr << "To connect " << remote_endpoint.address().to_string() << ":"
-                << remote_endpoint.port() << std::endl;
-
-            skinfo = SocketInfoPtr(new SocketInfo(type, io_serv_));
-
-            // connect
-            skinfo->set_remote_endpoint(remote_endpoint);
-            skinfo->tcp_sk().connect(remote_endpoint, e);
-
-            if (e) {
-                std::cerr << "Connect error: " << e.message() << std::endl;
-                // shared_ptr 'skinfo' will destruct the SocketInfo
-                std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-                return -1;
-            }
-
-            skinfo->set_is_connected(true);
-            skinfo->set_in_use(true);
-            std::cerr << "To add this socket to map" << std::endl;
-            InsertTCPClientSocket(remote_endpoint, skinfo);
-        }
-
-        std::cerr << "To write " << buf_to_send.size() << std::endl;
-        skinfo->SetSendBuf(buf_to_send);
-
-        // write
-        size_t ret = boost::asio::write(
-                        skinfo->tcp_sk(),
-                        boost::asio::buffer(skinfo->send_buf()),
-                        boost::asio::transfer_all(),
-                        e);
-        if (e) {
-            std::cerr << "Write error: " << e.message() << std::endl;
-            DestroySocket(skinfo);
-            std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-            return -1;
-        }
-
-        BOOST_ASSERT(ret == skinfo->send_buf().size());
-
-        // read len_field
-        std::cerr << "To read Length_field 4 bytes" << std::endl;
-        std::vector<char> len_field(4, 0);
-        int len = 0;
-
-        ret = boost::asio::read(
-                skinfo->tcp_sk(),
-                boost::asio::buffer(len_field),
-                boost::asio::transfer_all(),
-                e);
-
-        if (e) {
-            std::cerr << "Read len_field error: " << e.message() << std::endl;
-            DestroySocket(skinfo);
-            std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-            return -1;
-        }
-        BOOST_ASSERT(ret == 4);
-
-        len = *reinterpret_cast<int*>(&len_field[0]);
-        len = boost::asio::detail::socket_ops::network_to_host_long(len);
-        if (len < 0 || len > max_recv_buf_size()) {
-            std::cerr << "len_field invalid: " << len << std::endl;
-            DestroySocket(skinfo);
-            std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-            return -2;
-        }
-        std::cerr << "To read " << len << " bytes" << std::endl;
-        buf_to_fill.resize(len);
-        std::copy(len_field.begin(), len_field.end(), buf_to_fill.begin());
-        ret = boost::asio::read(
-                skinfo->tcp_sk(),
-                boost::asio::buffer(&len_field[4], len - 4),
-                boost::asio::transfer_all(),
-                e);
-
-        if (e) {
-            std::cerr << "Read data_field error: " << e.message() << std::endl;
-            DestroySocket(skinfo);
-            std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-            return -3;
-        }
-
-        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        return 0;
-    };
-
     // Async interfaces
     int UDPToWrite(UDPEndpoint to_endpoint, std::vector<char> &buf_to_send/*content swap*/) {
 
@@ -334,7 +210,7 @@ public:
         return 0;
     };
 
-    int ToWriteThenCallBack(TCPEndpoint &remote_endpoint, SocketInfo::SocketType type,
+    int TCPToWriteThenCallback(TCPEndpoint &remote_endpoint, SocketInfo::SocketType type,
                             std::vector<char> &buf_to_send/*content swap*/, bool i_am_server,
                             PacketCallBack cb) {
 
@@ -357,75 +233,6 @@ public:
             skinfo->set_cb(cb);
             ret = ToWriteThenRead(skinfo, buf_to_send);
         }
-        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        return 0;
-    };
-
-    // Called when sending request to the server behind and the connection has already established.
-    int ToWriteThenRead(TCPEndpoint &remote_endpoint, SocketInfo::SocketType type,
-                            std::vector<char> &buf_to_send/*content swap*/, bool i_am_server) {
-
-        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-
-        SocketInfoPtr skinfo;
-        if (i_am_server) {
-            skinfo = FindTCPServerSocket(remote_endpoint);
-        } else {
-            skinfo = FindIdleTCPClientSocket(remote_endpoint);
-        }
-
-        int ret = 0;
-        if (!skinfo) {
-            if (i_am_server) {
-                std::cerr << "Not found the server socket" << std::endl;
-                std::cerr << "Fail " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-                return -1;
-            }
-            PacketCallBack tmp_cb;
-            ret = ToConnectThenWrite(remote_endpoint, type, buf_to_send, tmp_cb/*empty*/);
-
-        } else {
-
-            std::cerr << "To write " << buf_to_send.size() << " bytes "
-                << skinfo->GetFlow() << std::endl;
-            ret = ToWriteThenRead(skinfo, buf_to_send);
-        }
-        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        return ret;
-    };
-
-    int ToWriteThenClose(TCPEndpoint &remote_endpoint,
-                         std::vector<char> &buf_to_send/*content swap*/, bool i_am_server) {
-
-        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-
-        SocketInfoPtr skinfo;
-        if (i_am_server) {
-            skinfo  = FindTCPServerSocket(remote_endpoint);
-        } else {
-             skinfo = FindIdleTCPClientSocket(remote_endpoint);
-        }
-
-        if (!skinfo) {
-            std::cerr << "Not found" << skinfo->GetFlow() << std::endl;
-            return -1;
-        }
-
-        std::cerr << "To write " << buf_to_send.size() << " bytes " << skinfo->GetFlow() << std::endl;
-        skinfo->SetSendBuf(buf_to_send);
-
-        boost::asio::async_write(
-            skinfo->tcp_sk(),
-            boost::asio::buffer(skinfo->send_buf()),
-            boost::asio::transfer_all(),
-            strand_.wrap(
-                boost::bind(
-                    &Skeleton::HandleWriteThenClose,
-                    this,
-                    boost::asio::placeholders::error,
-                    skinfo,
-                    boost::asio::placeholders::bytes_transferred)));
-
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return 0;
     };
@@ -461,144 +268,8 @@ private:
         return 0;
     };
 
-    int ToWriteThenRead(SocketInfoPtr skinfo, std::vector<char> &buf_to_send/*content swap*/) {
 
-        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        if (skinfo->is_client()) {
-            BOOST_ASSERT(!skinfo->in_use());
-            skinfo->set_in_use(true);
-        }
-        std::cerr << "To write " << buf_to_send.size() << " bytes " << skinfo->GetFlow() << std::endl;
-        skinfo->SetSendBuf(buf_to_send);    // this will swap
-
-        std::cerr << "Socket type:" << skinfo->type() << std::endl;
-        if (skinfo->type() == SocketInfo::T_TCP_HTTP) {
-            // this socket handles(read/write) TCP_LV packet
-            boost::asio::async_write(
-                skinfo->tcp_sk(),
-                boost::asio::buffer(skinfo->send_buf()),
-                boost::asio::transfer_all(),
-                strand_.wrap(
-                    boost::bind(
-                        &Skeleton::HandleWriteThenReadHTTPHead,
-                        this,
-                        boost::asio::placeholders::error,
-                        skinfo,
-                        boost::asio::placeholders::bytes_transferred)));
-
-        } else if (skinfo->type() == SocketInfo::T_TCP_LV) {
-            // this socket handles(read/write) TCP_LV packet
-            boost::asio::async_write(
-                skinfo->tcp_sk(),
-                boost::asio::buffer(skinfo->send_buf()),
-                boost::asio::transfer_all(),
-                strand_.wrap(
-                    boost::bind(
-                        &Skeleton::HandleWriteThenReadL,
-                        this,
-                        boost::asio::placeholders::error,
-                        skinfo,
-                        boost::asio::placeholders::bytes_transferred)));
-
-        } else if (skinfo->type() == SocketInfo::T_TCP_TLV) {
-            // this socket handles(read/write) TCP_TLV packet
-            std::cerr << "To be supported socket type:" << skinfo->type() << std::endl;
-            BOOST_ASSERT(false);
-        } else if (skinfo->type() == SocketInfo::T_TCP_LINE) {
-            // this socket handles(read/write) TCP_LINE packet
-            std::cerr << "To be supported socket type:" << skinfo->type() << std::endl;
-            BOOST_ASSERT(false);
-        } else {
-            std::cerr << "Not supported socket type:" << skinfo->type() << std::endl;
-            BOOST_ASSERT(false);
-        }
-
-        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        return 0;
-    };
-
-
-    std::size_t HTTPHeadReadCompletionCondition(const boost::system::error_code &error,
-                                                SocketInfoPtr skinfo, std::size_t byte_num) {
-
-        if (error) {
-            std::cerr << "Read error: " << error.message() << std::endl;
-            return 0;
-        }
-
-        std::vector<char>::iterator it;
-        char key[] = "\r\n\r\n";
-        std::cerr << byte_num << " bytes comes, already recveived "
-            << skinfo->recv_buf_filled() << " total recv buf is "
-            << skinfo->recv_buf().size() << std::endl;
-        skinfo->set_recv_buf_filled(skinfo->recv_buf_filled() + byte_num);
-
-        it = std::search(skinfo->recv_buf().begin(), skinfo->recv_buf().end(), key, key + 4);
-        if (it != skinfo->recv_buf().end()) {
-            return 0;
-        }
-
-        if (skinfo->recv_buf().size() == skinfo->recv_buf_filled()) {
-
-            std::cerr << "Read HTTP Head error: too large head: "
-                << skinfo->recv_buf_filled() << std::endl;
-            return 0;
-        }
-
-        return skinfo->recv_buf().size() - skinfo->recv_buf_filled();
-    };
-
-    int ToReadHTTPHeadThenReadHTTPContent(SocketInfoPtr skinfo) {
-
-        std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To read HTTPHead from " << skinfo->GetFlow() << std::endl;
-
-        skinfo->SetRecvBuf(init_recv_buf_size_);
-
-        boost::asio::async_read(
-            skinfo->tcp_sk(),
-            boost::asio::buffer(skinfo->recv_buf()),
-            boost::bind(
-                &Skeleton::HTTPHeadReadCompletionCondition,
-                this,
-                boost::asio::placeholders::error,
-                skinfo,
-                boost::asio::placeholders::bytes_transferred),
-            strand_.wrap(
-                boost::bind(
-                    &Skeleton::HandleReadHTTPHeadThenReadHTTPContent,
-                    this,
-                    boost::asio::placeholders::error,
-                    skinfo,
-                    boost::asio::placeholders::bytes_transferred)));
-
-        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        return 0;
-    };
-
-    int ToReadLThenReadV(SocketInfoPtr skinfo) {
-
-        std::cerr << "Eneter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        std::cerr << "To read length_field " << skinfo->GetFlow() << std::endl;
-
-        skinfo->SetRecvBuf(4);
-        boost::asio::async_read(
-            skinfo->tcp_sk(),
-            boost::asio::buffer(&(skinfo->recv_buf().at(0)), 4),
-            boost::asio::transfer_all(),
-            strand_.wrap(
-                boost::bind(
-                    &Skeleton::HandleReadLThenReadV,
-                    this,
-                    boost::asio::placeholders::error,
-                    skinfo,
-                    boost::asio::placeholders::bytes_transferred)));
-
-        std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
-        return 0;
-    };
-
-    int DestroySocket(SocketInfoPtr skinfo) {
+    int DestroySocket(TCPSocketInfoPtr skinfo) {
 
         std::cerr << "Enter " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         std::cerr << "To destroy " << skinfo->GetFlow() << std::endl;
@@ -645,7 +316,7 @@ private:
         return 0;
     };
 
-private:
+public:
     // handler placeholder
     void HandleAnythingThenNothing(const boost::system::error_code& error,
                                SocketInfoPtr skinfo, std::size_t byte_num) {
@@ -1374,7 +1045,7 @@ private:
         fromip = skinfo->remote_endpoint().address().to_string();
         toip = skinfo->local_endpoint().address().to_string();
 
-        int ret = ProcessData(skinfo->recv_buf(),
+        int ret = ProcessUDP(skinfo->recv_buf(),
                         fromip,
                         skinfo->remote_endpoint().port(),
                         toip,
@@ -1384,20 +1055,9 @@ private:
         if (ret < 0) {
             // error
             std::cerr << "ProcessData error" << std::endl;
-        } else if (ret == 0) {
-            // this is a server socket, to set idle
-            BOOST_ASSERT(false);
-        } else if (ret == 1) {
-            // this is a client socket, to set idle
-        } else if (ret == 2) {
-            // this is a server socket, to close
-            BOOST_ASSERT(false);
-        } else if (ret == 3) {
-            // this is a server socket, to read
-            UDPToRead();
-        } else {
-            BOOST_ASSERT(false);
         }
+
+        UDPToRead();
 
         std::cerr << "Leave " << __FUNCTION__ << ":" << __LINE__ << std::endl;
         return;
@@ -1525,9 +1185,6 @@ public:
     boost::asio::io_service& io_serv() { return io_serv_; };
     int tcp_backlog() { return tcp_backlog_; };
     void set_tcp_backlog(int backlog) { tcp_backlog_ = backlog; };
-    int max_recv_buf_size() { return max_recv_buf_size_; };
-    void set_max_recv_buf_size(int max_recv_buf_size) { max_recv_buf_size_ = max_recv_buf_size; };
-    int init_recv_buf_size(){ return init_recv_buf_size_; };
     void set_init_recv_buf_size(int init_recv_buf_size) { init_recv_buf_size_ = init_recv_buf_size; };
     void set_timer_trigger_interval(int millisec) { timer_trigger_interval_ = millisec; };
     int timer_trigger_interval() { return timer_trigger_interval_; };

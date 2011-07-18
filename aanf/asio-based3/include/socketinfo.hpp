@@ -32,11 +32,9 @@ namespace AANF {
 
 typedef boost::asio::ip::address IPAddress;
 typedef boost::asio::ip::tcp::socket TCPSocket;
-typedef boost::shared_ptr<TCPSocket> TCPSocketPtr;
 typedef boost::asio::ip::tcp::endpoint TCPEndpoint;
 typedef boost::asio::ip::tcp::acceptor TCPAcceptor;
 typedef boost::asio::ip::udp::socket UDPSocket;
-typedef boost::shared_ptr<UDPSocket> UDPSocketPtr;
 typedef boost::asio::ip::udp::endpoint UDPEndpoint;
 typedef boost::posix_time::ptime PTime;
 
@@ -45,33 +43,22 @@ class UDPSocketInfo;
 typedef boost::shared_ptr<UDPSocketInfo> UDPSocketInfoPtr;
 
 class TCPAcceptorInfo;
-class SocketInfo;
+class TCPSocketInfo;
 typedef boost::shared_ptr<TCPAcceptorInfo> TCPAcceptorInfoPtr;
-typedef boost::shared_ptr<SocketInfo> SocketInfoPtr;
+typedef boost::shared_ptr<TCPSocketInfo> TCPSocketInfoPtr;
 
-typedef boost::function<int(std::vector<char>&, std::string&,
-                            uint16_t, std::string&, uint16_t, PTime)> PacketCallBack;
+typedef boost::function<int(TCPSocketInfo)> TCPSocketCallback;
+typedef boost::function<int(UDPSocketInfo)> UDPSocketCallback;
 
 // Simple information about a TCP socket
-class SocketInfo {
-public:
-    enum SocketType {
-        T_TCP_LINE,     // '\n' is the terminator of a packet
-        T_TCP_LV,       // the first 4 bytes is an 'int' field to indicate the length
-        T_TCP_TLV,      // the first 4 bytes indicates 'type' and the second 4 bytes indicates 'length'
-        T_TCP_HTTP,     // http packet
-        T_TCP_USR1,
-        T_TCP_UNKNOWN
-    };
+class TCPSocketInfo {
 
 public:
-    SocketInfo(SocketType type, boost::asio::io_service &io_serv)
-        : type_(type),
-        tcp_sk_(io_serv),
+    TCPSocketInfo(boost::asio::io_service &io_serv)
+        : tcp_sk_(io_serv),
         in_use_(false),
         is_client_(false),
-        is_connected_(false),
-        recv_buf_filled_(0) {
+        is_connected_(false) {
 
         access_time_ = create_time_ =
             boost::posix_time::microsec_clock::local_time();
@@ -79,8 +66,6 @@ public:
     };
 
     // setters/getters
-    SocketType type() { return type_; };
-    void set_type(SocketInfo::SocketType type) { type_ = type; };
     TCPEndpoint& remote_endpoint() { return remote_endpoint_; };
     void set_remote_endpoint(TCPEndpoint &remote_endpoint) { remote_endpoint_ = remote_endpoint;};
     TCPEndpoint& local_endpoint() { return local_endpoint_; };
@@ -94,29 +79,12 @@ public:
     TCPSocket& tcp_sk() { return tcp_sk_; };
     PTime& create_time() { return create_time_; };
     PTime& access_time() { return access_time_; };
-    std::vector<char>& recv_buf() { return recv_buf_; };
-    void set_recv_buf_filled(std::size_t filled) { recv_buf_filled_ = filled; };
-    std::size_t recv_buf_filled() { return recv_buf_filled_; };
-    std::vector<char>& send_buf() { return send_buf_; };
-    PacketCallBack cb() { return cb_; };
-    void set_cb(PacketCallBack cb) { cb_ = cb; };
+    TCPSocketCallback cb() { return cb_; };
+    void set_cb(TCPSocketCallback cb) { cb_ = cb; };
 
 
     void Touch() {
         access_time_ = boost::posix_time::microsec_clock::local_time();
-    };
-
-    void SetRecvBuf(size_t byte_num) {
-        std::vector<char> tmp(byte_num);
-        recv_buf_.swap(tmp);
-    };
-
-    void SetRecvBuf(std::vector<char> &new_buf) {
-        recv_buf_.swap(new_buf);
-    };
-
-    void SetSendBuf(std::vector<char> &to_send) {
-        send_buf_.swap(to_send);
     };
 
     std::string GetFlow() {
@@ -131,27 +99,22 @@ public:
 private:
     TCPEndpoint remote_endpoint_;
     TCPEndpoint local_endpoint_;
-    SocketType type_;
     TCPSocket tcp_sk_;
     PTime create_time_;
     PTime access_time_;
     bool in_use_;
     bool is_client_;
     bool is_connected_;
-    std::vector<char> recv_buf_;
-    std::size_t recv_buf_filled_;
-    std::vector<char> send_buf_;
-    PacketCallBack cb_;
+    TCPSocketCallback cb_;
 
 };
 
 // Information about a TCP acceptor
 class TCPAcceptorInfo {
 public:
-    TCPAcceptorInfo(SocketInfo::SocketType type, boost::asio::io_service &io_serv)
-        : type_(type),
-        acceptor_(io_serv),
-        sk_info_(new SocketInfo(type_, io_serv)) {
+    TCPAcceptorInfo(boost::asio::io_service &io_serv)
+        : acceptor_(io_serv),
+        sk_info_(new SocketInfo(io_serv)) {
 
     };
 public:
@@ -159,11 +122,7 @@ public:
         return acceptor_;
     };
 
-    SocketInfo::SocketType type() {
-        return type_;
-    };
-
-    SocketInfoPtr sk_info() {
+    TCPSocketInfo sk_info() {
         return sk_info_;
     };
 
@@ -173,12 +132,9 @@ public:
         sk_info_.reset(new SocketInfo(type_, acceptor_.get_io_service()));
     };
 private:
-    SocketInfo::SocketType type_;
     TCPAcceptor acceptor_;
-    SocketInfoPtr sk_info_; // contains the new socket returned by accept()
+    TCPSocketInfo sk_info_; // contains the new socket returned by accept()
 };
-
-
 
 // Simple information about a UDP socket
 class UDPSocketInfo {
@@ -238,6 +194,9 @@ public:
         return send_buf_list_.size();
     };
 
+    UDPSocketCallback cb() { return cb_; };
+    void set_cb(UDPSocketCallback cb) { cb_ = cb; };
+
 private:
     size_t max_length_of_send_buf_list_;
     UDPEndpoint local_endpoint_;
@@ -246,6 +205,7 @@ private:
     bool in_use_;
     std::vector<char> recv_buf_;
     std::list<std::pair<UDPEndpoint, std::vector<char> > > send_buf_list_;
+    UDPSocketCallback cb_;
 };
 
 
