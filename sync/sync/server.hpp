@@ -21,6 +21,7 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <pthread.h>
 
 #include <vector>
 #include <map>
@@ -45,7 +46,11 @@ public:
         max_sever_socket_num_ = max_sever_socket_num;
         max_client_socket_num_ = max_client_socket_num;
         epoll_fd_ = -1;
-
+        server_socket_ready_list_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+        client_socket_idle_list_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+        server_socket_reuse_list_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+        server_socket_ready_list_cond_ = PTHREAD_COND_INITIALIZER;
+        local_socket_pair_mutex_ = PTHREAD_MUTEX_INITIALIZER;
     };
     ~Server() {};
     // initiate
@@ -53,6 +58,10 @@ public:
 
         epoll_fd_ = epoll_create(epoll_size_);
         if (epoll_fd_ < 0) {
+            return -1;
+        }
+        int ret = socketpair(AF_UNIX, SOCK_STREAM, 0, local_socket_pair_);
+        if (ret != 0) {
             return -1;
         }
         return 0;
@@ -96,6 +105,44 @@ public:
         return 0;
     };
 
+    int MakeConnect(std::string &ip, uint16_t port, Socket &ret_sk) {
+
+        int fd = -1;
+        // prepare socket
+        if ((fd = socket(PF_INET, SOCK_STREAM, 0) < 0) {
+            return -1;
+        }
+
+        struct sockaddr_in server_addr;
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_port = htons(port);
+        if (inet_aton(ip.c_str(), &server_addr.sin_addr) ==0) {
+            return -1;
+        }
+        socklen_t addr_len = sizeof(struct sockaddr_in);
+
+        // connect
+        if (connect(fd_, (struct sockaddr*)&server_addr, addr_len) == -1) {
+            return -2;
+        }
+
+        // Get my_ip of this socket
+        struct sockaddr_in myaddr;
+        socklen_t myaddr_len;
+        if (getsockname(fd_, (struct sockaddr*)&myaddr, &myaddr_len) == -1) {
+            return -2;
+        }
+
+        std::string tmpip = inet_ntoa(&myaddr.sin_addr);
+        ret_sk.set_sk(fd);
+        ret_sk.set_my_ip(tmpip);
+        ret_sk.set_my_port(ntohs(myaddr.sin_port));
+        ret_sk.set_peer_ip(ip);
+        ret_sk.set_peer_port(port);
+        ret_sk.SetNonBlock();
+        return 0;
+    };
+
     int AddUDPSocket(std::string &ip, uint16_t port) {
 
         int fd = socket(PF_INET, SOCK_DATAGRAM, 0);
@@ -130,7 +177,9 @@ public:
         addr.ip_ = ip;
         addr.port_ = port;
 
+        int ret = -1;
         std::map<SocketAddr, std::list<Socket> >::iterator it;
+        pthread_mutex_lock(client_socket_idle_list_mutex_);
         it = client_socket_idle_list_.find(addr);
 
         if (it != client_socket_idle_list_.end()) {
@@ -142,47 +191,13 @@ public:
             if (it->second.size() == 0) {
                 it->second.erase(addr);
             }
-
+            ret = 0;
         } else {
-            int fd = -1;
-            // prepare socket
-            if ((fd = socket(PF_INET, SOCK_STREAM, 0) < 0) {
-                return -1;
-            }
-
-            struct sockaddr_in server_addr;
-            server_addr.sin_family = AF_INET;
-            server_addr.sin_port = htons(peer_port_);
-            if (inet_aton(ip.c_str(), &server_addr.sin_addr) ==0) {
-                return -1;
-            }
-            socklen_t addr_len = sizeof(struct sockaddr_in);
-
-            // connect
-            if (connect(fd_, (struct sockaddr*)&server_addr, addr_len) == -1) {
-                return -2;
-            }
-
-            // Get my_ip of this socket
-            struct sockaddr_in myaddr;
-            socklen_t myaddr_len;
-            if (getsockname(fd_, (struct sockaddr*)&myaddr, &myaddr_len) == -1) {
-                return -2;
-            }
-
-            std::string tmpip = inet_ntoa(&myaddr.sin_addr);
-            ret_sk.set_sk(fd);
-            ret_sk.set_my_ip(tmpip);
-            ret_sk.set_my_port(ntohs(myaddr.sin_port));
-            ret_sk.set_peer_ip(ip);
-            ret_sk.set_peer_port(port);
-
-            std::list<Socket> new_list;
-            new_list.push_back(ret_sk);
-            client_socket_idle_list_.insert(std::pair<SocketAddr, std::list<Socket> >(addr, new_list));
+            ret = -1;
         }
 
-        return 0;
+        pthread_mutex_unlock(client_socket_idle_list_mutex_);
+        return ret;
     };
 
     int InsertClientSocket(Socket &sk) {
@@ -191,6 +206,7 @@ public:
         addr.ip_ = sk.peer_ip();
         addr.port_ = sk.peer_port();
 
+        pthread_mutex_lock(client_socket_idle_list_mutex_);
         std::map<SocketAddr, std::list<Socket> >::iterator it;
         it = client_socket_idle_list_.find(addr);
 
@@ -205,7 +221,7 @@ public:
             new_list.push_back(sk);
             client_socket_idle_list_.insert(std::pair<SocketAddr, std::list<Socket> >(addr, new_list));
         }
-
+        pthread_mutex_unlock(client_socket_idle_list_mutex_);
         return 0;
     };
 
@@ -219,10 +235,19 @@ private:
     Socket udp_socket_;
 
     std::vector<std::list<Socket> > server_socket_ready_list_;
-    std::list<Socket> server_socket_reuse_list_;
-    std::map<SocketAddr, std::list<Socket> > client_socket_idle_list_;
+    pthread_mutex_t server_socket_ready_list_mutex_;
+    pthread_cond_t server_socket_ready_list_cond_;
 
+    std::list<Socket> server_socket_reuse_list_;
+    pthread_mutex_t server_socket_reuse_mutex_;
+
+    std::map<SocketAddr, std::list<Socket> > client_socket_idle_list_;
+    pthread_mutex_t client_socket_idle_list_mutex_;
+
+private:
     int epoll_fd_;
+    int local_socket_pair_[2];  // 用于本地通信，即worker线程通知主线程
+    pthread_mutex_t local_socket_pair_mutex_;
 };
 }; // namespace NF
 

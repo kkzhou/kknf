@@ -22,7 +22,7 @@
 		<Unit filename="client.hpp">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
-		<Unit filename="connection.hpp" />
+		<Unit filename="processor.hpp" />
 		<Unit filename="server.hpp">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
