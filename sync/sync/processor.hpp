@@ -23,16 +23,29 @@ namespace NF {
 // 一个Processor对应一个线程
 class Processor {
 public:
-    Processor(Server *srv) {
-        srv_ = srv;
+    Processor(Server *srv, int pool_index, int max_client_socket_num)
+        :srv_(srv),
+        pool_index_(pool_index),
+        max_client_socket_num_(max_client_socket_num) {
     };
+
     ~Processor() {
     };
 
     // 线程函数
     void Run(void *arg) {
     };
+    // 接收数据
+    // 返回值：
+    // 0: 接收完成
+    // <0: 出错
+    // 1: 需要继续收（例如http trunk）
+    int RecvData(std::vector<char> &buf_to_fill) {
+    };
 
+    // 处理数据
+    int ProcessData(std::vector<char> &buf_to_process) {
+    };
     // 多路同时发送和接收
     int SendAndRecvMultiSockets(std::vector<int> &sk_list, std::vector<char*> &buf_list,
                                 std::vector<int> &buf_len_list) {
@@ -42,6 +55,8 @@ private:
     Server *srv_;
     Socket *server_sk_; // 请求来自该套接口
     int epoll_fd_;      // 用于支持同时请求后端服务器
+    int max_client_socket_num_;
+    int pool_index_;    // 多线程池时的索引
 };
 }; // namespace NF
 

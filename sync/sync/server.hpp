@@ -47,25 +47,30 @@ public:
 class Server {
 public:
     // constructor/destructor
-    Server(uint32_t epoll_size, uint32_t max_sever_socket_num, uint32_t max_client_socket_num, int timer_interval) {
+    Server(uint32_t epoll_size, uint32_t max_sever_socket_num,
+           uint32_t max_client_socket_num, int timer_interval,
+           uint32_t thread_pool_size_for_each_listen_socket) {
 
         epoll_size_ = epoll_size_;
         all_epoll_events_ = new struct epoll_event[epoll_size_];
         max_sever_socket_num_ = max_sever_socket_num;
         max_client_socket_num_ = max_client_socket_num;
         timer_interval_ = timer_interval;
+        thread_pool_size_for_each_listen_socket_ = thread_pool_size_for_each_listen_socket;
 
-        has_listen_socket_ = false;
-        has_udp_socket_ = false;
         epoll_fd_ = -1;
         server_socket_ready_list_mutex_ = PTHREAD_MUTEX_INITIALIZER;
         client_socket_idle_list_mutex_ = PTHREAD_MUTEX_INITIALIZER;
         server_socket_reuse_list_mutex_ = PTHREAD_MUTEX_INITIALIZER;
         server_socket_ready_list_cond_ = PTHREAD_COND_INITIALIZER;
         local_socket_pair_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+        udp_recv_list_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+        udp_recv_list_cond_ = PTHREAD_COND_INITIALIZER;
     };
     ~Server() {
         delete[] all_epoll_events_;
+        // 停止所有线程
+        // 删除所有socket
     };
 
     // 初始化，主要工作是：创建epoll、创建本地套接口
@@ -93,6 +98,11 @@ public:
             return -1;
         }
 
+        // pthread ids
+        std::vector<pthread_t> thread_id_list_for_listen_socket(listen_socket_list_.size());
+        pthread_t thread_id_list_for_udp_socket;
+        pthread_t thread_for_epoll_loop;
+
         int ret = 0;
         // add listen socket to epoll to accept
         if (listen_socket_list_.size() > 0) {
@@ -110,6 +120,10 @@ public:
                 ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, (*listen_socket_it)->sk(), &e);
                 if (ret == -1) {
                     return -2;
+                }
+                // create thread pool for it
+                for (int i = 0; i < thread_pool_size_for_each_listen_socket_; i++) {
+                    if (pthread_create(&thread_id_list_for_listen_socket[i], 0,
                 }
             }
         }
@@ -129,7 +143,14 @@ public:
             }
         }
 
+        // init threads
 
+        return 0;
+    };
+
+    // epool 循环的线程函数
+    void EpollLoop(void *arg) {
+        // epoll loop
         int timeout = timer_interval_;
         while (true) {
             struct timeval start_time, end_time;
@@ -147,7 +168,8 @@ public:
                 // events
                 struct epoll_event *e;
                 for (int i = 0; i < ret; i++) {
-                    if (0 > EpollProcess(e)) {
+                    int result = EpollProcess(e);
+                    if (result < 0 || result == 1) {
                         // delete this fd
                         epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, e->fd, 0);
                     }
@@ -155,6 +177,7 @@ public:
 
             } else {
             }
+
             gettimeofday(&end_time);
             timeout = timeout - (end_time.tv_sec - start_time.tv_sec) * 1000 + (end_time.tv_usec - start_time.tv_usec) / 1000;
             if (timeout <= 100) {
@@ -162,10 +185,13 @@ public:
                 timeout = timeout = TimerHandler();
             }
         } // while
-        return 0;
+        return;
     };
-
     // 处理有事件的套接口
+    // 返回值：
+    // <0: 出现错误，把该fd从epoll中删除
+    // =0: 不做处理
+    // =1: 是server套接口，已经交给了worker线程，把它从epoll中删除
     int EpollProcess(struct epoll_event &e) {
 
         int ret = 0;
@@ -185,7 +211,7 @@ public:
                     } else if (errno == ENFILE || errno == EMFILE || errno == ENBUFS || errno == ENOMEM) {
                         return 0;
                     } else {
-                        return -1;
+                        return -2;
                     }
                 }
                 Socket *listen_sk = (Socket*)(e.data.ptr);
@@ -203,9 +229,20 @@ public:
                 std::string tmps;
                 tmps.append(from_addr_str);
                 new_sk->set_peer_ipstr(tmps);
+                pthread_mutex_lock(&server_socket_ready_list_mutex_);
                 server_socket_ready_list_[e.data.u32].push_back(new_sk);
+                pthread_mutex_unlock(&server_socket_ready_list_mutex_);
+                pthread_cond_signal(&server_socket_ready_list_cond_);
+                return 0;
+
             } else if (e.u64 == 1) {
                 // TCP server socket
+                pthread_mutex_lock(&server_socket_ready_list_mutex_);
+                server_socket_ready_list_[e.data.u32].push_back(e.data.ptr);
+                pthread_mutex_unlock(&server_socket_ready_list_mutex_);
+                pthread_cond_signal(&server_socket_ready_list_cond_);
+                return 1;
+
             } else if (e.u64 == 2) {
                 // UDP socket
                 static char buf_for_udp[65536]; // buf used to recv udp data
@@ -231,13 +268,18 @@ public:
                 new_pkt->from_.port_ = ntohs(from_addr.sin_port);
                 new_pkt->to_.ip_ = (Socket*)(e.data.ptr)->my_ipstr_;
                 new_pkt->to_.port_ = (Socket*)(e.data.ptr)->my_port_;
+                pthread_mutex_lock(&udp_recv_list_mutex_);
                 udp_recv_list_.push_back(new_pkt);
+                pthread_mutex_unlock(&udp_recv_list_mutex_);
+                pthread_cond_signal(&udp_recv_list_cond_);
                 return 0;
+
             } else {
                 assert(false);
             }
 
         } // epoll_in event
+        return 0;
     };
 
     int AddListenSocket(std::string &ip, uint16_t port) {
@@ -449,6 +491,8 @@ private:
 
     Socket *udp_socket_;                         // UDP套接口，一个足矣
     std::list<Packet*> udp_recv_list_;             // UDP套接口是在主线程里收数据，把数据交给worker线程
+    pthread_mutex_t udp_recv_list_mutex_;
+    pthread_cond_t udp_recv_list_cond_;
 
     std::vector<std::list<Socket*> > server_socket_ready_list_;  // 客户端连过来的套接口，有事件出现之后，主线程把
                                                                 // 该套接口放到这个列表里（每个侦听套接口对应着一个列表）
@@ -470,6 +514,7 @@ private:
     int local_socket_pair_[2];  // 用于本地通信，即worker线程通知主线程
     pthread_mutex_t local_socket_pair_mutex_;
     int timer_interval_;
+    uint32_t thread_pool_size_for_each_listen_socket_;
 };
 }; // namespace NF
 
