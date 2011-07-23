@@ -33,19 +33,7 @@ public:
     };
 
     ~Socket() { };
-    Socket& operator=(Socket &o){
 
-        sk_ = o.sk();
-
-        my_ipstr_ = o.my_ipstr();
-        my_ip_ = o.my_ip();
-        my_port_ = o.my_port();
-
-        peer_ipstr_ = o.peer_ipstr();
-        peer_ip_ = o.peer_ip();
-        peer_port_ = o.peer_port();
-        return *this;
-    };
     // setters/getters
     int sk() { return sk_; };
     void set_sk(int sk) { sk_ = sk; };
@@ -64,6 +52,10 @@ public:
     uint16_t peer_port() { return peer_port_; };
 
     // manipulators
+    bool Invalid() {
+        return sk_ >= 0;
+    };
+
     int Close() {
         close(sk_);
     };
@@ -115,6 +107,7 @@ private:
 private:
     // prohibits
     Socket(Socket&){};
+    Socket& operator=(Socket &o){    };
 
 
 };
