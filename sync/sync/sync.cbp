@@ -29,6 +29,8 @@
 		<Unit filename="socket.hpp">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
+		<Unit filename="tcp_processor.hpp" />
+		<Unit filename="udp_processor.hpp" />
 		<Extensions>
 			<code_completion />
 			<debugger />
