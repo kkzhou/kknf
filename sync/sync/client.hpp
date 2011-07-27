@@ -18,6 +18,144 @@
 #ifndef __CLIENT_HPP__
 #define __CLIENT_HPP__
 
+#include "socket.hpp"
 
+namespace NF {
+
+class Client {
+
+public:
+    // 阻塞的创建一个连接，然后设置成非阻塞
+    Socket* MakeConnect(std::string &ip, uint16_t port) {
+
+        int fd = -1;
+        // prepare socket
+        if ((fd = socket(PF_INET, SOCK_STREAM, 0) < 0) {
+            return 0;
+        }
+
+        struct sockaddr_in server_addr;
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_port = htons(port);
+        if (inet_aton(ip.c_str(), &server_addr.sin_addr) == 0) {
+            return 0;
+        }
+        socklen_t addr_len = sizeof(struct sockaddr_in);
+
+        // connect
+        if (connect(fd_, (struct sockaddr*)&server_addr, addr_len) == -1) {
+            return 0;
+        }
+
+        // Get my_ip of this socket
+        struct sockaddr_in myaddr;
+        socklen_t myaddr_len;
+        if (getsockname(fd_, (struct sockaddr*)&myaddr, &myaddr_len) == -1) {
+            return 0;
+        }
+
+        std::string tmpip = inet_ntoa(&myaddr.sin_addr);
+        Socket *ret_sk = new Socket(fd);
+        ret_sk->set_my_ipstr(tmpip);
+        ret_sk->set_my_ip(myaddr.sin_addr);
+        ret_sk->set_my_port(ntohs(myaddr.sin_port));
+        ret_sk->set_peer_ip(server_addr.sin_addr);
+        ret_sk->set_peer_ipstr(ip)
+        ret_sk->set_peer_port(port);
+        return 0;
+    };
+
+    // 阻塞的发送
+    int TCPSend(Socket *sk, char *buf_to_send,
+                       uint32_t buf_to_send_size) {
+
+        if (buf_to_send == 0) {
+            return -1;
+        }
+
+        // send
+        uint32_t size_left = buf_to_send_size;
+        char *cur = buf_to_send;
+        while (size_left) {
+            int ret = send(sk->sk(), buf_to_send, buf_to_send_size, 0);
+            if (ret == -1) {
+                if (errno != EWOULDBLOCK || errno != EAGAIN) {
+                    return -2;
+                }
+            } else {
+                size_left -= ret;
+                cur += ret;
+            }
+        }
+
+        return 0;
+    };
+
+    virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) = 0;
+
+    // 等待回应到来，因为后端服务器处理时间会比较长，因此
+    // 顺序等待比较浪费，因此利用epoll
+    // 返回值：
+    // -3：出错
+    // -2：超时
+    // -1：成功（丑！）
+    // >=0：指示第几个socket出错
+    int TCPWaitToRead(std::vector<Socket*> &sk_list, int &num_of_triggered_fd, int millisecs) {
+
+        uint32_t len = sk_list.size();
+        assert(len >= num_of_triggered_fd);
+        assert(num_of_triggered_fd > 0);
+
+        std::vector<struct epoll_event> evs(len);
+        int num = num_of_triggered_fd;
+        num_of_triggered_fd = 0;
+
+        // add fd to epoll
+        for (uint32_t i = 0; i < len; i++) {
+
+            evs[i].events = EPOLLIN|EPOLLONESHOT; // NOTE: onshot event
+            evs[i].data.fd = sk_list[i]->sk();
+            evs[i].data.u32 = i;
+            if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, e.data.fd, &evs[i]) < 0) {
+                // roll back
+                for (uint32_t j = 0; j <= i; j++) {
+                    epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, evs[j].data.fd, 0);
+                }
+                return j;
+            }
+        }// for
+
+        // wait
+        int timeout = millisecs;
+        while (true) {
+
+            struct timeval start_time, end_time;
+            gettimeofday(&start_time);
+            int ret = epoll_wait(epoll_fd_, &evs[0], len, timeout);
+            if (ret < 0) {
+                if (errno != EINTR) {
+                    return -2;
+                }
+                gettimeofday(&end_time);
+                timeout -= (end_time.tv_sec - start_time.tv_sec) * 1000
+                            + (end_time.tv_usec - start_time.tv_usec) / 1000;
+
+                if (timeout <= 0) {
+                    return -2;
+                }
+                continue;
+            }
+            num_of_triggered_fd += ret;
+            if (num_of_triggered_fd == num) {
+                break;
+            }
+        }// while
+
+        return -1;
+    };
+
+private:
+};
+};// namespace NF
 
 #endif // __CLIENT_HPP__

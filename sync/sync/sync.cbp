@@ -30,6 +30,10 @@
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
 		<Unit filename="tcp_processor.hpp" />
+		<Unit filename="test_tcp_bb1.cc" />
+		<Unit filename="test_tcp_bb2.cc" />
+		<Unit filename="test_tcp_bf.cc" />
+		<Unit filename="test_tcp_client.cc" />
 		<Unit filename="udp_processor.hpp" />
 		<Extensions>
 			<code_completion />
