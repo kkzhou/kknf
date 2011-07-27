@@ -38,12 +38,18 @@ public:
     };
 
     void Stop() {
+
+        ENTERING;
         cancel_ = true;
+        LEAVING;
     };
     // 线程函数
     static void ProcessorThreadProc(void *arg) {
+
+        ENTERING;
         Processor *p = reinterpret_cast<Processor>(arg);
         p->Process();
+        LEAVING;
     };
 
     // 处理逻辑
@@ -52,10 +58,13 @@ public:
 
     // 获取空闲的TCP套接口，用于向后端服务器收发数据
     Socket* GetIdleClientSocket(std::string &to_ip, uint16_t to_port) {
+
+        ENTERING;
         Socket *ret_sk = srv_->GetClientSocket(to_ip, to_port);
         if (!ret_sk) {
             ret_sk = srv_->MakeConnection(to_ip, to_port);
         }
+        LEAVING;
         return ret_sk;
     };
 
@@ -63,7 +72,9 @@ public:
     int TCPSend(Socket *sk, char *buf_to_send,
                        uint32_t buf_to_send_size) {
 
+        ENTERING;
         if (buf_to_send == 0) {
+            LEAVING;
             return -1;
         }
 
@@ -74,6 +85,7 @@ public:
             int ret = send(sk->sk(), buf_to_send, buf_to_send_size, 0);
             if (ret == -1) {
                 if (errno != EWOULDBLOCK || errno != EAGAIN) {
+                    LEAVING;
                     return -2;
                 }
             } else {
@@ -81,6 +93,7 @@ public:
                 cur += ret;
             }
         }
+        LEAVING;
         return 0;
     };
 
@@ -96,6 +109,7 @@ public:
     // >=0：指示第几个socket出错
     int TCPWaitToRead(std::vector<Socket*> &sk_list, int &num_of_triggered_fd, int millisecs) {
 
+        ENTERING;
         uint32_t len = sk_list.size();
         assert(len >= num_of_triggered_fd);
         assert(num_of_triggered_fd > 0);
@@ -115,6 +129,7 @@ public:
                 for (uint32_t j = 0; j <= i; j++) {
                     epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, evs[j].data.fd, 0);
                 }
+                LEAVING;
                 return j;
             }
         }// for
@@ -128,6 +143,7 @@ public:
             int ret = epoll_wait(epoll_fd_, &evs[0], len, timeout);
             if (ret < 0) {
                 if (errno != EINTR) {
+                    LEAVING;
                     return -2;
                 }
                 gettimeofday(&end_time);
@@ -135,6 +151,7 @@ public:
                             + (end_time.tv_usec - start_time.tv_usec) / 1000;
 
                 if (timeout <= 0) {
+                    LEAVING;
                     return -2;
                 }
                 continue;
@@ -144,59 +161,10 @@ public:
                 break;
             }
         }// while
-
+        LEAVING;
         return -1;
     };
 
-//    // 多路同时发送，并epoll这些套接口，等待有num_of_trigered_fd个fd有读事件时返回
-//    int TCPSendAndWait(std::vector<Socket*> &sk_list, std::vector<char*> &buf_list,
-//                                std::vector<uint32_t> &buf_size_list, int num_of_triggered_fd) {
-//
-//        assert(sk_list.size() == buf_list.size());
-//        assert(sk_list.size() == buf_size_list.size());
-//        assert(buf_list.size() == buf_size_list.size());
-//
-//        // try sending first
-//        std::vector<char*> cur = buf_list;
-//        std::vector<uint32_t> size_left = buf_size_list;
-//
-//        std::vector<uint32_t>::iterator size_left_it, size_left_endit;
-//
-//        uint32_t i = 0;
-//        uint32_t len = buf_list.size();
-//
-//        for (i = 0; i < len; i++) {
-//            int ret = send(sk_list[i]->sk(), buf_list[i], size_left[i], 0);
-//            if (ret == -1) {
-//                if (errno != EWOULDBLOCK || errno != EAGAIN) {
-//                    return -2;
-//                } else {
-//                    continue;
-//                }
-//            }
-//            size_left[i] -= ret;
-//            buf_list[i] += ret;
-//        }
-//
-//        // begin epoll
-//        std::vector<struct epoll_event> events(len);
-//        int triggered_fd = 0;
-//        while (true) {
-//            for (i = 0; i < len; i++) {
-//                if (size_left[i] > 0) {
-//                    struct epoll_event e;
-//                    memset(&e, sizeof(struct epoll_event), 0);
-//                    e.events = EPOLLOUT;
-//                    e.data.fd = sk_list[i]->sk();
-//                    e.data.u32 = i;
-//                    if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, sk_list[i]->sk(), &e) < 0) {
-//
-//                    }
-//                }
-//            }
-//        }
-//
-//    };
 private:
     Server *srv_;
     int epoll_fd_;

@@ -336,6 +336,7 @@ public:
                 if (new_pkt_list.size() > 0) {
                     InsertUDPRecvPacket(new_pkt_list);
                 }
+                LEAVING;
                 return 0;
 
             } else if (e.data.u64 == 3) {
@@ -347,6 +348,7 @@ public:
                         if (errno != EAGAIN || errno != EWOULDBLOCK || errno != EINTR) {
                             // fatal
                             perror("local socket error: ");
+                            LEAVING;
                             exit(1);
                         }
                         break;
@@ -532,6 +534,7 @@ public:
     // 连接，如果没有则返回-1，worker线程用MakeConnection函数建立一个新的连接
     Socket* GetClientSocket(std::string &ip, uint16_t port) {
 
+        ENTERING;
         Socket *ret_sk = 0;
         SocketAddr addr;
         addr.ip_ = ip;
@@ -554,6 +557,7 @@ public:
         }
 
         pthread_mutex_unlock(client_socket_idle_list_mutex_);
+        LEAVING;
         return ret_sk;
     };
 
@@ -561,6 +565,7 @@ public:
     // 或者是把用过的连接交回到列表里
     int InsertClientSocket(Socket *sk) {
 
+        ENERING;
         SocketAddr addr;
         addr.ip_ = sk->peer_ip();
         addr.port_ = sk->peer_port();
@@ -582,6 +587,7 @@ public:
             client_socket_idle_list_.insert(std::pair<SocketAddr, std::list<Socket*> >(addr, new_list));
         }
         pthread_mutex_unlock(client_socket_idle_list_mutex_);
+        LEAVING;
         return 0;
     };
 
@@ -589,6 +595,7 @@ public:
     // 该函数主线程会调用
     int InsertServerReadySocket(std::map<uint32_t, std::list<Socket*> > &sk_map) {
 
+        ENTERING;
         std::map<uint32_t, std::list<Socket*> >::iterator it, endit;
         it = sk_map.begin();
         endit = sk_map.end();
@@ -607,6 +614,7 @@ public:
             pthread_mutex_unlock(server_socket_ready_list_mutex_[index]);
             pthread_cond_signal(server_socket_ready_list_cond_[index]);
         }
+        LEAVING;
         return 0;
     };
 
@@ -614,14 +622,20 @@ public:
     // 该函数由worker线程调用
     Socket* GetServerReadySocket(uint32_t index) {
 
+        ENTERING;
         pthread_mutex_lock(&server_socket_list_mutex_);
+
         if (index >= server_socket_list_.size()) {
+
             pthread_mutex_unlock(&server_socket_list_mutex_);
+            LEAVING;
             return 0;
         }
+
         Socket *sk = server_socket_list_[index].front();
         server_socket_list_[index].pop_front();
         pthread_mutex_unlock(&server_socket_list_mutex_);
+        LEAVING;
         return sk;
     };
 
@@ -631,42 +645,51 @@ public:
     // <=0： 错误
     int InsertServerReuseSocket(uint32_t pool_index, Socket *sk) {
 
+        ENTERING;
         int ret = 0;
         pthread_mutex_lock(server_socket_reuse_list_mutex_);
         server_socket_reuse_list_[pool_index].push_back(sk);
-        char notify_char = '\N';
+        char notify_char = 'N';
         ret = send(local_socket_pair_[0], &notify_char, 1, 0);
         pthread_mutex_unlock(server_socket_reuse_list_mutex_);
+        LEAVING;
         return ret;
     };
 
     // 获取所有的reusesocket，以便放到epoll
     int GetServerReuseSocketList(std::map<uint32_t, std::list<Socket*> > &sk_list) {
 
+        ENTERING;
         pthread_mutex_lock(server_socket_reuse_list_mutex_);
         server_socket_reuse_list_.swap(sk_list);
         pthread_mutex_unlock(server_socket_reuse_list_mutex_);
+        LEAVING;
         return 0;
     };
 
     // 插入接收到的UDP数据，并通知worker
     int InsertUDPRecvPacket(std::list<Packet*> &pkt_list) {
 
+        ENTERING;
         pthread_mutex_lock(udp_recv_list_mutex_);
         udp_recv_list_.insert(udp_recv_list_.end(), pkt_list.begin(), pkt_list.end());
         pthread_mutex_unlock(udp_recv_list_mutex_);
         pthread_cond_signal(udp_recv_list_cond_);
+        LEAVING;
+        return 0;
     };
 
     // UDP数据发送，因为不是流，只能由应用来把请求和应答对应起来。
     int UDPSend(std::string &to_ip, uint16_t to_port, char *buf_to_send, int buf_len) {
 
+        ENTERING;
         struct sockaddr_in to_addr;
         socklen_t addr_len;
 
         memset(&to_addr, sizeof(struct sockaddr_in), 0);
         to_addr.sin_port = htons(to_port);
         if (inet_aton(to_ip.c_str(), &in_addr.sin_addr) == 0) {
+            LEAVING;
             return -1;
         }
         addr_len = sizeof(struct sockaddr_in);
@@ -676,6 +699,7 @@ public:
         int ret = sendto(udp_socket_->sk(), buf_to_send, buf_len, 0,
                          (struct sockaddr*)(&to_addr), &addr_len);
         pthread_mutex_unlock(udp_socket_mutex_);
+        LEAVING;
         return 0;
     };
 
@@ -683,6 +707,8 @@ public:
 public:
     // 定时处理函数，返回值是告诉epoll_wait等待多久
     int TimerHandler() {
+        ENTERING;
+        LEAVING;
         return timer_interval_;
     };
 

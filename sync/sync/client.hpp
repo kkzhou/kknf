@@ -18,6 +18,7 @@
 #ifndef __CLIENT_HPP__
 #define __CLIENT_HPP__
 
+#include "util.hpp"
 #include "socket.hpp"
 
 namespace NF {
@@ -28,9 +29,11 @@ public:
     // 阻塞的创建一个连接，然后设置成非阻塞
     Socket* MakeConnect(std::string &ip, uint16_t port) {
 
+        ENTERING;
         int fd = -1;
         // prepare socket
         if ((fd = socket(PF_INET, SOCK_STREAM, 0) < 0) {
+            LEAVING;
             return 0;
         }
 
@@ -38,12 +41,14 @@ public:
         server_addr.sin_family = AF_INET;
         server_addr.sin_port = htons(port);
         if (inet_aton(ip.c_str(), &server_addr.sin_addr) == 0) {
+            LEAVING;
             return 0;
         }
         socklen_t addr_len = sizeof(struct sockaddr_in);
 
         // connect
         if (connect(fd_, (struct sockaddr*)&server_addr, addr_len) == -1) {
+            LEAVING;
             return 0;
         }
 
@@ -51,6 +56,7 @@ public:
         struct sockaddr_in myaddr;
         socklen_t myaddr_len;
         if (getsockname(fd_, (struct sockaddr*)&myaddr, &myaddr_len) == -1) {
+            LEAVING;
             return 0;
         }
 
@@ -62,6 +68,7 @@ public:
         ret_sk->set_peer_ip(server_addr.sin_addr);
         ret_sk->set_peer_ipstr(ip)
         ret_sk->set_peer_port(port);
+        LEAVING;
         return 0;
     };
 
@@ -69,7 +76,9 @@ public:
     int TCPSend(Socket *sk, char *buf_to_send,
                        uint32_t buf_to_send_size) {
 
+        ENTERING;
         if (buf_to_send == 0) {
+            LEAVING;
             return -1;
         }
 
@@ -80,6 +89,7 @@ public:
             int ret = send(sk->sk(), buf_to_send, buf_to_send_size, 0);
             if (ret == -1) {
                 if (errno != EWOULDBLOCK || errno != EAGAIN) {
+                    LEAVING;
                     return -2;
                 }
             } else {
@@ -87,7 +97,7 @@ public:
                 cur += ret;
             }
         }
-
+        LEAVING;
         return 0;
     };
 
@@ -102,6 +112,7 @@ public:
     // >=0：指示第几个socket出错
     int TCPWaitToRead(std::vector<Socket*> &sk_list, int &num_of_triggered_fd, int millisecs) {
 
+        ENTERING;
         uint32_t len = sk_list.size();
         assert(len >= num_of_triggered_fd);
         assert(num_of_triggered_fd > 0);
@@ -121,6 +132,7 @@ public:
                 for (uint32_t j = 0; j <= i; j++) {
                     epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, evs[j].data.fd, 0);
                 }
+                LEAVING;
                 return j;
             }
         }// for
@@ -134,6 +146,7 @@ public:
             int ret = epoll_wait(epoll_fd_, &evs[0], len, timeout);
             if (ret < 0) {
                 if (errno != EINTR) {
+                    LEAVING;
                     return -2;
                 }
                 gettimeofday(&end_time);
@@ -141,6 +154,7 @@ public:
                             + (end_time.tv_usec - start_time.tv_usec) / 1000;
 
                 if (timeout <= 0) {
+                    LEAVING;
                     return -2;
                 }
                 continue;
@@ -150,7 +164,7 @@ public:
                 break;
             }
         }// while
-
+        LEAVING;
         return -1;
     };
 
