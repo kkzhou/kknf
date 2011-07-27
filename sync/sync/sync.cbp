@@ -35,6 +35,7 @@
 		<Unit filename="test_tcp_bf.cc" />
 		<Unit filename="test_tcp_client.cc" />
 		<Unit filename="udp_processor.hpp" />
+		<Unit filename="util.hpp" />
 		<Extensions>
 			<code_completion />
 			<debugger />

@@ -30,12 +30,14 @@
 
 namespace NF {
 
+// IP：Port二元对，在很多情况下用作key
 class SocketAddr {
 public:
     std::string ip_;
     uint16_t port_;
 };
 
+// 用于存储一个数据包
 class Packet {
 public:
     SocketAddr from_;
@@ -88,26 +90,36 @@ public:
     // 初始化，主要工作是：创建epoll、创建本地套接口
     int InitServer() {
 
+        ENTERING;
         epoll_fd_ = epoll_create(epoll_size_);
         if (epoll_fd_ < 0) {
+            LEAVING;
             return -1;
         }
         int ret = socketpair(AF_UNIX, SOCK_STREAM, 0, local_socket_pair_);
         if (ret != 0) {
+            LEAVING;
             return -1;
         }
+        LEAVING;
         return 0;
     };
 
+    // 停止epoll循环，不是立即有效
     void StopServer() {
+
+        ENTERING;
         epoll_canel_ = true;
+        LEAVING;
     };
 
     // Server线程函数，线程有使用者创建
     static void ServerThreadProc(void *arg) {
 
+        ENTERING;
         Server *srv = reinterpret_cast<Server*>(arg);
         srv->RunServer();
+        LEAVING;
     };
     // 启动服务器，主要工作有：
     // 1， 把侦听套接口添加epoll
@@ -116,7 +128,9 @@ public:
     // 4， 进入epoll_wait
     int RunServer() {
 
+        ENTERING;
         if (listen_socket_list_.size() == 0 && udp_socket_ == 0) {
+            LEAVING;
             return -1;
         }
 
@@ -138,13 +152,10 @@ public:
                                 // 3: local socket
                 ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, (*listen_socket_it)->sk(), &e);
                 if (ret == -1) {
+                    LEAVING;
                     return -2;
                 }
-                // create thread pool for it
-                for (int i = 0; i < thread_pool_size_for_each_listen_socket_; i++) {
-                    if (pthread_create(&thread_id_list_for_listen_socket[i], 0,
-                }
-            }
+            }// for
         }
 
 
@@ -158,6 +169,7 @@ public:
             e.data.ptr = udp_socket_;
             ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, udp_socket_->sk(), &e);
             if (ret == -1) {
+                LEAVING;
                 return -2;
             }
         }
@@ -170,17 +182,20 @@ public:
         e.data.ptr = 0;
         ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, e.data.fd, &e);
         if (ret == -1) {
+            LEAVING;
             return -2;
         }
 
         // loop
         EpollLoop();
-
+        LEAVING;
         return 0;
     };
 
     // epool 循环的线程函数
     void EpollLoop() {
+
+        ENTERING;
         // epoll loop
         int timeout = timer_interval_;
         while (!epoll_cancel_) {
@@ -194,7 +209,8 @@ public:
                 continue;
             } else if (ret == -1) {
                 // error
-                return -2;
+                LEAVING;
+                return;
             } else if (ret > 0) {
                 // events
                 struct epoll_event *e;
@@ -218,6 +234,7 @@ public:
                 timeout = timeout = TimerHandler();
             }
         } // while
+        LEAVING;
         return;
     };
     // 处理有事件的套接口
@@ -228,9 +245,12 @@ public:
     // =1: 是server套接口，已经交给了worker线程，把它从epoll中删除
     int EpollProcess(struct epoll_event &e, std::map<uint32_t, std::list<Socket*> > &server_sk_map) {
 
+        ENTERING;
         int ret = 0;
         if (e.events | EPOLL_ERR) {
+            LEAVING;
             return -1;
+
         } else if (e.events | EPOLL_IN) {
 
             if (e.u64 == 0) {
@@ -272,12 +292,14 @@ public:
                     // 如果index不存在，map会自动创建新元素，即一个空list
                     server_sk_map[index].push_back(new_sk);
                 }
+                LEAVING;
                 return 0;
 
             } else if (e.u64 == 1) {
                 // TCP server socket
                 uint32_t index = static_cast<int>(e.data.u32);
                 server_sk_map[index].push_back(new_sk);
+                LEAVING;
                 return 1;
 
             } else if (e.u64 == 2) {
@@ -371,13 +393,16 @@ public:
             }
 
         } // epoll_in event
+        LEAVING;
         return 0;
     };
 
     int AddListenSocket(std::string &ip, uint16_t port) {
 
+        ENTERING;
         int fd = socket(PF_INET, SOCK_STREAM, 0);
         if (fd < 0) {
+            LEAVING;
             return -1;
         }
         // Bind address
@@ -385,15 +410,18 @@ public:
         listen_addr.sin_family = AF_INET;
         listen_addr.sin_port = htons(port);
         if (inet_aton(ip.c_str(), &listen_addr.sin_addr) == 0) {
+            LEAVING;
             return -1;
         }
         socklen_t addr_len = sizeof(struct sockaddr_in);
         if (bind(fd, (struct sockaddr*)&listen_addr, addr_len) == -1) {
+            LEAVING;
             return -1;
         }
 
         // Listen
         if (listen(fd, 1024) == -1) {
+            LEAVING;
             return -1;
         }
 
@@ -404,6 +432,7 @@ public:
         newsk.SetReuse();
 
         listen_socket_list_.push_back(newsk);
+        // 因为每个listen套接口都有一个队列，因此要创建mutex和cond
         // init mutex and cond
         pthread_mutex_t *new_mutex = new pthread_mutex_t;
         pthread_mutex_init(new_mutex, 0);
@@ -413,17 +442,19 @@ public:
         server_socket_ready_list_mutex_.push_back(new_mutex);
         server_socket_ready_list_cond_.push_back(new_cond);
         int index = static_cast<int>(listen_socket_list_.size()) - 1;
-        assert(index > 0);
-
+        assert(index >= 0);
+        LEAVING;
         return index;
     };
 
-    // 阻塞的创建一个连接，然后设置成非阻塞
+    // 阻塞的创建一个连接
     Socket* MakeConnect(std::string &ip, uint16_t port) {
 
+        ENTERING;
         int fd = -1;
         // prepare socket
         if ((fd = socket(PF_INET, SOCK_STREAM, 0) < 0) {
+            LEAVING;
             return 0;
         }
 
@@ -431,12 +462,14 @@ public:
         server_addr.sin_family = AF_INET;
         server_addr.sin_port = htons(port);
         if (inet_aton(ip.c_str(), &server_addr.sin_addr) == 0) {
+            LEAVING;
             return 0;
         }
         socklen_t addr_len = sizeof(struct sockaddr_in);
 
         // connect
         if (connect(fd_, (struct sockaddr*)&server_addr, addr_len) == -1) {
+            LEAVING;
             return 0;
         }
 
@@ -444,6 +477,7 @@ public:
         struct sockaddr_in myaddr;
         socklen_t myaddr_len;
         if (getsockname(fd_, (struct sockaddr*)&myaddr, &myaddr_len) == -1) {
+            LEAVING;
             return 0;
         }
 
@@ -455,25 +489,31 @@ public:
         ret_sk->set_peer_ip(server_addr.sin_addr);
         ret_sk->set_peer_ipstr(ip)
         ret_sk->set_peer_port(port);
+        LEAVING;
         return 0;
     };
 
     // 添加一个UDP套接口，收发都用它
     int AddUDPSocket(std::string &ip, uint16_t port) {
 
+        ENTERING;
         int fd = socket(PF_INET, SOCK_DATAGRAM, 0);
         if (fd < 0) {
+            LEAVING;
             return -1;
         }
+
         // Bind address
         struct sockaddr_in listen_addr;
         listen_addr.sin_family = AF_INET;
         listen_addr.sin_port = htons(port);
         if (inet_aton(ip.c_str(), &listen_addr.sin_addr) == 0) {
+            LEAVING;
             return -1;
         }
         socklen_t addr_len = sizeof(struct sockaddr_in);
         if (bind(fd, (struct sockaddr*)&listen_addr, addr_len) == -1) {
+            LEAVING;
             return -1;
         }
 
@@ -484,6 +524,7 @@ public:
 
         udp_socket_ = newsk;
         has_udp_socket_ = true;
+        LEAVING;
         return 0;
     };
 

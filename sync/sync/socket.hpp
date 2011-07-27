@@ -52,10 +52,6 @@ public:
     uint16_t peer_port() { return peer_port_; };
 
     // manipulators
-    bool Invalid() {
-        return sk_ >= 0;
-    };
-
     int Close() {
         close(sk_);
     };
@@ -73,17 +69,7 @@ public:
         }
         return 0;
     };
-    int SetBlock() {
-        int flags = 0;
-        flags = fcntl(sk_, F_GETFL, 0);
-        if (flags == -1) {
-            return -1;
-        }
-        if (fcntl(sk_, F_SETFL, flags & (~O_NONBLOCK) == -1) {
-            return -1;
-        }
-        return 0;
-    };
+
     int SetReuse() {
 
         int optval = 0;
@@ -91,6 +77,7 @@ public:
         if (setsockopt(sk_, SOL_SOCKET, SO_REUSEADDR, &optval, optlen) < 0) {
             return -1;
         }
+
         return 0;
     };
 private:
