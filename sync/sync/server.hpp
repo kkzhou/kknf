@@ -304,7 +304,7 @@ public:
 
             } else if (e.u64 == 2) {
                 // UDP socket
-                static char buf_for_udp[65536]; // buf used to recv udp data
+                std::vector<char> buf_for_udp(65536); // buf used to recv udp data
                 int len = 65536;
 
                 std::list<Packet*> new_pkt_list;
@@ -312,14 +312,16 @@ public:
 
                     struct sockaddr_in from_addr;
                     socklen_t from_addr_len = 0;
-                    int ret = recvfrom(e.fd, buf_for_udp, len, (struct sockaddr*)(&from_addr), &from_addr_len);
+                    int ret = recvfrom(e.fd, &buf_for_udp[0], len, MSG_DONTWAIT,
+                                       (struct sockaddr*)(&from_addr), &from_addr_len);
                     if (ret < 0) {
                         if (errno == EAGAIN) {
                             break;
                         }
                     }
+
                     Packet *new_pkt = new Packet;
-                    new_pkt->data_.assign(buf_for_udp, buf_for_udp + ret);
+                    new_pkt->data_.assign(buf_for_udp.data(), buf_for_udp.data() + ret);
 
                     char *from_addr_str = inet_ntoa(from_addr.sin_addr);
                     if (!from_addr_str) {
@@ -333,6 +335,7 @@ public:
                     new_pkt->to_.port_ = (Socket*)(e.data.ptr)->my_port_;
                     new_pkt_list.push_back(new_pkt);
                 }
+
                 if (new_pkt_list.size() > 0) {
                     InsertUDPRecvPacket(new_pkt_list);
                 }
@@ -496,7 +499,7 @@ public:
     };
 
     // 添加一个UDP套接口，收发都用它
-    int AddUDPSocket(std::string &ip, uint16_t port) {
+    int InitUDPSocket(std::string &ip, uint16_t port) {
 
         ENTERING;
         int fd = socket(PF_INET, SOCK_DATAGRAM, 0);
@@ -519,13 +522,10 @@ public:
             return -1;
         }
 
-        Socket newsk(fd);
-        newsk.set_my_ip(ip);
-        newsk.set_my_port(port);
-        newsk.SetReuse();
-
-        udp_socket_ = newsk;
-        has_udp_socket_ = true;
+        udp_socket_ = new Socket(fd);
+        udp_socket_->set_my_ip(ip);
+        udp_socket_->set_my_port(port);
+        udp_socket_->SetReuse();
         LEAVING;
         return 0;
     };
@@ -623,18 +623,21 @@ public:
     Socket* GetServerReadySocket(uint32_t index) {
 
         ENTERING;
-        pthread_mutex_lock(&server_socket_list_mutex_);
+        pthread_mutex_lock(&server_socket_ready_list_mutex_);
 
-        if (index >= server_socket_list_.size()) {
+        if (index >= server_socket_ready_list_.size()) {
 
-            pthread_mutex_unlock(&server_socket_list_mutex_);
+            pthread_mutex_unlock(&server_socket_ready_list_mutex_);
             LEAVING;
             return 0;
         }
 
-        Socket *sk = server_socket_list_[index].front();
-        server_socket_list_[index].pop_front();
-        pthread_mutex_unlock(&server_socket_list_mutex_);
+        while (server_socket_ready_list_[index].size() == 0) {
+            pthread_cond_wait(server_socket_ready_list_cond_[index]);
+        }
+        Socket *sk = server_socket_ready_list_[index].front();
+        server_socket_ready_list_[index].pop_front();
+        pthread_mutex_unlock(&server_socket_ready_list_mutex_);
         LEAVING;
         return sk;
     };
@@ -706,7 +709,7 @@ public:
 
 public:
     // 定时处理函数，返回值是告诉epoll_wait等待多久
-    int TimerHandler() {
+    virtual int TimerHandler() {
         ENTERING;
         LEAVING;
         return timer_interval_;

@@ -32,6 +32,8 @@ public:
         cancel_(false) {
 
         epoll_fd_ = epoll_create(100);
+        max_udp_pkt_size_ = 1472; // 1500 - 20 - 8
+        max_tcp_pkt_size_ = 1024 * 1024 * 10; // 10M
     };
 
     virtual ~Processor() {
@@ -53,8 +55,11 @@ public:
     };
 
     // 处理逻辑
-    virtual int Process() = 0
-    };
+    virtual int Process() = 0;
+
+    //接收数据，需要根据业务定义的Packetize策略来处理
+    virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) = 0;
+
 
     // 获取空闲的TCP套接口，用于向后端服务器收发数据
     Socket* GetIdleClientSocket(std::string &to_ip, uint16_t to_port) {
@@ -96,9 +101,6 @@ public:
         LEAVING;
         return 0;
     };
-
-    //接收数据，需要根据业务定义的Packetize策略来处理
-    virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) = 0;
 
     // 等待回应到来，因为后端服务器处理时间会比较长，因此
     // 顺序等待比较浪费，因此利用epoll
@@ -164,12 +166,23 @@ public:
         LEAVING;
         return -1;
     };
-
+public:
+    int max_udp_pkt_size() { return max_udp_pkt_size_;};
+    int max_tcp_pkt_size() { return max_tcp_pkt_size_;};
+    uint32_t pool_index() { return pool_index_; };
 private:
     Server *srv_;
     int epoll_fd_;
     uint32_t pool_index_;    // 多线程池时的索引
     bool cancel_;
+
+    int max_udp_pkt_size_;
+    int max_tcp_pkt_size_;
+
+private:
+    Processor(){};
+    Processor(Processor&){};
+    Processor& operator=(Processor&){};
 };
 }; // namespace NF
 

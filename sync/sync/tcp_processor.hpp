@@ -24,9 +24,55 @@ namespace NF {
 
 // 一个Processor对应一个线程
 class TCPProcessor : public Processor {
+
 public:
+    //接收数据，需要根据业务定义的Packetize策略来处理
+    // 本测试程序中是LV格式
+    virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
 
+        ENTERING;
+        int len_field = 0;
+        int byte_num = 0;
+        int ret = 0;
 
+        // 收长度域，4字节
+        while (byte_num < 4) {
+            ret = recv(sk->sk(), &len_field, 4 - byte_num, 0);
+            if (ret < 0) {
+                if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                    return -1;
+                }
+            } else {
+                byte_num += ret;
+                continue;
+            }
+        } // while
+
+        int len = ntohl(len_field);
+        if ( len <= 0 || len > max_tcp_pkt_size()) {
+            LEAVING;
+            return -2;
+        }
+
+        // 收数据域
+        byte_num = 0;
+        buf_to_fill.resize(len);
+        while (byte_num < len) {
+            ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
+            if (ret < 0) {
+                if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                    return -2;
+                }
+            } else {
+                byte_num += ret;
+                continue;
+            }
+        } // while
+
+        return 0;
+    };
+    // 处理逻辑
+    virtual int Process() = 0;
 };
 }; // namespace NF
 

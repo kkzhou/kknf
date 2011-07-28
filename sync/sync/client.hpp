@@ -23,9 +23,32 @@
 
 namespace NF {
 
+class SocketAddr {
+public:
+    std::string ip_;
+    uint16_t port_;
+};
+
 class Client {
+public:
+    Client() {
+        epoll_fd_ = epoll_create(1024);
+    };
+    virtual ~Client(){};
 
 public:
+    int MakeUDPSocket() {
+
+        ENTERING;
+        int fd = socket(PF_INET, SOCK_DATAGRAM, 0);
+        if (fd < 0) {
+            LEAVING;
+            return -1;
+        }
+
+        LEAVING;
+        return fd;
+    };
     // 阻塞的创建一个连接，然后设置成非阻塞
     Socket* MakeConnect(std::string &ip, uint16_t port) {
 
@@ -167,8 +190,123 @@ public:
         LEAVING;
         return -1;
     };
+    // UDP数据发送，因为不是流，只能由应用来把请求和应答对应起来。
+    int UDPSend(int sk, std::string &to_ip, uint16_t to_port, char *buf_to_send, int buf_len) {
 
+        ENTERING;
+        struct sockaddr_in to_addr;
+        socklen_t addr_len;
+
+        memset(&to_addr, sizeof(struct sockaddr_in), 0);
+        to_addr.sin_port = htons(to_port);
+        if (inet_aton(to_ip.c_str(), &in_addr.sin_addr) == 0) {
+            LEAVING;
+            return -1;
+        }
+        addr_len = sizeof(struct sockaddr_in);
+        // udp_socket_ is BLOCKING fd
+        int ret = sendto(sk, buf_to_send, buf_len, 0,
+                         (struct sockaddr*)(&to_addr), &addr_len);
+
+        if (ret <= 0) {
+            LEAVING;
+            return -1;
+        }
+        LEAVING;
+        return fd;
+    };
+
+    // UDP数据接收，因为不是流，只能由应用来把请求和应答对应起来。
+    int UDPRecv(int sk, std::vector<char> &buf_to_fill, std::string &from_ip, uint16_t &from_port) {
+
+        ENTERING;
+        struct sockaddr_in from_addr;
+        socklen_t addr_len;
+
+        memset(&from_addr, sizeof(struct sockaddr_in), 0);
+        addr_len = sizeof(struct sockaddr_in);
+
+        // udp_socket_ is BLOCKING fd
+        int ret = recvfrom(sk, &buf_to_fill[0], buf_to_fill.size(), 0,
+                         (struct sockaddr*)(&to_addr), &addr_len);
+
+        if (ret <= 0) {
+            LEAVING;
+            return -1;
+        }
+        from_ip = inet_ntoa(&to_addr.sin_addr);
+        from_port = ntohs(to_addr.sin_port);
+        buf_to_fill.resize(ret);
+        LEAVING;
+        return 0;
+    };
+
+    // 通过这个函数找一个空闲的
+    // 连接，如果没有则返回-1，用MakeConnection函数建立一个新的连接
+    Socket* GetClientSocket(std::string &ip, uint16_t port) {
+
+        ENTERING;
+        Socket *ret_sk = 0;
+        SocketAddr addr;
+        addr.ip_ = ip;
+        addr.port_ = port;
+
+        std::map<SocketAddr, std::list<Socket*> >::iterator it;
+
+        pthread_mutex_lock(client_socket_idle_list_mutex_);
+        it = client_socket_idle_list_.find(addr);
+
+        if (it != client_socket_idle_list_.end()) {
+
+            assert(it->second.size() != 0);
+            ret_sk = it->second.front()
+            it->second.pop_front();
+
+            if (it->second.size() == 0) {
+                it->second.erase(addr);
+            }
+        }
+
+        pthread_mutex_unlock(client_socket_idle_list_mutex_);
+        LEAVING;
+        return ret_sk;
+    };
+
+    // 把新建立的连向后端服务器的连接放到列表里
+    // 或者是把用过的连接交回到列表里
+    int InsertClientSocket(Socket *sk) {
+
+        ENERING;
+        SocketAddr addr;
+        addr.ip_ = sk->peer_ip();
+        addr.port_ = sk->peer_port();
+
+        pthread_mutex_lock(client_socket_idle_list_mutex_);
+        std::map<SocketAddr, std::list<Socket*> >::iterator it;
+
+        it = client_socket_idle_list_.find(addr);
+
+        if (it != client_socket_idle_list_.end()) {
+
+            assert(it->second.size() > 0);
+            it->second.push_back(sk);
+
+        } else {
+
+            std::list<Socket*> new_list;
+            new_list.push_back(sk);
+            client_socket_idle_list_.insert(std::pair<SocketAddr, std::list<Socket*> >(addr, new_list));
+        }
+        pthread_mutex_unlock(client_socket_idle_list_mutex_);
+        LEAVING;
+        return 0;
+    };
 private:
+    // 连接服务器的套接口，对同一个ip：port可能有多个套接口
+    std::map<SocketAddr, std::list<Socket*> > client_socket_idle_list_;
+    pthread_mutex_t *client_socket_idle_list_mutex_;
+
+    int epoll_fd_;
 };
 };// namespace NF
 
