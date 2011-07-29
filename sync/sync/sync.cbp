@@ -20,22 +20,17 @@
 			<Add option="-Wall" />
 		</Compiler>
 		<Unit filename="Makefile" />
-		<Unit filename="client.hpp">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="client.hpp" />
 		<Unit filename="processor.hpp" />
-		<Unit filename="server.hpp">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="socket.hpp">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="server.hpp" />
+		<Unit filename="socket.hpp" />
+		<Unit filename="sync.cbp" />
+		<Unit filename="test_bb1.cc" />
+		<Unit filename="test_bb2.cc" />
+		<Unit filename="test_bf.cc" />
+		<Unit filename="test_client.cc" />
 		<Unit filename="test_simple_client.cc" />
 		<Unit filename="test_simple_server.cc" />
-		<Unit filename="test_tcp_bb1.cc" />
-		<Unit filename="test_tcp_bb2.cc" />
-		<Unit filename="test_tcp_bf.cc" />
-		<Unit filename="test_tcp_client.cc" />
 		<Unit filename="util.hpp" />
 		<Extensions>
 			<code_completion />
