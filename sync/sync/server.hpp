@@ -87,6 +87,13 @@ public:
         // 删除所有socket
     };
 
+    // 定时处理函数，返回值是告诉epoll_wait等待多久
+    virtual int TimerHandler() {
+        ENTERING;
+        LEAVING;
+        return timer_interval_;
+    };
+
     // 初始化，主要工作是：创建epoll、创建本地套接口
     int InitServer() {
 
@@ -121,286 +128,7 @@ public:
         srv->RunServer();
         LEAVING;
     };
-    // 启动服务器，主要工作有：
-    // 1， 把侦听套接口添加epoll
-    // 2， 把本地套接口加入到epoll
-    // 3， 把UDP套接口添加到epoll
-    // 4， 进入epoll_wait
-    int RunServer() {
 
-        ENTERING;
-        if (listen_socket_list_.size() == 0 && udp_socket_ == 0) {
-            LEAVING;
-            return -1;
-        }
-
-        int ret = 0;
-        struct epoll_event e;
-        // add listen socket to epoll to accept
-        if (listen_socket_list_.size() > 0) {
-            std::vector<Socket*>::iterator listen_socket_it = listen_socket_list_.begin();
-            uint32_t index = 0;
-            for (; listen_socket_it; listen_socket_it++) {
-                memset(&e, sizeof(struct epoll_event), 0);
-                e.events = EPOLL_IN;
-                e.data.fd = (*listen_socket_it)->sk();
-                e.data.u32 = index++;
-                e.data.ptr = (*listen_socket_it);
-                e.data.u64 = 0; // 0: tcp listen socket
-                                // 1: tcp server socket
-                                // 2: udp socket
-                                // 3: local socket
-                ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, (*listen_socket_it)->sk(), &e);
-                if (ret == -1) {
-                    LEAVING;
-                    return -2;
-                }
-            }// for
-        }
-
-
-        // add UDP socket
-        if (udp_socket_) {
-            memset(&e, sizeof(struct epoll_event), 0);
-            e.events = EPOLL_IN;
-            e.data.fd = udp_socket_->sk();
-            e.data.u32 = 0;
-            e.data.u64 = 2;
-            e.data.ptr = udp_socket_;
-            ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, udp_socket_->sk(), &e);
-            if (ret == -1) {
-                LEAVING;
-                return -2;
-            }
-        }
-        // add local socket
-        memset(&e, sizeof(struct epoll_event), 0);
-        e.events = EPOLL_IN;
-        e.data.fd = local_socket_pair[1];
-        e.data.u32 = 0;
-        e.data.u64 = 3;
-        e.data.ptr = 0;
-        ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, e.data.fd, &e);
-        if (ret == -1) {
-            LEAVING;
-            return -2;
-        }
-
-        // loop
-        EpollLoop();
-        LEAVING;
-        return 0;
-    };
-
-    // epool 循环的线程函数
-    void EpollLoop() {
-
-        ENTERING;
-        // epoll loop
-        int timeout = timer_interval_;
-        while (!epoll_cancel_) {
-            struct timeval start_time, end_time;
-            gettimeofday(&start_time);
-
-            int ret = epoll_wait(epoll_fd_, all_epoll_events_, epoll_size_, timeout);
-            if (ret == 0) {
-                // timeout
-                timeout = TimerHandler();
-                continue;
-            } else if (ret == -1) {
-                // error
-                LEAVING;
-                return;
-            } else if (ret > 0) {
-                // events
-                struct epoll_event *e;
-                std::map<uint32_t, std::list<Socket*> > server_sk_map;
-                for (int i = 0; i < ret; i++) {
-                    int result = EpollProcess(all_epoll_events_[i], server_sk_map);
-                    if (result < 0 || result == 1) {
-                        // delete this fd
-                        epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, e->fd, 0);
-                    }
-                }
-                InsertServerReadySocket(server_sk_map);
-
-            } else {
-            }
-
-            gettimeofday(&end_time);
-            timeout = timeout - (end_time.tv_sec - start_time.tv_sec) * 1000 + (end_time.tv_usec - start_time.tv_usec) / 1000;
-            if (timeout <= 100) {
-                // timer procision is 100ms
-                timeout = timeout = TimerHandler();
-            }
-        } // while
-        LEAVING;
-        return;
-    };
-    // 处理有事件的套接口
-    // 用sk_map返回已经准备好的server套接口，即in/out参数（丑！）
-    // 返回值：
-    // <0: 出现错误，把该fd从epoll中删除
-    // =0: 不做处理
-    // =1: 是server套接口，已经交给了worker线程，把它从epoll中删除
-    int EpollProcess(struct epoll_event &e, std::map<uint32_t, std::list<Socket*> > &server_sk_map) {
-
-        ENTERING;
-        int ret = 0;
-        if (e.events | EPOLL_ERR) {
-            LEAVING;
-            return -1;
-
-        } else if (e.events | EPOLL_IN) {
-
-            if (e.u64 == 0) {
-                // TCP listen socket
-                while (true) {
-
-                    struct sockaddr_in from_addr;
-                    socklen_t from_addr_len = 0;
-                    int new_fd = accept(e.fd, (struct sockaddr*)(&from_addr), &from_addr_len);
-                    if (new_fd == -1) {
-                        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
-                            || errno == ECONNABORTED || errno == EPERM) {
-                            break;
-                        } else if (errno == ENFILE || errno == EMFILE || errno == ENBUFS || errno == ENOMEM) {
-                            break;
-                        } else {
-                            break;
-                        }
-                    }
-                    Socket *listen_sk = reinterpret_cast<Socket*>(e.data.ptr);
-                    Socket *new_sk = new Socket(new_fd);
-                    new_sk->SetNonBlock();
-                    new_sk->set_my_ip(listen_sk->my_ip());
-                    new_sk->set_my_ipstr(listen_sk->my_ipstr());
-                    new_sk->set_my_port(listen_sk->my_port());
-                    new_sk->set_peer_ip(from_addr.sin_addr);
-                    char *from_addr_str = inet_ntoa(from_addr.sin_addr);
-                    if (from_addr_str == 0) {
-                        delete new_sk;
-                        continue;
-                    }
-
-                    uint32_t index = static_cast<int>(e.data.u32);
-                    std::string tmps;
-                    tmps.append(from_addr_str);
-                    new_sk->set_peer_ipstr(tmps);
-
-                    // sk_map是用来装返回数据的！
-                    // 如果index不存在，map会自动创建新元素，即一个空list
-                    server_sk_map[index].push_back(new_sk);
-                }
-                LEAVING;
-                return 0;
-
-            } else if (e.u64 == 1) {
-                // TCP server socket
-                uint32_t index = static_cast<int>(e.data.u32);
-                server_sk_map[index].push_back(new_sk);
-                LEAVING;
-                return 1;
-
-            } else if (e.u64 == 2) {
-                // UDP socket
-                std::vector<char> buf_for_udp(65536); // buf used to recv udp data
-                int len = 65536;
-
-                std::list<Packet*> new_pkt_list;
-                while (true) {
-
-                    struct sockaddr_in from_addr;
-                    socklen_t from_addr_len = 0;
-                    int ret = recvfrom(e.fd, &buf_for_udp[0], len, MSG_DONTWAIT,
-                                       (struct sockaddr*)(&from_addr), &from_addr_len);
-                    if (ret < 0) {
-                        if (errno == EAGAIN) {
-                            break;
-                        }
-                    }
-
-                    Packet *new_pkt = new Packet;
-                    new_pkt->data_.assign(buf_for_udp.data(), buf_for_udp.data() + ret);
-
-                    char *from_addr_str = inet_ntoa(from_addr.sin_addr);
-                    if (!from_addr_str) {
-                        delete new_pkt;
-                        break;
-                    }
-
-                    new_pkt->from_.ip_.append(from_addr_str);
-                    new_pkt->from_.port_ = ntohs(from_addr.sin_port);
-                    new_pkt->to_.ip_ = (Socket*)(e.data.ptr)->my_ipstr_;
-                    new_pkt->to_.port_ = (Socket*)(e.data.ptr)->my_port_;
-                    new_pkt_list.push_back(new_pkt);
-                }
-
-                if (new_pkt_list.size() > 0) {
-                    InsertUDPRecvPacket(new_pkt_list);
-                }
-                LEAVING;
-                return 0;
-
-            } else if (e.data.u64 == 3) {
-                // local socket
-                char local_data[1024];
-                while (true) {
-                    int ret = recv(local_socket_pair[1], local_data, 1024, 0);
-                    if (ret <= 0) {
-                        if (errno != EAGAIN || errno != EWOULDBLOCK || errno != EINTR) {
-                            // fatal
-                            perror("local socket error: ");
-                            LEAVING;
-                            exit(1);
-                        }
-                        break;
-                    }
-                    if (ret == 1024) {
-                        // read
-                        continue;
-                    }
-                }
-
-                // deal with server_socket_reuse_list
-                std::map<uint32_t, std::list<Socket*> > sk_list;
-                GetServerReuseSocketList(sk_list);
-                std::map<uint32_t, std::list<Socket*> >::iterator it, endit;
-                it = sk_list.begin();
-                endit = sk_list.end();
-                for (; it != endit; it++) {
-                    std::list<Socket*>::iterator list_it, list_endit;
-                    list_it = it.second.begin();
-                    list_endit = it.second.end();
-                    uint32_t index = it.first;
-
-                    for (; list_it != list_endit; list_it++) {
-                        struct epoll_event new_ev;
-                        memset(&new_ev, sizeof(struct epoll_event), 0);
-                        new_ev.events = EPOLLIN;
-                        new_ev.data.fd = (*(it.second))->sk();
-                        new_ev.data.u64 = 1;
-                        new_ev.data.u32 = it->first;
-
-                        if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, new_ev.data.fd, &new_ev) == -1) {
-                            perror("add server reuse socket error");
-                            list_it->Close();
-                            delete (*list_it);
-                            *list_it = 0;
-                        } else {
-
-                        }
-                    }// for
-                }// for
-
-            } else {
-                assert(false);
-            }
-
-        } // epoll_in event
-        LEAVING;
-        return 0;
-    };
 
     int AddListenSocket(std::string &ip, uint16_t port) {
 
@@ -682,6 +410,22 @@ public:
         return 0;
     };
 
+    Packet* GetUDPPacket() {
+
+        ENTERING;
+        Packet *ret_pkt = 0;
+        pthread_mutex_lock(udp_recv_list_mutex_);
+        while (udp_recv_list_.size() == 0) {
+            pthread_cond_wait(udp_recv_list_cond_);
+        }
+
+        ret_pkt = udp_recv_list_.front();
+        udp_recv_list_.pop_front();
+        pthread_mutex_unlock(udp_recv_list_mutex_);
+        LEAVING;
+        return ret_pkt;
+    };
+
     // UDP数据发送，因为不是流，只能由应用来把请求和应答对应起来。
     int UDPSend(std::string &to_ip, uint16_t to_port, char *buf_to_send, int buf_len) {
 
@@ -707,13 +451,289 @@ public:
     };
 
 
-public:
-    // 定时处理函数，返回值是告诉epoll_wait等待多久
-    virtual int TimerHandler() {
+private:
+    // 启动服务器，主要工作有：
+    // 1， 把侦听套接口添加epoll
+    // 2， 把本地套接口加入到epoll
+    // 3， 把UDP套接口添加到epoll
+    // 4， 进入epoll_wait
+    int RunServer() {
+
         ENTERING;
+        if (listen_socket_list_.size() == 0 && udp_socket_ == 0) {
+            LEAVING;
+            return -1;
+        }
+
+        int ret = 0;
+        struct epoll_event e;
+        // add listen socket to epoll to accept
+        if (listen_socket_list_.size() > 0) {
+            std::vector<Socket*>::iterator listen_socket_it = listen_socket_list_.begin();
+            uint32_t index = 0;
+            for (; listen_socket_it; listen_socket_it++) {
+                memset(&e, sizeof(struct epoll_event), 0);
+                e.events = EPOLL_IN;
+                e.data.fd = (*listen_socket_it)->sk();
+                e.data.u32 = index++;
+                e.data.ptr = (*listen_socket_it);
+                e.data.u64 = 0; // 0: tcp listen socket
+                                // 1: tcp server socket
+                                // 2: udp socket
+                                // 3: local socket
+                ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, (*listen_socket_it)->sk(), &e);
+                if (ret == -1) {
+                    LEAVING;
+                    return -2;
+                }
+            }// for
+        }
+
+
+        // add UDP socket
+        if (udp_socket_) {
+            memset(&e, sizeof(struct epoll_event), 0);
+            e.events = EPOLL_IN;
+            e.data.fd = udp_socket_->sk();
+            e.data.u32 = 0;
+            e.data.u64 = 2;
+            e.data.ptr = udp_socket_;
+            ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, udp_socket_->sk(), &e);
+            if (ret == -1) {
+                LEAVING;
+                return -2;
+            }
+        }
+        // add local socket
+        memset(&e, sizeof(struct epoll_event), 0);
+        e.events = EPOLL_IN;
+        e.data.fd = local_socket_pair[1];
+        e.data.u32 = 0;
+        e.data.u64 = 3;
+        e.data.ptr = 0;
+        ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, e.data.fd, &e);
+        if (ret == -1) {
+            LEAVING;
+            return -2;
+        }
+
+        // loop
+        EpollLoop();
         LEAVING;
-        return timer_interval_;
+        return 0;
     };
+
+    // epool 循环的线程函数
+    void EpollLoop() {
+
+        ENTERING;
+        // epoll loop
+        int timeout = timer_interval_;
+        while (!epoll_cancel_) {
+            struct timeval start_time, end_time;
+            gettimeofday(&start_time);
+
+            int ret = epoll_wait(epoll_fd_, all_epoll_events_, epoll_size_, timeout);
+            if (ret == 0) {
+                // timeout
+                timeout = TimerHandler();
+                continue;
+            } else if (ret == -1) {
+                // error
+                LEAVING;
+                return;
+            } else if (ret > 0) {
+                // events
+                struct epoll_event *e;
+                std::map<uint32_t, std::list<Socket*> > server_sk_map;
+                for (int i = 0; i < ret; i++) {
+                    int result = EpollProcess(all_epoll_events_[i], server_sk_map);
+                    if (result < 0 || result == 1) {
+                        // delete this fd
+                        epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, e->fd, 0);
+                    }
+                }
+                InsertServerReadySocket(server_sk_map);
+
+            } else {
+            }
+
+            gettimeofday(&end_time);
+            timeout = timeout - (end_time.tv_sec - start_time.tv_sec) * 1000 + (end_time.tv_usec - start_time.tv_usec) / 1000;
+            if (timeout <= 100) {
+                // timer procision is 100ms
+                timeout = timeout = TimerHandler();
+            }
+        } // while
+        LEAVING;
+        return;
+    };
+    // 处理有事件的套接口
+    // 用sk_map返回已经准备好的server套接口，即in/out参数（丑！）
+    // 返回值：
+    // <0: 出现错误，把该fd从epoll中删除
+    // =0: 不做处理
+    // =1: 是server套接口，已经交给了worker线程，把它从epoll中删除
+    int EpollProcess(struct epoll_event &e, std::map<uint32_t, std::list<Socket*> > &server_sk_map) {
+
+        ENTERING;
+        int ret = 0;
+        if (e.events | EPOLL_ERR) {
+            LEAVING;
+            return -1;
+
+        } else if (e.events | EPOLL_IN) {
+
+            if (e.u64 == 0) {
+                // TCP listen socket
+                while (true) {
+
+                    struct sockaddr_in from_addr;
+                    socklen_t from_addr_len = 0;
+                    int new_fd = accept(e.fd, (struct sockaddr*)(&from_addr), &from_addr_len);
+                    if (new_fd == -1) {
+                        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
+                            || errno == ECONNABORTED || errno == EPERM) {
+                            break;
+                        } else if (errno == ENFILE || errno == EMFILE || errno == ENBUFS || errno == ENOMEM) {
+                            break;
+                        } else {
+                            break;
+                        }
+                    }
+                    Socket *listen_sk = reinterpret_cast<Socket*>(e.data.ptr);
+                    Socket *new_sk = new Socket(new_fd);
+                    new_sk->SetNonBlock();
+                    new_sk->set_my_ip(listen_sk->my_ip());
+                    new_sk->set_my_ipstr(listen_sk->my_ipstr());
+                    new_sk->set_my_port(listen_sk->my_port());
+                    new_sk->set_peer_ip(from_addr.sin_addr);
+                    char *from_addr_str = inet_ntoa(from_addr.sin_addr);
+                    if (from_addr_str == 0) {
+                        delete new_sk;
+                        continue;
+                    }
+
+                    uint32_t index = static_cast<int>(e.data.u32);
+                    std::string tmps;
+                    tmps.append(from_addr_str);
+                    new_sk->set_peer_ipstr(tmps);
+
+                    // sk_map是用来装返回数据的！
+                    // 如果index不存在，map会自动创建新元素，即一个空list
+                    server_sk_map[index].push_back(new_sk);
+                }
+                LEAVING;
+                return 0;
+
+            } else if (e.u64 == 1) {
+                // TCP server socket
+                uint32_t index = static_cast<int>(e.data.u32);
+                server_sk_map[index].push_back(new_sk);
+                LEAVING;
+                return 1;
+
+            } else if (e.u64 == 2) {
+                // UDP socket
+                std::vector<char> buf_for_udp(65536); // buf used to recv udp data
+                int len = 65536;
+
+                std::list<Packet*> new_pkt_list;
+                while (true) {
+
+                    struct sockaddr_in from_addr;
+                    socklen_t from_addr_len = 0;
+                    int ret = recvfrom(e.fd, &buf_for_udp[0], len, MSG_DONTWAIT,
+                                       (struct sockaddr*)(&from_addr), &from_addr_len);
+                    if (ret < 0) {
+                        if (errno == EAGAIN) {
+                            break;
+                        }
+                    }
+
+                    Packet *new_pkt = new Packet;
+                    new_pkt->data_.assign(buf_for_udp.data(), buf_for_udp.data() + ret);
+
+                    char *from_addr_str = inet_ntoa(from_addr.sin_addr);
+                    if (!from_addr_str) {
+                        delete new_pkt;
+                        break;
+                    }
+
+                    new_pkt->from_.ip_.append(from_addr_str);
+                    new_pkt->from_.port_ = ntohs(from_addr.sin_port);
+                    new_pkt->to_.ip_ = (Socket*)(e.data.ptr)->my_ipstr_;
+                    new_pkt->to_.port_ = (Socket*)(e.data.ptr)->my_port_;
+                    new_pkt_list.push_back(new_pkt);
+                }
+
+                if (new_pkt_list.size() > 0) {
+                    InsertUDPRecvPacket(new_pkt_list);
+                }
+                LEAVING;
+                return 0;
+
+            } else if (e.data.u64 == 3) {
+                // local socket
+                char local_data[1024];
+                while (true) {
+                    int ret = recv(local_socket_pair[1], local_data, 1024, 0);
+                    if (ret <= 0) {
+                        if (errno != EAGAIN || errno != EWOULDBLOCK || errno != EINTR) {
+                            // fatal
+                            perror("local socket error: ");
+                            LEAVING;
+                            exit(1);
+                        }
+                        break;
+                    }
+                    if (ret == 1024) {
+                        // read
+                        continue;
+                    }
+                }
+
+                // deal with server_socket_reuse_list
+                std::map<uint32_t, std::list<Socket*> > sk_list;
+                GetServerReuseSocketList(sk_list);
+                std::map<uint32_t, std::list<Socket*> >::iterator it, endit;
+                it = sk_list.begin();
+                endit = sk_list.end();
+                for (; it != endit; it++) {
+                    std::list<Socket*>::iterator list_it, list_endit;
+                    list_it = it.second.begin();
+                    list_endit = it.second.end();
+                    uint32_t index = it.first;
+
+                    for (; list_it != list_endit; list_it++) {
+                        struct epoll_event new_ev;
+                        memset(&new_ev, sizeof(struct epoll_event), 0);
+                        new_ev.events = EPOLLIN;
+                        new_ev.data.fd = (*(it.second))->sk();
+                        new_ev.data.u64 = 1;
+                        new_ev.data.u32 = it->first;
+
+                        if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, new_ev.data.fd, &new_ev) == -1) {
+                            perror("add server reuse socket error");
+                            list_it->Close();
+                            delete (*list_it);
+                            *list_it = 0;
+                        } else {
+
+                        }
+                    }// for
+                }// for
+
+            } else {
+                assert(false);
+            }
+
+        } // epoll_in event
+        LEAVING;
+        return 0;
+    };
+
+
 
 private:
     // 最大可以epoll的套接口数目

@@ -15,8 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef _UTILS_H_
-#define _UTILS_H_
+#ifndef __UTIL_HPP_
+#define __UTIL_HPP__
 
 #include <pthread.h>
 #include <stdio.h>
@@ -24,7 +24,7 @@
 #include <sstream>
 #include <cstdio>
 
-namespace AANF {
+namespace NF {
 
 #define SLOG_LEVEL 0x00000001UL
 
@@ -101,6 +101,6 @@ private:
     TimeUtil(TimeUtil&);
 };// class TimeUtil
 
-}; // namespace ZXB
+}; // namespace NF
 #endif
 

@@ -29,6 +29,8 @@
 		<Unit filename="socket.hpp">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
+		<Unit filename="test_simple_client.cc" />
+		<Unit filename="test_simple_server.cc" />
 		<Unit filename="test_tcp_bb1.cc" />
 		<Unit filename="test_tcp_bb2.cc" />
 		<Unit filename="test_tcp_bf.cc" />

@@ -120,6 +120,7 @@ public:
         int num = num_of_triggered_fd;
         num_of_triggered_fd = 0;
 
+        int ret = 0;
         // add fd to epoll
         for (uint32_t i = 0; i < len; i++) {
 
@@ -142,27 +143,30 @@ public:
 
             struct timeval start_time, end_time;
             gettimeofday(&start_time);
-            int ret = epoll_wait(epoll_fd_, &evs[0], len, timeout);
+            ret = epoll_wait(epoll_fd_, &evs[0], len, timeout);
             if (ret < 0) {
                 if (errno != EINTR) {
+                    perror("epoll_wait error:");
                     LEAVING;
-                    return -2;
+                    return -3;
                 }
                 gettimeofday(&end_time);
                 timeout -= (end_time.tv_sec - start_time.tv_sec) * 1000
                             + (end_time.tv_usec - start_time.tv_usec) / 1000;
 
-                if (timeout <= 0) {
+                if (timeout <= 10) {
                     LEAVING;
                     return -2;
                 }
                 continue;
             }
+
             num_of_triggered_fd += ret;
             if (num_of_triggered_fd == num) {
                 break;
             }
         }// while
+
         LEAVING;
         return -1;
     };

@@ -18,22 +18,26 @@
 #include "client.hpp"
 
 #pragma pack(1)
-class ReqBF {
+class ReqFormat1 {
 public:
     int l_;
     int seq_;
-    int a_;
-    int b_;
+    int num_;
 };
-class RspBF {
+class ReqFormat2 {
+public:
+    short l_;
+    int seq_;
+    int num_;
+};
+class RspFormat {
 public:
     int l_;
-    int seq_;
-    int sum_;
+    int num2_;
 };
 #pragma pack(0)
 
-class TestClient : public Client {
+class TestSimpleClient1 : public Client {
 public:
     //接收数据，需要根据业务定义的Packetize策略来处理
     // 本测试程序中是LV格式
@@ -101,11 +105,13 @@ int main (int argc, char **argv) {
             return -1;
         }
     }
+
     int ret = client.TCPSend(sk, &req, sizeof(ReqBF));
     if (ret < 0) {
         cout << "Send to BF error" << endl;
         return -2;
     }
+
     cout << "Send ReqBF a = " << ntohl(req.a_) << " seq = " << ntohl(req.seq_) << endl;
     vector<char> buf;
     ret = client.TCPRecv(sk, buf);

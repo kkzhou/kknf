@@ -170,7 +170,7 @@ public:
             if (ret < 0) {
                 if (errno != EINTR) {
                     LEAVING;
-                    return -2;
+                    return -3;
                 }
                 gettimeofday(&end_time);
                 timeout -= (end_time.tv_sec - start_time.tv_sec) * 1000
@@ -226,6 +226,7 @@ public:
         memset(&from_addr, sizeof(struct sockaddr_in), 0);
         addr_len = sizeof(struct sockaddr_in);
 
+        buf_to_fill.resize(65535);
         // udp_socket_ is BLOCKING fd
         int ret = recvfrom(sk, &buf_to_fill[0], buf_to_fill.size(), 0,
                          (struct sockaddr*)(&to_addr), &addr_len);
@@ -234,6 +235,7 @@ public:
             LEAVING;
             return -1;
         }
+
         from_ip = inet_ntoa(&to_addr.sin_addr);
         from_port = ntohs(to_addr.sin_port);
         buf_to_fill.resize(ret);
@@ -242,7 +244,7 @@ public:
     };
 
     // 通过这个函数找一个空闲的
-    // 连接，如果没有则返回-1，用MakeConnection函数建立一个新的连接
+    // 连接，如果没有则返回0，用MakeConnection函数建立一个新的连接
     Socket* GetClientSocket(std::string &ip, uint16_t port) {
 
         ENTERING;
@@ -301,6 +303,7 @@ public:
         LEAVING;
         return 0;
     };
+
 private:
     // 连接服务器的套接口，对同一个ip：port可能有多个套接口
     std::map<SocketAddr, std::list<Socket*> > client_socket_idle_list_;
