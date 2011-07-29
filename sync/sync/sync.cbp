@@ -19,6 +19,7 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="Makefile" />
 		<Unit filename="client.hpp">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>

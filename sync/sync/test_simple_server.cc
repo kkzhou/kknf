@@ -27,17 +27,17 @@ public:
 };
 class ReqFormat2 {
 public:
-    short l_;
-    int seq_;
-    int num_;
+    char cmd_line_[0];
 };
 class ReqFormat3 {
 public:
-    char cmd_line[0];
+    int seq_;
+    int num_;
 };
 class RspFormat {
 public:
     int l_;
+    int seq_;
     int num2_;
 };
 #pragma pack(0)
@@ -134,7 +134,7 @@ public:
                 cout << "Send error" << endl;
             }
         } // while
-
+        srv_->InsertServerReuseSocket(sk);
         LEAVING;
         return 0;
     };
@@ -144,7 +144,7 @@ class TestSimpleProcessor2 : public Processor {
 
 public:
     //接收数据，需要根据业务定义的Packetize策略来处理
-    // 本测试程序中是LV格式
+    // 本测试程序中是line格式
     virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
 
         ENTERING;
@@ -152,40 +152,17 @@ public:
         int byte_num = 0;
         int ret = 0;
 
-        // 收长度域，4字节
-        while (byte_num < 2) {
-            ret = recv(sk->sk(), &len_field, 2 - byte_num, 0);
-            if (ret < 0) {
-                if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
-                    return -1;
-                }
+        buf_to_fill.resize(1024);
+        ret = recv(sk->sk(), &buf_to_fill[0], buf_to_fill.size(), DONTWAIT);
+        if (ret < 0) {
+            if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                return -1;
             } else {
-                byte_num += ret;
-                continue;
+                return 0;
             }
-        } // while
-
-        int len = ntohs(len_field);
-        if ( len <= 0 || len > max_tcp_pkt_size()) {
-            LEAVING;
-            return -2;
         }
 
-        // 收数据域
-        byte_num = 0;
-        buf_to_fill.resize(len);
-        while (byte_num < len) {
-            ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
-            if (ret < 0) {
-                if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
-                    LEAVING;
-                    return -2;
-                }
-            } else {
-                byte_num += ret;
-                continue;
-            }
-        } // while
+        buf_to_fill.resize(ret);
         LEAVING;
         return 0;
     };
@@ -210,26 +187,35 @@ public:
                 sk->Close();
                 delete sk;
                 continue;
+            } else if (ret == 0) {
+                srv_->InsertServerReuseSocket(sk);
+                continue;
+            } else {
             }
             // 第三步
             // 处理逻辑
-            ReqFormat2 *req = reinterpret_cast<ReqFormat2*>(&buf[0]);
-            req->l_ = ntohs(req->l_);
-            req->num_ = ntohl(req->num_);
-            req->seq_ = ntohl(req->seq_);
-            cout << "Recv ReqFormat2 seq = " << req->seq_ << " num = " << req->num_ << endl;
-
-            RspFormat rsp;
-            rsp.num2_ = htonl(req->num_ + 1);
-            rsp.l_ = htonl(sizeof(RspFormat));
-            rsp.seq_ = htonl(req->seq_);
-            cout << "Send RspFormat seq = " << rsp.seq_ << " num2_ = " << rsp.num2_ << endl;
-            // 第四步
-            // 返回结果
-            ret = TCPSend(sk, &rsp, sizeof(RspFormat));
-            if (ret < 0) {
-                cout << "Send error" << endl;
+            ReqFormat2 *req = &buf[0];
+            for (int i = 0; i < ret; i++) {
+                if (req->cmd_line_[i] == '\n') {
+                    req->cmd_line_[i] = '\0';
+                }
             }
+            req->cmd_line_[ret - 1] = '\0';
+
+            i = 0;
+            while (i < ret) {
+                string cmd_line;
+                cmd_line.append(&req->cmd_line_[i]);
+                i += cmd_line.size() + 1;
+
+                cout << "Recv ReqFormat2 cmdline = " << cmdline << endl;
+                string rsp_line = "You sent: " + cmd_line + "\n";
+                ret = TCPSend(sk, rsp_line.data(), rsp_line.size());
+                if (ret < 0) {
+                    cout << "Send error" << endl;
+                }
+            }
+            srv_->InsertServerReuseSocket(sk);
         } // while
 
         LEAVING;
@@ -256,15 +242,21 @@ public:
             // 第二步
             // 处理逻辑
             ReqFormat3 *req = reinterpret_cast<ReqFormat3*>(&pkt->data_[0]);
-            string cmd_line;
-            cmd_line.assign(&req->cmd_line[0], &req->cmd_line[0] + pkt->data_.size());
+            req->num_ = ntohl(req->num_);
+            req->l_ = ntohl(req->l_);
 
-            cout << "Recv ReqFormat3 cmdline = " << cmd_line << endl;
-            string rsp_line = "You sent: " + cmd_line;
-            cout << "Send Rsp for 'cmdline' " <<  rsp_line << endl;
+            cout << "Recv ReqFormat3 num = " << req->num_ << endl;
+
+            RspFormat rsp;
+            rsp.l_ = htonl(sizeof(RspFormat));
+            rsp.num2_ = htonl(req->num_ + 1);
+            rsp.seq_ = htonl(req->seq_);
+
+
+            cout << "Send RspFormat seq = " << rsp.seq_ << " num = " << rsp.num2_ << endl;
             // 第四步
             // 返回结果
-            ret = srv_->UDPSend(pkt->from_.ip_, pkt->from_.port_, rsp_line.data(), rsp_line.size());
+            ret = srv_->UDPSend(pkt->from_.ip_, pkt->from_.port_, &rsp, sizeof(RspFormat));
             if (ret < 0) {
                 cout << "Send error" << endl;
             }

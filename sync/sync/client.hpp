@@ -124,7 +124,12 @@ public:
         return 0;
     };
 
-    virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) = 0;
+    virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
+
+        ENTERING;
+        LEAVING;
+        return 0;
+    };
 
     // 等待回应到来，因为后端服务器处理时间会比较长，因此
     // 顺序等待比较浪费，因此利用epoll
@@ -213,7 +218,7 @@ public:
             return -1;
         }
         LEAVING;
-        return fd;
+        return 0;
     };
 
     // UDP数据接收，因为不是流，只能由应用来把请求和应答对应起来。
