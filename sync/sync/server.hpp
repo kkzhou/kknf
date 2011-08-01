@@ -30,14 +30,14 @@
 
 namespace NF {
 
-// IPï¼šPortäºŒå…ƒå¯¹ï¼Œåœ¨å¾ˆå¤šæƒ…å†µä¸‹ç”¨ä½œkey
+// IP£ºPort¶şÔª¶Ô£¬ÔÚºÜ¶àÇé¿öÏÂÓÃ×÷key
 class SocketAddr {
 public:
     std::string ip_;
     uint16_t port_;
 };
 
-// ç”¨äºå­˜å‚¨ä¸€ä¸ªæ•°æ®åŒ…
+// ÓÃÓÚ´æ´¢Ò»¸öÊı¾İ°ü
 class Packet {
 public:
     SocketAddr from_;
@@ -83,18 +83,18 @@ public:
 
     ~Server() {
         delete[] all_epoll_events_;
-        // åˆ é™¤mutexå’Œcond
-        // åˆ é™¤æ‰€æœ‰socket
+        // É¾³ımutexºÍcond
+        // É¾³ıËùÓĞsocket
     };
 
-    // å®šæ—¶å¤„ç†å‡½æ•°ï¼Œè¿”å›å€¼æ˜¯å‘Šè¯‰epoll_waitç­‰å¾…å¤šä¹…
+    // ¶¨Ê±´¦Àíº¯Êı£¬·µ»ØÖµÊÇ¸æËßepoll_waitµÈ´ı¶à¾Ã
     virtual int TimerHandler() {
         ENTERING;
         LEAVING;
         return timer_interval_;
     };
 
-    // åˆå§‹åŒ–ï¼Œä¸»è¦å·¥ä½œæ˜¯ï¼šåˆ›å»ºepollã€åˆ›å»ºæœ¬åœ°å¥—æ¥å£
+    // ³õÊ¼»¯£¬Ö÷Òª¹¤×÷ÊÇ£º´´½¨epoll¡¢´´½¨±¾µØÌ×½Ó¿Ú
     int InitServer() {
 
         ENTERING;
@@ -112,7 +112,7 @@ public:
         return 0;
     };
 
-    // åœæ­¢epollå¾ªç¯ï¼Œä¸æ˜¯ç«‹å³æœ‰æ•ˆ
+    // Í£Ö¹epollÑ­»·£¬²»ÊÇÁ¢¼´ÓĞĞ§
     void StopServer() {
 
         ENTERING;
@@ -120,7 +120,7 @@ public:
         LEAVING;
     };
 
-    // Serverçº¿ç¨‹å‡½æ•°ï¼Œçº¿ç¨‹æœ‰ä½¿ç”¨è€…åˆ›å»º
+    // ServerÏß³Ìº¯Êı£¬Ïß³ÌÓĞÊ¹ÓÃÕß´´½¨
     static void ServerThreadProc(void *arg) {
 
         ENTERING;
@@ -165,7 +165,7 @@ public:
         newsk.SetReuse();
 
         listen_socket_list_.push_back(newsk);
-        // å› ä¸ºæ¯ä¸ªlistenå¥—æ¥å£éƒ½æœ‰ä¸€ä¸ªé˜Ÿåˆ—ï¼Œå› æ­¤è¦åˆ›å»ºmutexå’Œcond
+        // ÒòÎªÃ¿¸ölistenÌ×½Ó¿Ú¶¼ÓĞÒ»¸ö¶ÓÁĞ£¬Òò´ËÒª´´½¨mutexºÍcond
         // init mutex and cond
         pthread_mutex_t *new_mutex = new pthread_mutex_t;
         pthread_mutex_init(new_mutex, 0);
@@ -180,7 +180,7 @@ public:
         return index;
     };
 
-    // é˜»å¡çš„åˆ›å»ºä¸€ä¸ªè¿æ¥
+    // ×èÈûµÄ´´½¨Ò»¸öÁ¬½Ó
     Socket* MakeConnect(std::string &ip, uint16_t port) {
 
         ENTERING;
@@ -226,7 +226,7 @@ public:
         return 0;
     };
 
-    // æ·»åŠ ä¸€ä¸ªUDPå¥—æ¥å£ï¼Œæ”¶å‘éƒ½ç”¨å®ƒ
+    // Ìí¼ÓÒ»¸öUDPÌ×½Ó¿Ú£¬ÊÕ·¢¶¼ÓÃËü
     int InitUDPSocket(std::string &ip, uint16_t port) {
 
         ENTERING;
@@ -258,8 +258,8 @@ public:
         return 0;
     };
 
-    // workerçº¿ç¨‹è¦å‘é€æ•°æ®ç»™åç«¯æœåŠ¡å™¨çš„æ—¶å€™ï¼Œé€šè¿‡è¿™ä¸ªå‡½æ•°æ‰¾ä¸€ä¸ªç©ºé—²çš„
-    // è¿æ¥ï¼Œå¦‚æœæ²¡æœ‰åˆ™è¿”å›-1ï¼Œworkerçº¿ç¨‹ç”¨MakeConnectionå‡½æ•°å»ºç«‹ä¸€ä¸ªæ–°çš„è¿æ¥
+    // workerÏß³ÌÒª·¢ËÍÊı¾İ¸øºó¶Ë·şÎñÆ÷µÄÊ±ºò£¬Í¨¹ıÕâ¸öº¯ÊıÕÒÒ»¸ö¿ÕÏĞµÄ
+    // Á¬½Ó£¬Èç¹ûÃ»ÓĞÔò·µ»Ø-1£¬workerÏß³ÌÓÃMakeConnectionº¯Êı½¨Á¢Ò»¸öĞÂµÄÁ¬½Ó
     Socket* GetClientSocket(std::string &ip, uint16_t port) {
 
         ENTERING;
@@ -289,8 +289,8 @@ public:
         return ret_sk;
     };
 
-    // workeræŠŠæ–°å»ºç«‹çš„è¿å‘åç«¯æœåŠ¡å™¨çš„è¿æ¥æ”¾åˆ°åˆ—è¡¨é‡Œ
-    // æˆ–è€…æ˜¯æŠŠç”¨è¿‡çš„è¿æ¥äº¤å›åˆ°åˆ—è¡¨é‡Œ
+    // worker°ÑĞÂ½¨Á¢µÄÁ¬Ïòºó¶Ë·şÎñÆ÷µÄÁ¬½Ó·Åµ½ÁĞ±íÀï
+    // »òÕßÊÇ°ÑÓÃ¹ıµÄÁ¬½Ó½»»Øµ½ÁĞ±íÀï
     int InsertClientSocket(Socket *sk) {
 
         ENERING;
@@ -319,8 +319,8 @@ public:
         return 0;
     };
 
-    // æ’å…¥ä¸€ä¸ªserverå¥—æ¥å£
-    // è¯¥å‡½æ•°ä¸»çº¿ç¨‹ä¼šè°ƒç”¨
+    // ²åÈëÒ»¸öserverÌ×½Ó¿Ú
+    // ¸Ãº¯ÊıÖ÷Ïß³Ì»áµ÷ÓÃ
     int InsertServerReadySocket(std::map<uint32_t, std::list<Socket*> > &sk_map) {
 
         ENTERING;
@@ -346,8 +346,8 @@ public:
         return 0;
     };
 
-    // è·å–ä¸€ä¸ªserverå¥—æ¥å£
-    // è¯¥å‡½æ•°ç”±workerçº¿ç¨‹è°ƒç”¨
+    // »ñÈ¡Ò»¸öserverÌ×½Ó¿Ú
+    // ¸Ãº¯ÊıÓÉworkerÏß³Ìµ÷ÓÃ
     Socket* GetServerReadySocket(uint32_t index) {
 
         ENTERING;
@@ -370,10 +370,10 @@ public:
         return sk;
     };
 
-    // workerçº¿ç¨‹å½’è¿˜ä¸€ä¸ªserverå¥—æ¥å£ï¼Œå¹¶é€šçŸ¥ä¸»çº¿ç¨‹
-    // è¿”å›å€¼ï¼š
-    // 1: æ­£ç¡®
-    // <=0ï¼š é”™è¯¯
+    // workerÏß³Ì¹é»¹Ò»¸öserverÌ×½Ó¿Ú£¬²¢Í¨ÖªÖ÷Ïß³Ì
+    // ·µ»ØÖµ£º
+    // 1: ÕıÈ·
+    // <=0£º ´íÎó
     int InsertServerReuseSocket(uint32_t pool_index, Socket *sk) {
 
         ENTERING;
@@ -387,7 +387,7 @@ public:
         return ret;
     };
 
-    // è·å–æ‰€æœ‰çš„reusesocketï¼Œä»¥ä¾¿æ”¾åˆ°epoll
+    // »ñÈ¡ËùÓĞµÄreusesocket£¬ÒÔ±ã·Åµ½epoll
     int GetServerReuseSocketList(std::map<uint32_t, std::list<Socket*> > &sk_list) {
 
         ENTERING;
@@ -398,7 +398,7 @@ public:
         return 0;
     };
 
-    // æ’å…¥æ¥æ”¶åˆ°çš„UDPæ•°æ®ï¼Œå¹¶é€šçŸ¥worker
+    // ²åÈë½ÓÊÕµ½µÄUDPÊı¾İ£¬²¢Í¨Öªworker
     int InsertUDPRecvPacket(std::list<Packet*> &pkt_list) {
 
         ENTERING;
@@ -426,7 +426,7 @@ public:
         return ret_pkt;
     };
 
-    // UDPæ•°æ®å‘é€ï¼Œå› ä¸ºä¸æ˜¯æµï¼Œåªèƒ½ç”±åº”ç”¨æ¥æŠŠè¯·æ±‚å’Œåº”ç­”å¯¹åº”èµ·æ¥ã€‚
+    // UDPÊı¾İ·¢ËÍ£¬ÒòÎª²»ÊÇÁ÷£¬Ö»ÄÜÓÉÓ¦ÓÃÀ´°ÑÇëÇóºÍÓ¦´ğ¶ÔÓ¦ÆğÀ´¡£
     int UDPSend(std::string &to_ip, uint16_t to_port, char *buf_to_send, int buf_len) {
 
         ENTERING;
@@ -452,11 +452,11 @@ public:
 
 
 private:
-    // å¯åŠ¨æœåŠ¡å™¨ï¼Œä¸»è¦å·¥ä½œæœ‰ï¼š
-    // 1ï¼Œ æŠŠä¾¦å¬å¥—æ¥å£æ·»åŠ epoll
-    // 2ï¼Œ æŠŠæœ¬åœ°å¥—æ¥å£åŠ å…¥åˆ°epoll
-    // 3ï¼Œ æŠŠUDPå¥—æ¥å£æ·»åŠ åˆ°epoll
-    // 4ï¼Œ è¿›å…¥epoll_wait
+    // Æô¶¯·şÎñÆ÷£¬Ö÷Òª¹¤×÷ÓĞ£º
+    // 1£¬ °ÑÕìÌıÌ×½Ó¿ÚÌí¼Óepoll
+    // 2£¬ °Ñ±¾µØÌ×½Ó¿Ú¼ÓÈëµ½epoll
+    // 3£¬ °ÑUDPÌ×½Ó¿ÚÌí¼Óµ½epoll
+    // 4£¬ ½øÈëepoll_wait
     int RunServer() {
 
         ENTERING;
@@ -523,7 +523,7 @@ private:
         return 0;
     };
 
-    // epool å¾ªç¯çš„çº¿ç¨‹å‡½æ•°
+    // epool Ñ­»·µÄÏß³Ìº¯Êı
     void EpollLoop() {
 
         ENTERING;
@@ -568,12 +568,12 @@ private:
         LEAVING;
         return;
     };
-    // å¤„ç†æœ‰äº‹ä»¶çš„å¥—æ¥å£
-    // ç”¨sk_mapè¿”å›å·²ç»å‡†å¤‡å¥½çš„serverå¥—æ¥å£ï¼Œå³in/outå‚æ•°ï¼ˆä¸‘ï¼ï¼‰
-    // è¿”å›å€¼ï¼š
-    // <0: å‡ºç°é”™è¯¯ï¼ŒæŠŠè¯¥fdä»epollä¸­åˆ é™¤
-    // =0: ä¸åšå¤„ç†
-    // =1: æ˜¯serverå¥—æ¥å£ï¼Œå·²ç»äº¤ç»™äº†workerçº¿ç¨‹ï¼ŒæŠŠå®ƒä»epollä¸­åˆ é™¤
+    // ´¦ÀíÓĞÊÂ¼şµÄÌ×½Ó¿Ú
+    // ÓÃsk_map·µ»ØÒÑ¾­×¼±¸ºÃµÄserverÌ×½Ó¿Ú£¬¼´in/out²ÎÊı£¨³ó£¡£©
+    // ·µ»ØÖµ£º
+    // <0: ³öÏÖ´íÎó£¬°Ñ¸Ãfd´ÓepollÖĞÉ¾³ı
+    // =0: ²»×ö´¦Àí
+    // =1: ÊÇserverÌ×½Ó¿Ú£¬ÒÑ¾­½»¸øÁËworkerÏß³Ì£¬°ÑËü´ÓepollÖĞÉ¾³ı
     int EpollProcess(struct epoll_event &e, std::map<uint32_t, std::list<Socket*> > &server_sk_map) {
 
         ENTERING;
@@ -619,8 +619,8 @@ private:
                     tmps.append(from_addr_str);
                     new_sk->set_peer_ipstr(tmps);
 
-                    // sk_mapæ˜¯ç”¨æ¥è£…è¿”å›æ•°æ®çš„ï¼
-                    // å¦‚æœindexä¸å­˜åœ¨ï¼Œmapä¼šè‡ªåŠ¨åˆ›å»ºæ–°å…ƒç´ ï¼Œå³ä¸€ä¸ªç©ºlist
+                    // sk_mapÊÇÓÃÀ´×°·µ»ØÊı¾İµÄ£¡
+                    // Èç¹ûindex²»´æÔÚ£¬map»á×Ô¶¯´´½¨ĞÂÔªËØ£¬¼´Ò»¸ö¿Õlist
                     server_sk_map[index].push_back(new_sk);
                 }
                 LEAVING;
@@ -736,49 +736,49 @@ private:
 
 
 private:
-    // æœ€å¤§å¯ä»¥epollçš„å¥—æ¥å£æ•°ç›®
+    // ×î´ó¿ÉÒÔepollµÄÌ×½Ó¿ÚÊıÄ¿
     uint32_t epoll_size_;
-    // ä»å®¢æˆ·ç«¯è¿‡æ¥çš„è¿æ¥æ•°çš„æœ€å¤§å€¼
+    // ´Ó¿Í»§¶Ë¹ıÀ´µÄÁ¬½ÓÊıµÄ×î´óÖµ
     uint32_t max_sever_socket_num_;
-    // å‘åç«¯æŸä¸ªæœåŠ¡å™¨å‘èµ·çš„è¿æ¥çš„æœ€å¤§æ•°ç›®
+    // Ïòºó¶ËÄ³¸ö·şÎñÆ÷·¢ÆğµÄÁ¬½ÓµÄ×î´óÊıÄ¿
     uint32_t max_client_socket_num_;
 
 private:
-    // å­˜æ”¾ä¾¦å¬å¥—æ¥å£
+    // ´æ·ÅÕìÌıÌ×½Ó¿Ú
     std::vector<Socket*> listen_socket_list_;
 
-    // UDPå¥—æ¥å£ï¼Œä¸€ä¸ªè¶³çŸ£
-    // UDPå¥—æ¥å£æ˜¯åœ¨ä¸»çº¿ç¨‹é‡Œæ”¶æ•°æ®ï¼ŒæŠŠæ•°æ®äº¤ç»™workerçº¿ç¨‹
+    // UDPÌ×½Ó¿Ú£¬Ò»¸ö×ãÒÓ
+    // UDPÌ×½Ó¿ÚÊÇÔÚÖ÷Ïß³ÌÀïÊÕÊı¾İ£¬°ÑÊı¾İ½»¸øworkerÏß³Ì
     Socket *udp_socket_;
     std::list<Packet*> udp_recv_list_;
     pthread_mutex_t *udp_socket_mutex_;
     pthread_mutex_t *udp_recv_list_mutex_;
     pthread_cond_t *udp_recv_list_cond_;
 
-    // å®¢æˆ·ç«¯è¿è¿‡æ¥çš„å¥—æ¥å£ï¼Œæœ‰äº‹ä»¶å‡ºç°ä¹‹åï¼Œä¸»çº¿ç¨‹æŠŠ
-    // è¯¥å¥—æ¥å£æ”¾åˆ°è¿™ä¸ªåˆ—è¡¨é‡Œï¼ˆæ¯ä¸ªä¾¦å¬å¥—æ¥å£å¯¹åº”ç€ä¸€ä¸ªåˆ—è¡¨ï¼‰
-    // ç„¶åç”¨æ¡ä»¶å˜é‡å’Œsignalé…åˆé€šçŸ¥workerçº¿ç¨‹
+    // ¿Í»§¶ËÁ¬¹ıÀ´µÄÌ×½Ó¿Ú£¬ÓĞÊÂ¼ş³öÏÖÖ®ºó£¬Ö÷Ïß³Ì°Ñ
+    // ¸ÃÌ×½Ó¿Ú·Åµ½Õâ¸öÁĞ±íÀï£¨Ã¿¸öÕìÌıÌ×½Ó¿Ú¶ÔÓ¦×ÅÒ»¸öÁĞ±í£©
+    // È»ºóÓÃÌõ¼ş±äÁ¿ºÍsignalÅäºÏÍ¨ÖªworkerÏß³Ì
     std::vector<std::list<Socket*> > server_socket_ready_list_;
     std::vector<pthread_mutex_t*> server_socket_ready_list_mutex_;
     std::vector<pthread_cond_t*> server_socket_ready_list_cond_;
 
-    // å½“workerçº¿ç¨‹å®Œæˆå¤„ç†ä¹‹åï¼Œå¦‚æœæ˜¯é•¿è¿æ¥ï¼Œåˆ™äº¤ç»™ä¸»çº¿ç¨‹å»epoll
-    // åšæ³•æ˜¯ï¼šå…ˆæ”¾å€’è¿™ä¸ªlistï¼Œç„¶åç”¨æœ¬åœ°å¥—æ¥å£é€šçŸ¥ä¸»çº¿ç¨‹
+    // µ±workerÏß³ÌÍê³É´¦ÀíÖ®ºó£¬Èç¹ûÊÇ³¤Á¬½Ó£¬Ôò½»¸øÖ÷Ïß³ÌÈ¥epoll
+    // ×ö·¨ÊÇ£ºÏÈ·Åµ¹Õâ¸ölist£¬È»ºóÓÃ±¾µØÌ×½Ó¿ÚÍ¨ÖªÖ÷Ïß³Ì
     std::map<uint32_t, std::list<Socket*> > server_socket_reuse_list_;
     pthread_mutex_t *server_socket_reuse_mutex_;
 
-    // è¿æ¥åç«¯æœåŠ¡å™¨çš„å¥—æ¥å£ï¼Œå¯¹åŒä¸€ä¸ªipï¼športå¯èƒ½æœ‰å¤šä¸ªå¥—æ¥å£
+    // Á¬½Óºó¶Ë·şÎñÆ÷µÄÌ×½Ó¿Ú£¬¶ÔÍ¬Ò»¸öip£ºport¿ÉÄÜÓĞ¶à¸öÌ×½Ó¿Ú
     std::map<SocketAddr, std::list<Socket*> > client_socket_idle_list_;
     pthread_mutex_t *client_socket_idle_list_mutex_;
 
 private:
     int epoll_fd_;
     struct epoll_event *all_epoll_events_
-    // ç”¨äºæœ¬åœ°é€šä¿¡ï¼Œå³workerçº¿ç¨‹é€šçŸ¥ä¸»çº¿ç¨‹
+    // ÓÃÓÚ±¾µØÍ¨ĞÅ£¬¼´workerÏß³ÌÍ¨ÖªÖ÷Ïß³Ì
     int local_socket_pair_[2];
     int timer_interval_;
 private:
-    // ç”¨äºæ§åˆ¶ä¸»çº¿ç¨‹ï¼Œå³epoll_waitæ‰€åœ¨çº¿ç¨‹
+    // ÓÃÓÚ¿ØÖÆÖ÷Ïß³Ì£¬¼´epoll_waitËùÔÚÏß³Ì
     bool epoll_cancel_;
 };
 }; // namespace NF

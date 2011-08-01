@@ -22,7 +22,7 @@
 
 namespace NF {
 
-// ä¸€ä¸ªProcessorå¯¹åº”ä¸€ä¸ªçº¿ç¨‹
+// Ò»¸öProcessor¶ÔÓ¦Ò»¸öÏß³Ì
 class Processor {
 public:
     Processor(Server *srv, uint32_t pool_index)
@@ -45,7 +45,7 @@ public:
         cancel_ = true;
         LEAVING;
     };
-    // çº¿ç¨‹å‡½æ•°
+    // Ïß³Ìº¯Êı
     static void ProcessorThreadProc(void *arg) {
 
         ENTERING;
@@ -54,14 +54,14 @@ public:
         LEAVING;
     };
 
-    // å¤„ç†é€»è¾‘
+    // ´¦ÀíÂß¼­
     virtual int Process() = 0;
 
-    //æ¥æ”¶æ•°æ®ï¼Œéœ€è¦æ ¹æ®ä¸šåŠ¡å®šä¹‰çš„Packetizeç­–ç•¥æ¥å¤„ç†
+    //½ÓÊÕÊı¾İ£¬ĞèÒª¸ù¾İÒµÎñ¶¨ÒåµÄPacketize²ßÂÔÀ´´¦Àí
     virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) = 0;
 
 
-    // è·å–ç©ºé—²çš„TCPå¥—æ¥å£ï¼Œç”¨äºå‘åç«¯æœåŠ¡å™¨æ”¶å‘æ•°æ®
+    // »ñÈ¡¿ÕÏĞµÄTCPÌ×½Ó¿Ú£¬ÓÃÓÚÏòºó¶Ë·şÎñÆ÷ÊÕ·¢Êı¾İ
     Socket* GetIdleClientSocket(std::string &to_ip, uint16_t to_port) {
 
         ENTERING;
@@ -73,7 +73,7 @@ public:
         return ret_sk;
     };
 
-    // é˜»å¡çš„å‘é€
+    // ×èÈûµÄ·¢ËÍ
     int TCPSend(Socket *sk, char *buf_to_send,
                        uint32_t buf_to_send_size) {
 
@@ -102,13 +102,13 @@ public:
         return 0;
     };
 
-    // ç­‰å¾…å›åº”åˆ°æ¥ï¼Œå› ä¸ºåç«¯æœåŠ¡å™¨å¤„ç†æ—¶é—´ä¼šæ¯”è¾ƒé•¿ï¼Œå› æ­¤
-    // é¡ºåºç­‰å¾…æ¯”è¾ƒæµªè´¹ï¼Œå› æ­¤åˆ©ç”¨epoll
-    // è¿”å›å€¼ï¼š
-    // -3ï¼šå‡ºé”™
-    // -2ï¼šè¶…æ—¶
-    // -1ï¼šæˆåŠŸï¼ˆä¸‘ï¼ï¼‰
-    // >=0ï¼šæŒ‡ç¤ºç¬¬å‡ ä¸ªsocketå‡ºé”™
+    // µÈ´ı»ØÓ¦µ½À´£¬ÒòÎªºó¶Ë·şÎñÆ÷´¦ÀíÊ±¼ä»á±È½Ï³¤£¬Òò´Ë
+    // Ë³ĞòµÈ´ı±È½ÏÀË·Ñ£¬Òò´ËÀûÓÃepoll
+    // ·µ»ØÖµ£º
+    // -3£º³ö´í
+    // -2£º³¬Ê±
+    // -1£º³É¹¦£¨³ó£¡£©
+    // >=0£ºÖ¸Ê¾µÚ¼¸¸ösocket³ö´í
     int TCPWaitToRead(std::vector<Socket*> &sk_list, int &num_of_triggered_fd, int millisecs) {
 
         ENTERING;
@@ -177,7 +177,7 @@ public:
 private:
     Server *srv_;
     int epoll_fd_;
-    uint32_t pool_index_;    // å¤šçº¿ç¨‹æ± æ—¶çš„ç´¢å¼•
+    uint32_t pool_index_;    // ¶àÏß³Ì³ØÊ±µÄË÷Òı
     bool cancel_;
 
     int max_udp_pkt_size_;

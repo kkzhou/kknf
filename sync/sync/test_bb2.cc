@@ -33,12 +33,12 @@ public:
 };
 #pragma pack(0)
 
-// ä¸€ä¸ªProcessorå¯¹åº”ä¸€ä¸ªçº¿ç¨‹
+// Ò»¸öProcessor¶ÔÓ¦Ò»¸öÏß³Ì
 class TestBB2Processor : public Processor {
 
 public:
-    //æ¥æ”¶æ•°æ®ï¼Œéœ€è¦æ ¹æ®ä¸šåŠ¡å®šä¹‰çš„Packetizeç­–ç•¥æ¥å¤„ç†
-    // æœ¬æµ‹è¯•ç¨‹åºä¸­æ˜¯LVæ ¼å¼
+    //½ÓÊÕÊı¾İ£¬ĞèÒª¸ù¾İÒµÎñ¶¨ÒåµÄPacketize²ßÂÔÀ´´¦Àí
+    // ±¾²âÊÔ³ÌĞòÖĞÊÇLV¸ñÊ½
     virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
 
         ENTERING;
@@ -46,7 +46,7 @@ public:
         int byte_num = 0;
         int ret = 0;
 
-        // æ”¶é•¿åº¦åŸŸï¼Œ4å­—èŠ‚
+        // ÊÕ³¤¶ÈÓò£¬4×Ö½Ú
         while (byte_num < 4) {
             ret = recv(sk->sk(), &len_field, 4 - byte_num, 0);
             if (ret < 0) {
@@ -65,7 +65,7 @@ public:
             return -2;
         }
 
-        // æ”¶æ•°æ®åŸŸ
+        // ÊÕÊı¾İÓò
         byte_num = 0;
         buf_to_fill.resize(len);
         while (byte_num < len) {
@@ -84,29 +84,29 @@ public:
         return 0;
     };
 
-    // å¤„ç†é€»è¾‘
+    // ´¦ÀíÂß¼­
     virtual int Process() {
 
         ENTERING;
         while (true) {
-            // ç¬¬ä¸€æ­¥
-            // é˜»å¡è·å–æœ‰æ•°æ®åˆ°æ¥çš„å¥—æ¥å£
+            // µÚÒ»²½
+            // ×èÈû»ñÈ¡ÓĞÊı¾İµ½À´µÄÌ×½Ó¿Ú
             Socket *sk = srv_->GetServerReadySocket(pool_index());
             if (!sk) {
                 continue;
             }
-            // ç¬¬äºŒæ­¥
-            // é˜»å¡æ¥æ”¶æ•°æ®
+            // µÚ¶ş²½
+            // ×èÈû½ÓÊÕÊı¾İ
             std::vector<char> buf;
             int ret = TCPRecv(sk, buf);
             if (ret < 0) {
-                // é”™è¯¯ï¼Œä¸å¯æ¢å¤
+                // ´íÎó£¬²»¿É»Ö¸´
                 sk->Close();
                 delete sk;
                 continue;
             }
-            // ç¬¬ä¸‰æ­¥
-            // å¤„ç†é€»è¾‘
+            // µÚÈı²½
+            // ´¦ÀíÂß¼­
             ReqBB2 *req = reinterpret_cast<ReqBB2*>(&buf[0]);
             req->l_ = ntohl(req->l_);
             req->b_ = ntohl(req->b_);
@@ -119,8 +119,8 @@ public:
             rsp.b2_ = htonl(rsp.b2_);
             rsp.seq_ = htonl(req->seq_);
             cout << "Send seq = " << rsp.seq_ << " b2 = " << rsp.b2_ << endl;
-            // ç¬¬å››æ­¥
-            // è¿”å›ç»“æœ
+            // µÚËÄ²½
+            // ·µ»Ø½á¹û
             ret = TCPSend(sk, &rsp, sizeof(RspBB2));
             if (ret < 0) {
                 cout << "Send error" << endl;
@@ -149,13 +149,13 @@ int main(int argc, char **argv) {
     srv->AddListenSocket("127.0.0.1", 20022);
 
     srv->InitServer();
-    // epollçº¿ç¨‹å¯åŠ¨ï¼Œå³ç”¨äºæ£€æµ‹å¥—æ¥å£çš„çº¿ç¨‹
+    // epollÏß³ÌÆô¶¯£¬¼´ÓÃÓÚ¼ì²âÌ×½Ó¿ÚµÄÏß³Ì
     pthread_t epoll_pid;
     if (pthread_create(&epoll_pid, 0, Server::ServerThreadProc, srv) < 0) {
         cout << "Create epoll thread error" << endl;
         return -1;
     }
-    // å¯åŠ¨workerçº¿ç¨‹
+    // Æô¶¯workerÏß³Ì
     pthread_t worker_pid[4];
     Processor *worker_processor[4];
 
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    // ç­‰å¾…çº¿ç¨‹å®Œæˆ
+    // µÈ´ıÏß³ÌÍê³É
     pthread_join(epoll_pid_, 0);
     cout << "epoll thread done" << endl;
     for (int i = 0; i < 4; i++) {
