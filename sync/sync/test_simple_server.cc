@@ -17,6 +17,10 @@
 
 #include "server.hpp"
 #include "processor.hpp"
+#include <iostream>
+
+using namespace std;
+using namespace NF;
 
 #pragma pack(1)
 class ReqFormat1 {
@@ -46,6 +50,9 @@ public:
 class TestSimpleProcessor1 : public Processor {
 
 public:
+    TestSimpleProcessor1(Server *srv, uint32_t pool_index)
+        : Processor(srv, pool_index) {
+    };
     //接收数据，需要根据业务定义的Packetize策略来处理
     // 本测试程序中是LV格式
     virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
@@ -100,7 +107,7 @@ public:
         while (true) {
             // 第一步
             // 阻塞获取有数据到来的套接口
-            Socket *sk = srv_->GetServerReadySocket(pool_index());
+            Socket *sk = srv()->GetServerReadySocket(pool_index());
             if (!sk) {
                 continue;
             }
@@ -129,12 +136,13 @@ public:
             cout << "Send RspFormat seq = " << rsp.seq_ << " num2_ = " << rsp.num2_ << endl;
             // 第四步
             // 返回结果
-            ret = TCPSend(sk, &rsp, sizeof(RspFormat));
+            ret = TCPSend(sk, reinterpret_cast<char*>(&rsp), sizeof(RspFormat));
             if (ret < 0) {
                 cout << "Send error" << endl;
             }
+
+            srv()->InsertServerReuseSocket(pool_index(), sk);
         } // while
-        srv_->InsertServerReuseSocket(sk);
         LEAVING;
         return 0;
     };
@@ -143,17 +151,18 @@ public:
 class TestSimpleProcessor2 : public Processor {
 
 public:
+    TestSimpleProcessor2(Server *srv, uint32_t pool_index)
+        : Processor(srv, pool_index) {
+    };
     //接收数据，需要根据业务定义的Packetize策略来处理
     // 本测试程序中是line格式
     virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
 
         ENTERING;
-        short len_field = 0;
-        int byte_num = 0;
         int ret = 0;
 
         buf_to_fill.resize(1024);
-        ret = recv(sk->sk(), &buf_to_fill[0], buf_to_fill.size(), DONTWAIT);
+        ret = recv(sk->sk(), &buf_to_fill[0], buf_to_fill.size(), MSG_DONTWAIT);
         if (ret < 0) {
             if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
                 return -1;
@@ -174,7 +183,7 @@ public:
         while (true) {
             // 第一步
             // 阻塞获取有数据到来的套接口
-            Socket *sk = srv_->GetServerReadySocket(pool_index());
+            Socket *sk = srv()->GetServerReadySocket(pool_index());
             if (!sk) {
                 continue;
             }
@@ -188,14 +197,15 @@ public:
                 delete sk;
                 continue;
             } else if (ret == 0) {
-                srv_->InsertServerReuseSocket(sk);
+                srv()->InsertServerReuseSocket(pool_index(), sk);
                 continue;
             } else {
             }
             // 第三步
             // 处理逻辑
-            ReqFormat2 *req = &buf[0];
-            for (int i = 0; i < ret; i++) {
+            ReqFormat2 *req = reinterpret_cast<ReqFormat2*>(&buf[0]);
+            int i = 0;
+            for (i = 0; i < ret; i++) {
                 if (req->cmd_line_[i] == '\n') {
                     req->cmd_line_[i] = '\0';
                 }
@@ -208,14 +218,14 @@ public:
                 cmd_line.append(&req->cmd_line_[i]);
                 i += cmd_line.size() + 1;
 
-                cout << "Recv ReqFormat2 cmdline = " << cmdline << endl;
+                cout << "Recv ReqFormat2 cmdline = " << cmd_line << endl;
                 string rsp_line = "You sent: " + cmd_line + "\n";
-                ret = TCPSend(sk, rsp_line.data(), rsp_line.size());
+                ret = TCPSend(sk, const_cast<char*>(rsp_line.data()), rsp_line.size());
                 if (ret < 0) {
                     cout << "Send error" << endl;
                 }
             }
-            srv_->InsertServerReuseSocket(sk);
+            srv()->InsertServerReuseSocket(pool_index(), sk);
         } // while
 
         LEAVING;
@@ -227,6 +237,14 @@ public:
 class TestSimpleProcessor3 : public Processor {
 
 public:
+    virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
+        assert(false);
+        return 0;
+    };
+
+    TestSimpleProcessor3(Server *srv, uint32_t pool_index)
+        : Processor(srv, pool_index) {
+    };
     // 是UDP数据
     // 处理逻辑
     virtual int Process() {
@@ -235,15 +253,14 @@ public:
         while (true) {
             // 第一步
             // 阻塞获取有数据到来的套接口
-            Packet *pkt = srv_->GetUDPPacket();
-            if (!sk) {
+            Packet *pkt = srv()->GetUDPPacket();
+            if (!pkt) {
                 continue;
             }
             // 第二步
             // 处理逻辑
             ReqFormat3 *req = reinterpret_cast<ReqFormat3*>(&pkt->data_[0]);
             req->num_ = ntohl(req->num_);
-            req->l_ = ntohl(req->l_);
 
             cout << "Recv ReqFormat3 num = " << req->num_ << endl;
 
@@ -256,7 +273,7 @@ public:
             cout << "Send RspFormat seq = " << rsp.seq_ << " num = " << rsp.num2_ << endl;
             // 第四步
             // 返回结果
-            ret = srv_->UDPSend(pkt->from_.ip_, pkt->from_.port_, &rsp, sizeof(RspFormat));
+            int ret = srv()->UDPSend(pkt->from_.ip_, pkt->from_.port_, reinterpret_cast<char*>(&rsp), sizeof(RspFormat));
             if (ret < 0) {
                 cout << "Send error" << endl;
             }
@@ -269,6 +286,10 @@ public:
 
 class TestSimpleServer : public Server {
 public:
+    TestSimpleServer(uint32_t epoll_size, uint32_t max_server_socket_num,
+           uint32_t max_client_socket_num, int timer_interval)
+           :Server(epoll_size, max_server_socket_num, max_client_socket_num, timer_interval) {
+    };
     virtual int TimerHandler() {
 
         ENTERING;
@@ -281,9 +302,15 @@ public:
 int main(int argc, char **argv) {
 
     Server *srv = new TestSimpleServer(1024, 1024, 100, 10000);
-    srv->AddListenSocket("127.0.0.1", 20031);
-    srv->AddListenSocket("127.0.0.1", 20032);
-    srv->InitUDPSocket("127.0.0.1", 20033);
+    string myip1 = "127.0.0.1";
+    uint16_t myport1 = 20031;
+    string myip2 = "127.0.0.1";
+    uint16_t myport2 = 20032;
+    string myip3 = "127.0.0.1";
+    uint16_t myport3 = 20033;
+    srv->AddListenSocket(myip1, myport1);
+    srv->AddListenSocket(myip2, myport2);
+    srv->AddListenSocket(myip3, myport3);
 
     srv->InitServer();
     // epoll线程启动，即用于检测套接口的线程
@@ -324,13 +351,13 @@ int main(int argc, char **argv) {
     } // for
 
     // 等待线程完成
-    pthread_join(epoll_pid_, 0);
+    pthread_join(epoll_pid, 0);
     cout << "epoll thread done" << endl;
 
     for (int j = 0; j < 3; j++) {
         for (int i = 0; i < 4; i++) {
             pthread_join(worker_pid[j][i], 0);
-            cout << "worker thread No.[" << j << "][" << i << "] " done" << endl;
+            cout << "worker thread No.[" << j << "][" << i << "] done" << endl;
         }
     }
 

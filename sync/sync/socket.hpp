@@ -20,6 +20,8 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include <string>
 
@@ -39,7 +41,7 @@ public:
     void set_sk(int sk) { sk_ = sk; };
     void set_my_ipstr(std::string &ipstr) { my_ipstr_ = ipstr;};
     std::string& my_ipstr() { return my_ipstr_; };
-    void set_my_ip(struct in_addr &ip) { my_ip_ = ip; };
+    void set_my_ip(struct in_addr ip) { my_ip_ = ip; };
     struct in_addr my_ip() { return my_ip_; };
     void set_my_port(uint16_t port) { my_port_ = port; };
     uint16_t my_port() { return my_port_; };
@@ -54,6 +56,7 @@ public:
     // manipulators
     int Close() {
         close(sk_);
+        return 0;
     };
     int GetError() {
         return 0;
@@ -94,7 +97,7 @@ private:
 private:
     // prohibits
     Socket(Socket&){};
-    Socket& operator=(Socket &o){    };
+    Socket& operator=(Socket &o){ return *this; };
 
 
 };

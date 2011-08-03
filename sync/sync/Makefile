@@ -1,24 +1,24 @@
 
+all: bb1 bb2 bf client simple_server simple_client
 bb1: test_bb1.o util.hpp socket.hpp processor.hpp server.hpp
-    g++ -o bb1 test_bb1.cc
+	g++ -Wall -O0 -o bb1 test_bb1.cc -lpthread
 
 bb2: test_bb2.o util.hpp socket.hpp processor.hpp server.hpp
-    g++ -o bb2 test_bb2.cc
+	g++  -Wall -o bb2 test_bb2.cc -lpthread
 
 bf: test_bf.o util.hpp socket.hpp processor.hpp server.hpp
-    g++ -o bf test_bf.cc
+	g++  -Wall -o bf test_bf.cc -lpthread
 
 client: test_client.o util.hpp socket.hpp client.hpp
-    g++ -o client test_client.cc
+	g++ -Wall  -o client test_client.cc -lpthread
 
 simple_server: test_simple_server.o util.hpp socket.hpp processor.hpp server.hpp
-    g++ -o simple_server test_simple_server.cc
+	g++ -Wall  -o simple_server test_simple_server.cc -lpthread
 
 simple_client: test_simple_client.o util.hpp socket.hpp client.hpp
-    g++ -o simple_client test_simple_client.cc
+	g++ -Wall  -o simple_client test_simple_client.cc -lpthread
 
-all: bb1 bb2 bf client simple_server simple_client
 
-.PHONY
+.PHONY:clean
 clean:
-    rm -f *.o bb1 bb2 bf simple_server simple_client
+	rm -f *.o bb1 bb2 bf client simple_server simple_client

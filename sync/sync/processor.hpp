@@ -46,12 +46,13 @@ public:
         LEAVING;
     };
     // 线程函数
-    static void ProcessorThreadProc(void *arg) {
+    static void* ProcessorThreadProc(void *arg) {
 
         ENTERING;
-        Processor *p = reinterpret_cast<Processor>(arg);
+        Processor *p = reinterpret_cast<Processor*>(arg);
         p->Process();
         LEAVING;
+        return 0;
     };
 
     // 处理逻辑
@@ -109,7 +110,7 @@ public:
     // -2：超时
     // -1：成功（丑！）
     // >=0：指示第几个socket出错
-    int TCPWaitToRead(std::vector<Socket*> &sk_list, int &num_of_triggered_fd, int millisecs) {
+    int TCPWaitToRead(std::vector<Socket*> &sk_list, uint32_t &num_of_triggered_fd, int millisecs) {
 
         ENTERING;
         uint32_t len = sk_list.size();
@@ -117,7 +118,7 @@ public:
         assert(num_of_triggered_fd > 0);
 
         std::vector<struct epoll_event> evs(len);
-        int num = num_of_triggered_fd;
+        uint32_t num = num_of_triggered_fd;
         num_of_triggered_fd = 0;
 
         int ret = 0;
@@ -127,13 +128,13 @@ public:
             evs[i].events = EPOLLIN|EPOLLONESHOT; // NOTE: onshot event
             evs[i].data.fd = sk_list[i]->sk();
             evs[i].data.u32 = i;
-            if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, e.data.fd, &evs[i]) < 0) {
+            if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, evs[i].data.fd, &evs[i]) < 0) {
                 // roll back
                 for (uint32_t j = 0; j <= i; j++) {
                     epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, evs[j].data.fd, 0);
                 }
                 LEAVING;
-                return j;
+                return i;
             }
         }// for
 
@@ -142,7 +143,7 @@ public:
         while (true) {
 
             struct timeval start_time, end_time;
-            gettimeofday(&start_time);
+            gettimeofday(&start_time, 0);
             ret = epoll_wait(epoll_fd_, &evs[0], len, timeout);
             if (ret < 0) {
                 if (errno != EINTR) {
@@ -150,7 +151,7 @@ public:
                     LEAVING;
                     return -3;
                 }
-                gettimeofday(&end_time);
+                gettimeofday(&end_time, 0);
                 timeout -= (end_time.tv_sec - start_time.tv_sec) * 1000
                             + (end_time.tv_usec - start_time.tv_usec) / 1000;
 
@@ -174,6 +175,7 @@ public:
     int max_udp_pkt_size() { return max_udp_pkt_size_;};
     int max_tcp_pkt_size() { return max_tcp_pkt_size_;};
     uint32_t pool_index() { return pool_index_; };
+    Server* srv() { return srv_; };
 private:
     Server *srv_;
     int epoll_fd_;
@@ -186,7 +188,7 @@ private:
 private:
     Processor(){};
     Processor(Processor&){};
-    Processor& operator=(Processor&){};
+    Processor& operator=(Processor&){ return *this; };
 };
 }; // namespace NF
 

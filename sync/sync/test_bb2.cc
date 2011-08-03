@@ -17,6 +17,10 @@
 
 #include "server.hpp"
 #include "processor.hpp"
+#include <iostream>
+
+using namespace std;
+using namespace NF;
 
 #pragma pack(1)
 class ReqBB2 {
@@ -37,6 +41,9 @@ public:
 class TestBB2Processor : public Processor {
 
 public:
+    TestBB2Processor(Server *srv, uint32_t pool_index)
+        : Processor(srv, pool_index) {
+    };
     //接收数据，需要根据业务定义的Packetize策略来处理
     // 本测试程序中是LV格式
     virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
@@ -91,7 +98,7 @@ public:
         while (true) {
             // 第一步
             // 阻塞获取有数据到来的套接口
-            Socket *sk = srv_->GetServerReadySocket(pool_index());
+            Socket *sk = srv()->GetServerReadySocket(pool_index());
             if (!sk) {
                 continue;
             }
@@ -121,7 +128,7 @@ public:
             cout << "Send seq = " << rsp.seq_ << " b2 = " << rsp.b2_ << endl;
             // 第四步
             // 返回结果
-            ret = TCPSend(sk, &rsp, sizeof(RspBB2));
+            ret = TCPSend(sk, reinterpret_cast<char*>(&rsp), sizeof(RspBB2));
             if (ret < 0) {
                 cout << "Send error" << endl;
             }
@@ -134,6 +141,10 @@ public:
 
 class TestBB2Server : public Server {
 public:
+    TestBB2Server(uint32_t epoll_size, uint32_t max_server_socket_num,
+           uint32_t max_client_socket_num, int timer_interval)
+           :Server(epoll_size, max_server_socket_num, max_client_socket_num, timer_interval) {
+    };
     virtual int TimerHandler() {
 
         ENTERING;
@@ -145,8 +156,10 @@ public:
 
 int main(int argc, char **argv) {
 
-    Server *srv = new TestBB1Server(1024, 1024, 100, 10000);
-    srv->AddListenSocket("127.0.0.1", 20022);
+    Server *srv = new TestBB2Server(1024, 1024, 100, 10000);
+    string myip = "127.0.0.1";
+    uint16_t myport = 20022;
+    srv->AddListenSocket(myip, myport);
 
     srv->InitServer();
     // epoll线程启动，即用于检测套接口的线程
@@ -161,16 +174,16 @@ int main(int argc, char **argv) {
 
     for (int i = 0; i < 4; i++) {
 
-        worker_processor[i] = new TestBB1Processor(srv, 0);
+        worker_processor[i] = new TestBB2Processor(srv, 0);
 
-        if (pthread_create(&worker_pid[j][i], 0, worker_processor[i]->ProcessorThreadProc, worker_processor[i]) < 0) {
+        if (pthread_create(&worker_pid[i], 0, worker_processor[i]->ProcessorThreadProc, worker_processor[i]) < 0) {
             cout << "Create worker thread No." << i << " error" << endl;
             return -1;
         }
     }
 
     // 等待线程完成
-    pthread_join(epoll_pid_, 0);
+    pthread_join(epoll_pid, 0);
     cout << "epoll thread done" << endl;
     for (int i = 0; i < 4; i++) {
         pthread_join(worker_pid[i], 0);

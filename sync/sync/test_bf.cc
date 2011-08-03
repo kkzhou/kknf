@@ -18,6 +18,7 @@
 #include "server.hpp"
 #include "processor.hpp"
 #include <string>
+#include <iostream>
 
 using namespace std;
 using namespace NF;
@@ -66,6 +67,9 @@ public:
 class TestBFProcessor : public Processor {
 
 public:
+    TestBFProcessor(Server *srv, uint32_t pool_index)
+        : Processor(srv, pool_index) {
+    };
     //接收数据，需要根据业务定义的Packetize策略来处理
     // 本测试程序中是LV格式
     virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
@@ -120,7 +124,7 @@ public:
         while (true) {
             // 第一步
             // 阻塞获取有数据到来的套接口
-            Socket *sk = srv_->GetServerReadySocket(pool_index());
+            Socket *sk = srv()->GetServerReadySocket(pool_index());
             if (!sk) {
                 continue;
             }
@@ -142,17 +146,17 @@ public:
             req->b_ = ntohl(req->b_);
             req->seq_ = ntohl(req->seq_);
 
-            cout << "Recv ReqBF: seq = " << req->seq_ << << " a = " << req->a_ << " b = " << req->b_ << endl;
+            cout << "Recv ReqBF: seq = " << req->seq_ << " a = " << req->a_ << " b = " << req->b_ << endl;
 
             // 1，发送请求给BB1，以得到a2
             std::string bb1_ip = "127.0.0.1";
             uint16_t bb1_port = 30021;
-            Socket bb1_sk = srv_->GetClientSocket(bb1_ip, bb1_port_);
+            Socket *bb1_sk = srv()->GetClientSocket(bb1_ip, bb1_port);
             if (!bb1_sk) {
-                bb1_sk = srv_->MakeConnection(bb1_ip, bb1_port);
+                bb1_sk = srv()->MakeConnection(bb1_ip, bb1_port);
                 if (!bb1_sk) {
                     cout << "Cant get connection: <" << bb1_ip << ", " << bb1_port << ">" << endl;
-                    srv_->InsertServerReuseSocket(pool_index(), sk);
+                    srv()->InsertServerReuseSocket(pool_index(), sk);
                     continue;
                 }
             }
@@ -162,23 +166,23 @@ public:
             req1.a_ = htonl(req->a_);
             req1.seq_ = htonl(req->seq_);
             cout << "Send ReqBB1: seq = " << req1.seq_ << " a = " << req1.a_ << endl;
-            ret = TCPSend(bb1_sk, &req1, sizeof(ReqBB1));
+            ret = TCPSend(bb1_sk, reinterpret_cast<char*>(&req1), sizeof(ReqBB1));
             if (ret < 0) {
                 cout << "Send error" << endl;
                 bb1_sk->Close();
                 delete bb1_sk;
-                srv_->InsertServerReuseSocket(pool_index(), sk);
+                srv()->InsertServerReuseSocket(pool_index(), sk);
                 continue;
             }
             // 2， 发送请求给BB2，以得到b2
             std::string bb2_ip = "127.0.0.1";
             uint16_t bb2_port = 30022;
-            Socket bb2_sk = srv_->GetClientSocket(bb2_ip, bb2_port_);
+            Socket *bb2_sk = srv()->GetClientSocket(bb2_ip, bb2_port);
             if (!bb2_sk) {
-                bb2_sk = srv_->MakeConnection(bb2_ip, bb2_port);
+                bb2_sk = srv()->MakeConnection(bb2_ip, bb2_port);
                 if (!bb2_sk) {
                     cout << "Cant get connection: <" << bb2_ip << ", " << bb2_port << ">" << endl;
-                    srv_->InsertServerReuseSocket(pool_index(), sk);
+                    srv()->InsertServerReuseSocket(pool_index(), sk);
                     continue;
                 }
             }
@@ -187,13 +191,13 @@ public:
             req2.l_ = htonl(sizeof(ReqBB1));
             req2.b_ = htonl(req->b_);
             req2.seq_ = htonl(req->seq_);
-            cout << "Send ReqBB2: seq = " << req1.seq_ << " b = " << req1.b_ << endl;
-            ret = TCPSend(bb2_sk, &req2, sizeof(ReqBB2));
+            cout << "Send ReqBB2: seq = " << req2.seq_ << " b = " << req2.b_ << endl;
+            ret = TCPSend(bb2_sk, reinterpret_cast<char*>(&req2), sizeof(ReqBB2));
             if (ret < 0) {
                 cout << "Send error" << endl;
                 bb2_sk->Close();
                 delete bb2_sk;
-                srv_->InsertServerReuseSocket(pool_index(), sk);
+                srv()->InsertServerReuseSocket(pool_index(), sk);
                 continue;
             }
             // 3， 等待接收
@@ -201,7 +205,8 @@ public:
             sk_list.push_back(bb1_sk);
             sk_list.push_back(bb2_sk);
 
-            ret = TCPWaitToRead(sk_list, 2, 1000);
+            uint32_t num = 2;
+            ret = TCPWaitToRead(sk_list, num, 1000);
             if (ret <= -3) {
                 // 出现错误，删除套接口
                 sk->Close();
@@ -236,15 +241,15 @@ public:
             RspBB2 *rsp2 = reinterpret_cast<RspBB2*>(&buf[0]);
             // 第四步
             // 返回结果
-            srv_->InsertClientSocket(bb1_sk);
-            srv_->InsertClientSocket(bb2_sk);
+            srv()->InsertClientSocket(bb1_sk);
+            srv()->InsertClientSocket(bb2_sk);
 
             RspBF rsp;
             rsp.l_ = htonl(sizeof(RspBF));
             rsp.seq_ = htonl(req->seq_);
             rsp.sum_ = htonl(ntohl(rsp1->a2_) + ntohl(rsp2->b2_));
 
-            ret = TCPSend(sk, &rsp, sizeof(RspBB2));
+            ret = TCPSend(sk, reinterpret_cast<char*>(&rsp), sizeof(RspBB2));
             if (ret < 0) {
                 cout << "Send error" << endl;
                 sk->Close();
@@ -260,6 +265,10 @@ public:
 
 class TestBFServer : public Server {
 public:
+    TestBFServer(uint32_t epoll_size, uint32_t max_server_socket_num,
+           uint32_t max_client_socket_num, int timer_interval)
+           :Server(epoll_size, max_server_socket_num, max_client_socket_num, timer_interval) {
+    };
     virtual int TimerHandler() {
 
         ENTERING;
@@ -272,7 +281,10 @@ public:
 int main(int argc, char **argv) {
 
     Server *srv = new TestBFServer(1024, 1024, 100, 10000);
-    srv->AddListenSocket("127.0.0.1", 20021);
+    string myip = "127.0.0.1";
+    uint16_t myport = 20021;
+
+    srv->AddListenSocket(myip, myport);
 
     srv->InitServer();
     // epoll线程启动，即用于检测套接口的线程
@@ -289,14 +301,14 @@ int main(int argc, char **argv) {
 
         worker_processor[i] = new TestBFProcessor(srv, 0);
 
-        if (pthread_create(&worker_pid[j][i], 0, worker_processor[i]->ProcessorThreadProc, worker_processor[i]) < 0) {
+        if (pthread_create(&worker_pid[i], 0, worker_processor[i]->ProcessorThreadProc, worker_processor[i]) < 0) {
             cout << "Create worker thread No." << i << " error" << endl;
             return -1;
         }
     }
 
     // 等待线程完成
-    pthread_join(epoll_pid_, 0);
+    pthread_join(epoll_pid, 0);
     cout << "epoll thread done" << endl;
     for (int i = 0; i < 4; i++) {
         pthread_join(worker_pid[i], 0);
@@ -304,3 +316,4 @@ int main(int argc, char **argv) {
     }
     return 0;
 }
+

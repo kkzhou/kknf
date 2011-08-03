@@ -15,7 +15,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
+#include <iostream>
 #include "client.hpp"
+
+using namespace std;
+using namespace NF;
 
 #pragma pack(1)
 class ReqBF {
@@ -58,7 +62,7 @@ public:
         } // while
 
         int len = ntohl(len_field);
-        if ( len <= 0 || len > max_tcp_pkt_size_) {
+        if ( len <= 0 || len > max_tcp_pkt_size()) {
             LEAVING;
             return -2;
         }
@@ -88,20 +92,22 @@ int main (int argc, char **argv) {
 
     TestClient client;
     ReqBF req;
-    RsqBF *rsp;
+    RspBF *rsp;
     req.l_ = htonl(sizeof(ReqBF));
     req.a_ = htonl(10);
     req.b_ = htonl(100);
     req.seq_ = htonl(1000);
-    Socket *sk = client.GetClientSocket("127.0.0.1", 20021);
+    string bfip = "127.0.0.1";
+    uint16_t bfport = 20021;
+    Socket *sk = client.GetClientSocket(bfip, bfport);
     if (!sk) {
-        sk = client.MakeConnect("127.0.0.1", 20021);
+        sk = client.MakeConnection(bfip, bfport);
         if (!sk) {
             cout << "Can't make connection to BF" << endl;
             return -1;
         }
     }
-    int ret = client.TCPSend(sk, &req, sizeof(ReqBF));
+    int ret = client.TCPSend(sk, reinterpret_cast<char*>(&req), sizeof(ReqBF));
     if (ret < 0) {
         cout << "Send to BF error" << endl;
         return -2;

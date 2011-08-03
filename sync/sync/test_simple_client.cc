@@ -14,8 +14,12 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
+#include <iostream>
 
 #include "client.hpp"
+
+using namespace std;
+using namespace NF;
 
 #pragma pack(1)
 class ReqFormat1 {
@@ -36,6 +40,7 @@ public:
 class RspFormat {
 public:
     int l_;
+    int seq_;
     int num2_;
 };
 #pragma pack(0)
@@ -65,7 +70,7 @@ public:
         } // while
 
         int len = ntohl(len_field);
-        if ( len <= 0 || len > max_tcp_pkt_size_) {
+        if ( len <= 0 || len > max_tcp_pkt_size()) {
             LEAVING;
             return -2;
         }
@@ -99,12 +104,10 @@ public:
     virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
 
         ENTERING;
-        short len_field = 0;
-        int byte_num = 0;
         int ret = 0;
 
         buf_to_fill.resize(1024);
-        ret = recv(sk->sk(), &buf_to_fill[0], buf_to_fill.size(), DONTWAIT);
+        ret = recv(sk->sk(), &buf_to_fill[0], buf_to_fill.size(), MSG_DONTWAIT);
         if (ret < 0) {
             if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
                 return -1;
@@ -132,6 +135,12 @@ int main (int argc, char **argv) {
     Client *client3 = new TestSimpleClient3;
     static int seq = 0;
 
+    string srvip1 = "127.0.0.1";
+    uint16_t srvport1 = 20031;
+    string srvip2 = "127.0.0.1";
+    uint16_t srvport2 = 20032;
+    string srvip3 = "127.0.0.1";
+    uint16_t srvport3 = 20033;
     while (true) {
 
         // 第一种数据格式
@@ -139,22 +148,23 @@ int main (int argc, char **argv) {
         req1.l_ = htonl(sizeof(ReqFormat1));
         req1.seq_ = htonl(seq++);
         req1.num_ = htonl(-1 * seq++);
-        Socket *sk = client1->GetClientSocket("127.0.0.1", 20031);
+
+        Socket *sk = client1->GetClientSocket(srvip1, srvport1);
         if (!sk) {
-            sk = client.MakeConnect("127.0.0.1", 20031);
+            sk = client1->MakeConnection(srvip1, srvport1);
             if (!sk) {
                 cout << "Can't make connection to server" << endl;
                 return -1;
             }
         }
 
-        int ret = client1->TCPSend(sk, &req, sizeof(ReqFormat1));
+        int ret = client1->TCPSend(sk, reinterpret_cast<char*>(&req1), sizeof(ReqFormat1));
         if (ret < 0) {
             cout << "Send to server error" << endl;
             return -2;
         }
 
-        cout << "Send ReqFormat1 seq = " << ntohl(req.seq_) << " num = " << ntohl(req.num_) << endl;
+        cout << "Send ReqFormat1 seq = " << ntohl(req1.seq_) << " num = " << ntohl(req1.num_) << endl;
         vector<char> buf;
         ret = client1->TCPRecv(sk, buf);
         if (ret < 0) {
@@ -163,23 +173,23 @@ int main (int argc, char **argv) {
         }
 
         RspFormat *rsp = reinterpret_cast<RspFormat*>(&buf[0]);
-        cout << "Send RspFormat seq = " << ntohl(rsp->seq_) << " num = " << ntohl(rsp->num_) << endl;
+        cout << "Send RspFormat seq = " << ntohl(rsp->seq_) << " num = " << ntohl(rsp->num2_) << endl;
         client1->InsertClientSocket(sk);
         sk = 0;
 
         // 第二种格式的数据包
         string cmd_line = "Hello World!\n";
         //ReqFormat2 req2;
-        sk = client2->GetClientSocket("127.0.0.1", 20032);
+        sk = client2->GetClientSocket(srvip2, srvport2);
         if (!sk) {
-            sk = client2->MakeConnect("127.0.0.1", 20032);
+            sk = client2->MakeConnection(srvip2, srvport2);
             if (!sk) {
                 cout << "Can't make connection to server" << endl;
                 return -1;
             }
         }
 
-        int ret = client2->TCPSend(sk, cmd_line.data(), cmd_line.size());
+        ret = client2->TCPSend(sk, const_cast<char*>(cmd_line.data()), cmd_line.size());
         if (ret < 0) {
             cout << "Send to server error" << endl;
             return -2;
@@ -192,18 +202,19 @@ int main (int argc, char **argv) {
             return -2;
         }
 
-        char *rsp = reinterpret_cast<RspFormat*>(&buf[0]);
-        for (int i = 0; i < ret; i++) {
-            if (rsp[i] == '\n') {
-                rsp[i] = '\0';
+        char *rsp_line = &buf[0];
+        int i = 0;
+        for (i = 0; i < ret; i++) {
+            if (rsp_line[i] == '\n') {
+                rsp_line[i] = '\0';
             }
         }
-        rsp[ret - 1] = '\0';
+        rsp_line[ret - 1] = '\0';
 
         i = 0;
         while (i < ret) {
             string cmd_line;
-            cmd_line.append(&rsp[i]);
+            cmd_line.append(&rsp_line[i]);
             i += cmd_line.size() + 1;
 
             cout << "Recv Rsp = " << cmd_line << endl;
@@ -217,7 +228,7 @@ int main (int argc, char **argv) {
         req3.num_ = htonl(-1 * seq++);
         int udp_sk = client3->MakeUDPSocket();
 
-        if (client3->UDPSend(udp_sk, "127.0.0.1", 20033, &req3, sizeof(ReqFormat3)) < 0) {
+        if (client3->UDPSend(udp_sk, srvip3, srvport3, reinterpret_cast<char*>(&req3), sizeof(ReqFormat3)) < 0) {
             close(udp_sk);
             cout << "UDP send error" << endl;
             return -2;
@@ -230,7 +241,7 @@ int main (int argc, char **argv) {
             cout << "UDP recv error" << endl;
             return -2;
         }
-        RspFormat *rsp = reinterpret_cast<RspFormat*>(&buf[0]);
+        rsp = reinterpret_cast<RspFormat*>(&buf[0]);
         cout << "Send RspFormat seq = " << ntohl(rsp->seq_) << " num2 = " << ntohl(rsp->num2_) << endl;
     } // while
 

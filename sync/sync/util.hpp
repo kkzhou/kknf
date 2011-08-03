@@ -22,26 +22,10 @@
 #include <stdio.h>
 #include <string>
 #include <sstream>
+#include <vector>
 #include <cstdio>
 
 namespace NF {
-
-#define SLOG_LEVEL 0x00000001UL
-
-#if !defined(SLOG)
-#define SLOG(level,format,arg...) \
-            do { \
-                if ((level) & SLOG_LEVEL) { \
-                    std::string timestr; \
-                    CurrentTimeString(timestr); \
-                    fprintf(stderr, "%s %s %s %d "#format", timestr.c_str(), __PRETTY_FUNCTION__, \
-                            __FILE__, __LINE__, ##arg); \
-                } \
-            } while (0)
-#endif
-
-#define ENTERING SLOG(1, "Enter\n");
-#define LEAVING SLOG(1, "Leave\n");
 
 // 处理时间相关的事情，例如把时间格式化成字符串，或反之
 // 这是一个静态类
@@ -55,7 +39,7 @@ public:
         }
 
         struct tm *plocaltime = localtime(&time_sec);
-        vector<char> buf;
+        std::vector<char> buf;
         buf.reserve(100);
         size_t ret = strftime(&buf[0], buf.size(), "%Y-%m-%d %H:%M:%S", plocaltime);
         if (ret == 0) {
@@ -83,7 +67,7 @@ public:
                             &local_time.tm_year, &local_time.tm_mon, &local_time.tm_mday,
                             &local_time.tm_hour, &local_time.tm_min, &local_time.tm_sec);
 
-        if (ret == EOF || ret != 6) {
+        if (ret == 0U || ret != 6U) {
             return -1;
         }
 
@@ -100,6 +84,24 @@ private:
     TimeUtil();
     TimeUtil(TimeUtil&);
 };// class TimeUtil
+
+#define SLOG_LEVEL 0x00000001UL
+
+#if !defined(SLOG)
+#define SLOG(level,format,arg...) \
+            do { \
+                if ((level) & SLOG_LEVEL) { \
+                    std::string timestr; \
+                    TimeUtil::CurrentTimeString(timestr); \
+                    fprintf(stderr, "%s %s %s %d "format, timestr.c_str(), __PRETTY_FUNCTION__, \
+                            __FILE__, __LINE__, ##arg); \
+                } \
+            } while (0)
+#endif
+
+#define ENTERING SLOG(1, "%s\n", "Enter");
+#define LEAVING SLOG(1, "%s\n", "Leave");
+
 
 }; // namespace NF
 #endif
