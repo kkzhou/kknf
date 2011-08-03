@@ -196,6 +196,7 @@ public:
 
         server_socket_ready_list_mutex_.push_back(new_mutex);
         server_socket_ready_list_cond_.push_back(new_cond);
+        server_socket_ready_list_.push_back(std::list<Socket*>());
         int index = static_cast<int>(listen_socket_list_.size()) - 1;
         assert(index >= 0);
         LEAVING;
@@ -354,7 +355,7 @@ public:
         while (it != endit) {
             uint32_t index = it->first;
 
-            if (index >= listen_socket_list_.size()) {
+            if (index >= server_socket_ready_list_.size()) {
                 assert(false);
             }
 

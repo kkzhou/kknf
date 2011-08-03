@@ -328,13 +328,13 @@ int main(int argc, char **argv) {
             switch (j) {
             case 0:
                 // format 1
-                worker_processor[j][i] = new TestSimpleProcessor1(srv, 0);
+                worker_processor[j][i] = new TestSimpleProcessor1(srv, j);
                 break;
             case 1:
-                worker_processor[j][i] = new TestSimpleProcessor2(srv, 0);
+                worker_processor[j][i] = new TestSimpleProcessor2(srv, j);
                 break;
             case 2:
-                worker_processor[j][i] = new TestSimpleProcessor3(srv, 0);
+                worker_processor[j][i] = new TestSimpleProcessor3(srv, j);
                 break;
             default:
                 cout << "Not supported format" << endl;
