@@ -75,7 +75,8 @@ public:
     Server(uint32_t epoll_size, uint32_t max_server_socket_num,
            uint32_t max_client_socket_num, int timer_interval) {
 
-        epoll_size_ = epoll_size_;
+        ENTERING;
+        epoll_size_ = epoll_size;
         all_epoll_events_ = new epoll_event[epoll_size_];
         max_server_socket_num_ = max_server_socket_num;
         max_client_socket_num_ = max_client_socket_num;
@@ -99,12 +100,16 @@ public:
         pthread_mutex_init(udp_socket_mutex_, 0);
 
         epoll_cancel_ = false;
+        LEAVING;
     };
 
     virtual ~Server() {
+        ENTERING;
         delete[] all_epoll_events_;
+
         // 删除mutex和cond
         // 删除所有socket
+        LEAVING;
     };
 
     // 定时处理函数，返回值是告诉epoll_wait等待多久
@@ -120,6 +125,7 @@ public:
         ENTERING;
         epoll_fd_ = epoll_create(epoll_size_);
         if (epoll_fd_ < 0) {
+            perror("Create epoll error: ");
             LEAVING;
             return -1;
         }
@@ -246,7 +252,7 @@ public:
         ret_sk->set_peer_ipstr(ip);
         ret_sk->set_peer_port(port);
         LEAVING;
-        return 0;
+        return ret_sk;
     };
 
     // 添加一个UDP套接口，收发都用它
@@ -560,7 +566,9 @@ private:
         ENTERING;
         // epoll loop
         int timeout = timer_interval_;
+
         while (!epoll_cancel_) {
+
             struct timeval start_time, end_time;
             gettimeofday(&start_time, 0);
 
@@ -575,13 +583,13 @@ private:
                 return;
             } else if (ret > 0) {
                 // events
-                struct epoll_event *e;
                 std::map<uint32_t, std::list<Socket*> > server_sk_map;
                 for (int i = 0; i < ret; i++) {
+                    SLOG(2, "No.%d, fd = %d error\n", i, all_epoll_events_[i].data.fd);
                     int result = EpollProcess(all_epoll_events_[i], server_sk_map);
                     if (result < 0 || result == 1) {
                         // delete this fd
-                        epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, e->data.fd, 0);
+                        epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, all_epoll_events_[i].data.fd, 0);
                     }
                 }
                 InsertServerReadySocket(server_sk_map);

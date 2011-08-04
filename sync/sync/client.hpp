@@ -61,6 +61,8 @@ class Client {
 public:
     Client() {
         epoll_fd_ = epoll_create(1024);
+        client_socket_idle_list_mutex_ = new pthread_mutex_t;
+        pthread_mutex_init(client_socket_idle_list_mutex_, 0);
     };
     virtual ~Client(){};
 
@@ -120,7 +122,7 @@ public:
         ret_sk->set_peer_ipstr(ip);
         ret_sk->set_peer_port(port);
         LEAVING;
-        return 0;
+        return ret_sk;
     };
 
     // ×èÈûµÄ·¢ËÍ

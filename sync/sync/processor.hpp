@@ -31,12 +31,19 @@ public:
         pool_index_(pool_index),
         cancel_(false) {
 
+        ENTERING;
         epoll_fd_ = epoll_create(100);
+        if (epoll_fd_ < 0) {
+            perror("Create epoll error: ");
+        }
         max_udp_pkt_size_ = 1472; // 1500 - 20 - 8
         max_tcp_pkt_size_ = 1024 * 1024 * 10; // 10M
+        LEAVING;
     };
 
     virtual ~Processor() {
+        ENTERING;
+        LEAVING;
     };
 
     void Stop() {

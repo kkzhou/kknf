@@ -85,7 +85,7 @@ private:
     TimeUtil(TimeUtil&);
 };// class TimeUtil
 
-#define SLOG_LEVEL 0x00000001UL
+#define SLOG_LEVEL 0x00000003UL
 
 #if !defined(SLOG)
 #define SLOG(level,format,arg...) \
@@ -93,7 +93,7 @@ private:
                 if ((level) & SLOG_LEVEL) { \
                     std::string timestr; \
                     TimeUtil::CurrentTimeString(timestr); \
-                    fprintf(stderr, "%s %s %s %d "format, timestr.c_str(), __PRETTY_FUNCTION__, \
+                    fprintf(stderr, "%lu %s %s %s %d "format, pthread_self(), timestr.c_str(), __func__, \
                             __FILE__, __LINE__, ##arg); \
                 } \
             } while (0)
