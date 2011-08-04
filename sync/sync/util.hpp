@@ -40,7 +40,7 @@ public:
 
         struct tm *plocaltime = localtime(&time_sec);
         std::vector<char> buf;
-        buf.reserve(100);
+        buf.resize(100);
         size_t ret = strftime(&buf[0], buf.size(), "%Y-%m-%d %H:%M:%S", plocaltime);
         if (ret == 0) {
             return -2;
