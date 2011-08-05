@@ -58,6 +58,12 @@ public:
     void set_peer_port(uint16_t port) { peer_port_ = port; };
     uint16_t peer_port() { return peer_port_; };
 
+    uint32_t id() { return id_; };
+    void set_id(uint32_t id) { id_ = id; };
+
+    uint32_t type() { return type_; };
+    void set_type(uint32_t type) { type_ = type; };
+
     // manipulators
     int Close() {
         close(sk_);
@@ -98,6 +104,10 @@ private:
     std::string peer_ipstr_;
     struct in_addr peer_ip_;
     uint16_t peer_port_;
+
+    // UGLY code
+    uint32_t id_;    // mapping to the listen socket
+    uint32_t type_;  // 0: tcp listen socket; 1: tcp server socket; 2:udp socket; 3: local socket; 4:client tcp socket
 
 private:
     // prohibits

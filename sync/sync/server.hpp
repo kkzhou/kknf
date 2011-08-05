@@ -131,9 +131,14 @@ public:
         }
         int ret = socketpair(AF_UNIX, SOCK_STREAM, 0, local_socket_pair_);
         if (ret != 0) {
+            perror("Create localsocket error: ");
             LEAVING;
             return -1;
         }
+
+        local_socket_ = new Socket(local_socket_pair_[1]);
+        local_socket_->set_id(0);
+        local_socket_->set_type(3);
         LEAVING;
         return 0;
     };
@@ -191,6 +196,8 @@ public:
         newsk->set_my_port(port);
         newsk->SetNonBlock();   // accept4() is supported after 2.6.28
         newsk->SetReuse();
+        newsk->set_id(listen_socket_list_.size());
+        newsk->set_type(0);
 
         listen_socket_list_.push_back(newsk);
         // 因为每个listen套接口都有一个队列，因此要创建mutex和cond
@@ -251,6 +258,8 @@ public:
         ret_sk->set_peer_ip(server_addr.sin_addr);
         ret_sk->set_peer_ipstr(ip);
         ret_sk->set_peer_port(port);
+        ret_sk->set_id(0);
+        ret_sk->set_type(4);
         LEAVING;
         return ret_sk;
     };
@@ -284,6 +293,8 @@ public:
         udp_socket_->set_my_ip(listen_addr.sin_addr);
         udp_socket_->set_my_port(port);
         udp_socket_->SetReuse();
+        udp_socket_->set_id(0);
+        udp_socket_->set_type(2);
         LEAVING;
         return 0;
     };
@@ -507,17 +518,11 @@ private:
             std::vector<Socket*>::iterator listen_socket_it = listen_socket_list_.begin();
             std::vector<Socket*>::iterator listen_socket_endit = listen_socket_list_.end();
 
-            uint32_t index = 0;
             for (; listen_socket_it != listen_socket_endit; listen_socket_it++) {
                 memset(&e, sizeof(struct epoll_event), 0);
                 e.events = EPOLLIN;
-                e.data.fd = (*listen_socket_it)->sk();
-                e.data.u32 = index++;
                 e.data.ptr = (*listen_socket_it);
-                e.data.u64 = 0; // 0: tcp listen socket
-                                // 1: tcp server socket
-                                // 2: udp socket
-                                // 3: local socket
+                SLOG(2, "To add  listen socket, fd=%d\n", (*listen_socket_it)->sk());
                 ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, (*listen_socket_it)->sk(), &e);
                 if (ret == -1) {
                     LEAVING;
@@ -531,24 +536,21 @@ private:
         if (udp_socket_) {
             memset(&e, sizeof(struct epoll_event), 0);
             e.events = EPOLLIN;
-            e.data.fd = udp_socket_->sk();
-            e.data.u32 = 0;
-            e.data.u64 = 2;
             e.data.ptr = udp_socket_;
+            SLOG(2, "To add UDP socket, fd=%d\n", udp_socket_->sk());
             ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, udp_socket_->sk(), &e);
             if (ret == -1) {
                 LEAVING;
                 return -2;
             }
         }
+
         // add local socket
         memset(&e, sizeof(struct epoll_event), 0);
         e.events = EPOLLIN;
-        e.data.fd = local_socket_pair_[1];
-        e.data.u32 = 0;
-        e.data.u64 = 3;
-        e.data.ptr = 0;
-        ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, e.data.fd, &e);
+        e.data.ptr = local_socket_;
+        SLOG(2, "To add local socket, fd=%d\n", local_socket_->sk());
+        ret = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, local_socket_->sk(), &e);
         if (ret == -1) {
             LEAVING;
             return -2;
@@ -585,11 +587,12 @@ private:
                 // events
                 std::map<uint32_t, std::list<Socket*> > server_sk_map;
                 for (int i = 0; i < ret; i++) {
-                    SLOG(2, "No.%d, fd = %d error\n", i, all_epoll_events_[i].data.fd);
+                    Socket *triggered_sk = reinterpret_cast<Socket*>(all_epoll_events_[i].data.ptr);
                     int result = EpollProcess(all_epoll_events_[i], server_sk_map);
                     if (result < 0 || result == 1) {
                         // delete this fd
-                        epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, all_epoll_events_[i].data.fd, 0);
+                        SLOG(2, "To delete server socket, fd=%d\n", triggered_sk->sk());
+                        epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, triggered_sk->sk(), 0);
                     }
                 }
                 InsertServerReadySocket(server_sk_map);
@@ -622,13 +625,15 @@ private:
 
         } else if (e.events | EPOLLIN) {
 
-            if (e.data.u64 == 0) {
+            Socket *triggered_sk = reinterpret_cast<Socket*>(e.data.ptr);
+            if (triggered_sk->type() == 0) {
                 // TCP listen socket
                 while (true) {
 
                     struct sockaddr_in from_addr;
                     socklen_t from_addr_len = 0;
-                    int new_fd = accept(e.data.fd, (struct sockaddr*)(&from_addr), &from_addr_len);
+                    int new_fd = accept(triggered_sk->sk(), 
+                                        (struct sockaddr*)(&from_addr), &from_addr_len);
                     if (new_fd == -1) {
                         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
                             || errno == ECONNABORTED || errno == EPERM) {
@@ -646,13 +651,16 @@ private:
                     new_sk->set_my_ipstr(listen_sk->my_ipstr());
                     new_sk->set_my_port(listen_sk->my_port());
                     new_sk->set_peer_ip(from_addr.sin_addr);
+                    new_sk->set_id(listen_sk->id());
+                    new_sk->set_type(1);
+
                     char *from_addr_str = inet_ntoa(from_addr.sin_addr);
                     if (from_addr_str == 0) {
                         delete new_sk;
                         continue;
                     }
 
-                    uint32_t index = static_cast<int>(e.data.u32);
+                    uint32_t index = new_sk->id();
                     std::string tmps;
                     tmps.append(from_addr_str);
                     new_sk->set_peer_ipstr(tmps);
@@ -664,14 +672,14 @@ private:
                 LEAVING;
                 return 0;
 
-            } else if (e.data.u64 == 1) {
+            } else if (triggered_sk->type() == 1) {
                 // TCP server socket
-                uint32_t index = static_cast<int>(e.data.u32);
-                server_sk_map[index].push_back(reinterpret_cast<Socket*>(e.data.ptr));
+                uint32_t index = triggered_sk->id();
+                server_sk_map[index].push_back(triggered_sk);
                 LEAVING;
                 return 1;
 
-            } else if (e.data.u64 == 2) {
+            } else if (triggered_sk->type() == 2) {
                 // UDP socket
                 std::vector<char> buf_for_udp(65536); // buf used to recv udp data
                 int len = 65536;
@@ -681,7 +689,7 @@ private:
 
                     struct sockaddr_in from_addr;
                     socklen_t from_addr_len = 0;
-                    int ret = recvfrom(e.data.fd, &buf_for_udp[0], len, MSG_DONTWAIT,
+                    int ret = recvfrom(triggered_sk->sk(), &buf_for_udp[0], len, MSG_DONTWAIT,
                                        (struct sockaddr*)(&from_addr), &from_addr_len);
                     if (ret < 0) {
                         if (errno == EAGAIN) {
@@ -711,7 +719,7 @@ private:
                 LEAVING;
                 return 0;
 
-            } else if (e.data.u64 == 3) {
+            } else if (triggered_sk->type() == 3) {
                 // local socket
                 char local_data[1024];
                 while (true) {
@@ -746,12 +754,10 @@ private:
                         struct epoll_event new_ev;
                         memset(&new_ev, sizeof(struct epoll_event), 0);
                         new_ev.events = EPOLLIN;
-                        new_ev.data.fd = (*list_it)->sk();
-                        new_ev.data.u64 = 1;
-                        new_ev.data.u32 = it->first;
                         new_ev.data.ptr = (*list_it);
 
-                        if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, new_ev.data.fd, &new_ev) == -1) {
+                        SLOG(2, "To add reuse socket, fd=%d\n", (*list_it)->sk());
+                        if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, (*list_it)->sk(), &new_ev) == -1) {
                             perror("add server reuse socket error");
                             (*list_it)->Close();
                             delete (*list_it);
@@ -814,6 +820,7 @@ private:
     struct epoll_event *all_epoll_events_;
     // 用于本地通信，即worker线程通知主线程
     int local_socket_pair_[2];
+    Socket *local_socket_;  // local socket for receiving
     int timer_interval_;
 private:
     // 用于控制主线程，即epoll_wait所在线程

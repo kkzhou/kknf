@@ -184,7 +184,6 @@ public:
 
             evs[i].events = EPOLLIN|EPOLLONESHOT; // NOTE: onshot event
             evs[i].data.fd = sk_list[i]->sk();
-            evs[i].data.u32 = i;
             if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, evs[i].data.fd, &evs[i]) < 0) {
                 // roll back
                 for (uint32_t j = 0; j <= i; j++) {
