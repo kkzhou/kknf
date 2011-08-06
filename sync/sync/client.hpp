@@ -182,7 +182,7 @@ public:
         // add fd to epoll
         for (uint32_t i = 0; i < len; i++) {
 
-            evs[i].events = EPOLLIN|EPOLLONESHOT; // NOTE: onshot event
+            evs[i].events = EPOLLIN | EPOLLONESHOT; // NOTE: onshot event
             evs[i].data.fd = sk_list[i]->sk();
             if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, evs[i].data.fd, &evs[i]) < 0) {
                 // roll back

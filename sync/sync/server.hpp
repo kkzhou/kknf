@@ -25,6 +25,8 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <string.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
 
@@ -59,6 +61,7 @@ public:
         }
     };
 };
+
 
 // 用于存储一个数据包
 class Packet {
@@ -115,6 +118,7 @@ public:
     // 定时处理函数，返回值是告诉epoll_wait等待多久
     virtual int TimerHandler() {
         ENTERING;
+        SLOG(2, "%s\n", "Handle timout");
         LEAVING;
         return timer_interval_;
     };
@@ -156,6 +160,7 @@ public:
 
         ENTERING;
         Server *srv = reinterpret_cast<Server*>(arg);
+        SLOG(2, "%s\n", "Start epoll thread");
         srv->RunServer();
         LEAVING;
         return 0;
@@ -167,6 +172,7 @@ public:
         ENTERING;
         int fd = socket(PF_INET, SOCK_STREAM, 0);
         if (fd < 0) {
+            perror("socket() error:");
             LEAVING;
             return -1;
         }
@@ -175,17 +181,20 @@ public:
         listen_addr.sin_family = AF_INET;
         listen_addr.sin_port = htons(port);
         if (inet_aton(ip.c_str(), &listen_addr.sin_addr) == 0) {
+            SLOG(2, "%s\n", "inet_aton() error");
             LEAVING;
             return -1;
         }
         socklen_t addr_len = sizeof(struct sockaddr_in);
         if (bind(fd, (struct sockaddr*)&listen_addr, addr_len) == -1) {
+            perror("bind() error:");
             LEAVING;
             return -1;
         }
 
         // Listen
         if (listen(fd, 1024) == -1) {
+            perror("listen() error:");
             LEAVING;
             return -1;
         }
@@ -581,6 +590,10 @@ private:
                 continue;
             } else if (ret == -1) {
                 // error
+                perror("epoll_wait error");
+                if (errno == EINTR) {
+                    continue;
+                }
                 LEAVING;
                 return;
             } else if (ret > 0) {
@@ -619,11 +632,11 @@ private:
     int EpollProcess(struct epoll_event &e, std::map<uint32_t, std::list<Socket*> > &server_sk_map) {
 
         ENTERING;
-        if (e.events | EPOLLERR) {
+        if (e.events & EPOLLERR) {
             LEAVING;
             return -1;
 
-        } else if (e.events | EPOLLIN) {
+        } else if (e.events & EPOLLIN) {
 
             Socket *triggered_sk = reinterpret_cast<Socket*>(e.data.ptr);
             if (triggered_sk->type() == 0) {

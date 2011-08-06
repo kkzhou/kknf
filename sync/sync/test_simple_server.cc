@@ -164,13 +164,18 @@ int main(int argc, char **argv) {
     Server *srv = new TestSimpleServer(1024, 1024, 100, 10000);
     string myip1 = "127.0.0.1";
     uint16_t myport1 = 20031;
-    srv->AddListenSocket(myip1, myport1);
+
+    int ret = srv->AddListenSocket(myip1, myport1);
+    if (ret < 0) {
+        SLOG(2, "AddListenSocket() error: ip=%s port=%u\n", myip1.c_str(), myport1);
+        return -1;
+    }
 
     srv->InitServer();
     // epoll线程启动，即用于检测套接口的线程
     pthread_t epoll_pid;
     if (pthread_create(&epoll_pid, 0, Server::ServerThreadProc, srv) < 0) {
-        cout << "Create epoll thread error" << endl;
+        SLOG(2, "%s\n", "Create thread for epoll error");
         return -1;
     }
     // 启动worker线程
@@ -180,15 +185,16 @@ int main(int argc, char **argv) {
     worker_processor = new TestSimpleProcessor(srv, 0);
 
     if (pthread_create(&worker_pid, 0, Processor::ProcessorThreadProc, worker_processor) < 0) {
-        cout << "Create worker thread error" << endl;
+        SLOG(2, "%s\n", "Create thread for worker error");
         return -1;
     }
 
     // 等待线程完成
     pthread_join(epoll_pid, 0);
-    cout << "epoll thread done" << endl;
+    SLOG(2, "%s\n", "Thread for epoll exit");
 
     pthread_join(worker_pid, 0);
+    SLOG(2, "%s\n", "Thread for worker exit");
 
     return 0;
 }

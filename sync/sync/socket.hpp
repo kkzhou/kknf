@@ -40,19 +40,19 @@ public:
     int sk() { return sk_; };
     void set_sk(int sk) { sk_ = sk; };
 
-    void set_my_ipstr(std::string &ipstr) { my_ipstr_ = ipstr;};
-    std::string& my_ipstr() { return my_ipstr_; };
+    void set_my_ipstr(const std::string &ipstr) { my_ipstr_ = ipstr;};
+    std::string my_ipstr() { return my_ipstr_; };
 
-    void set_my_ip(struct in_addr ip) { my_ip_ = ip; };
+    void set_my_ip(const struct in_addr &ip) { my_ip_ = ip; };
     struct in_addr my_ip() { return my_ip_; };
 
     void set_my_port(uint16_t port) { my_port_ = port; };
     uint16_t my_port() { return my_port_; };
 
-    void set_peer_ipstr(std::string &ipstr) { peer_ipstr_ = ipstr;};
-    std::string& peer_ipstr() { return peer_ipstr_; };
+    void set_peer_ipstr(const std::string &ipstr) { peer_ipstr_ = ipstr;};
+    std::string peer_ipstr() { return peer_ipstr_; };
 
-    void set_peer_ip(struct in_addr &ip) { peer_ip_ = ip; };
+    void set_peer_ip(const struct in_addr &ip) { peer_ip_ = ip; };
     struct in_addr peer_ip() { return peer_ip_; };
 
     void set_peer_port(uint16_t port) { peer_port_ = port; };
