@@ -31,7 +31,9 @@ class Socket {
 public:
     // constructors/destructors
     Socket(int sk = -1)
-        : sk_(sk) {
+        : sk_(sk),
+        id_(0xFFFFFFFF),
+        type_(0) {
     };
 
     ~Socket() { };
@@ -107,7 +109,12 @@ private:
 
     // UGLY code
     uint32_t id_;    // mapping to the listen socket
-    uint32_t type_;  // 0: tcp listen socket; 1: tcp server socket; 2:udp socket; 3: local socket; 4:client tcp socket
+    uint32_t type_;  // 0: notype
+                     // 1: tcp listen socket;
+                     // 2: tcp server socket;
+                     // 3: udp socket;
+                     // 4: local socket;
+                     // 5:client tcp socket
 
 private:
     // prohibits

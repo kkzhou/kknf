@@ -101,8 +101,8 @@ private:
             } while (0)
 #endif
 
-#define ENTERING SLOG(1, "%s\n", "Enter");
-#define LEAVING SLOG(1, "%s\n", "Leave");
+#define ENTERING SLOG(1, "Enter\n");
+#define LEAVING SLOG(1, "Leave\n");
 
 
 }; // namespace NF
