@@ -759,7 +759,6 @@ private:
                     }
                     Socket *listen_sk = reinterpret_cast<Socket*>(e.data.ptr);
                     Socket *new_sk = new Socket(new_fd);
-                    new_sk->SetNonBlock();
                     new_sk->set_my_ip(listen_sk->my_ip());
                     new_sk->set_my_ipstr(listen_sk->my_ipstr());
                     new_sk->set_my_port(listen_sk->my_port());
