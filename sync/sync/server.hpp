@@ -326,6 +326,11 @@ public:
         ret_sk->set_peer_port(port);
         ret_sk->set_id(0xFFFFFFFF);
         ret_sk->set_type(5);
+        SLOG(2, "Made a socket <%s : %u> -> <%s : %u>\n",
+             ret_sk->peer_ipstr().c_str(),
+             ret_sk->peer_port(),
+             ret_sk->my_ipstr().c_str(),
+             ret_sk->my_port());
         LEAVING;
         return ret_sk;
     };
@@ -348,10 +353,15 @@ public:
         it = client_socket_idle_list_.find(addr);
 
         if (it != client_socket_idle_list_.end()) {
-            SLOG(2, "Found\n");
+
             assert(it->second.size() != 0);
             ret_sk = it->second.front();
             it->second.pop_front();
+            SLOG(2, "Found a socket <%s : %u> -> <%s : %u>\n",
+                 ret_sk->peer_ipstr().c_str(),
+                 ret_sk->peer_port(),
+                 ret_sk->my_ipstr().c_str(),
+                 ret_sk->my_port());
 
             if (it->second.size() == 0) {
                 SLOG(2, "This is the last idle socket to <%s : %u>\n", ip.c_str(), port);
@@ -360,7 +370,7 @@ public:
         }
 
         pthread_mutex_unlock(client_socket_idle_list_mutex_);
-        SLOG(2, "Not found\n");
+
         LEAVING;
         return ret_sk;
     };
@@ -373,7 +383,12 @@ public:
         SocketAddr addr;
         addr.ip_ = sk->peer_ipstr();
         addr.port_ = sk->peer_port();
-        SLOG(2, "Insert a client socket to <%s : %u>\n", addr.ip_.c_str(), addr.port_);
+        SLOG(2, "Insert a client socket <%s : %u> -> <%s : %u>\n",
+                 sk->peer_ipstr().c_str(),
+                 sk->peer_port(),
+                 sk->my_ipstr().c_str(),
+                 sk->my_port());
+
         pthread_mutex_lock(client_socket_idle_list_mutex_);
         std::map<SocketAddr, std::list<Socket*> >::iterator it;
 
@@ -418,14 +433,17 @@ public:
             server_socket_ready_list_[index].insert(server_socket_ready_list_[index].end(),
                                                     it->second.begin(), it->second.end());
 
-            SLOG(2, "Inserted %u ready server sockets for <%s : %u> with index=%u\n",
+            SLOG(2, "Inserted %u ready server sockets for <%s : %u> -> <%s : %u> with index=%u\n",
                  it->second.size(),
+                 (*it->second.begin())->peer_ipstr().c_str(),
+                 (*it->second.begin())->peer_port(),
                  (*it->second.begin())->my_ipstr().c_str(),
                  (*it->second.begin())->my_port(),
                  index);
 
             pthread_mutex_unlock(server_socket_ready_list_mutex_[index]);
             pthread_cond_signal(server_socket_ready_list_cond_[index]);
+            it++;
         }
 
         LEAVING;

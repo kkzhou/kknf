@@ -87,7 +87,7 @@ private:
     TimeUtil(TimeUtil&);
 };// class TimeUtil
 
-#define SLOG_LEVEL 0x00000003UL
+#define SLOG_LEVEL 0xFFFFFFFFUL
 
 #if !defined(SLOG)
 #define SLOG(level,format,arg...) \

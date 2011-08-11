@@ -25,6 +25,8 @@
 
 #include <string>
 
+#include "util.hpp"
+
 namespace NF{
 
 class Socket {
@@ -33,7 +35,9 @@ public:
     Socket(int sk = -1)
         : sk_(sk),
         id_(0xFFFFFFFF),
-        type_(0) {
+        type_(0),
+        peer_port_(0),
+        my_port_(0) {
     };
 
     ~Socket() { };
@@ -65,6 +69,14 @@ public:
 
     uint32_t type() { return type_; };
     void set_type(uint32_t type) { type_ = type; };
+
+    void Print(std::string &prefix) {
+        SLOG(2, "%s <%s : %u> -> <%s : %u> with id=%u, type=%u\n",
+                 prefix.c_str(),
+                 peer_ipstr_.c_str(), peer_port_,
+                 my_ipstr_.c_str(), my_port_,
+                 id_, type_);
+    };
 
     // manipulators
     int Close() {
