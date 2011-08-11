@@ -744,7 +744,7 @@ private:
                 while (true) {
 
                     struct sockaddr_in from_addr;
-                    socklen_t from_addr_len = 0;
+                    socklen_t from_addr_len = sizeof(struct sockaddr_in);
                     int new_fd = accept(triggered_sk->sk(),
                                         (struct sockaddr*)(&from_addr), &from_addr_len);
                     if (new_fd == -1) {
