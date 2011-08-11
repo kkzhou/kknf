@@ -113,35 +113,38 @@ public:
     // 等待回应到来，因为后端服务器处理时间会比较长，因此
     // 顺序等待比较浪费，因此利用epoll
     // 返回值：
-    // -3：出错
-    // -2：超时
-    // -1：成功（丑！）
-    // >=0：指示第几个socket出错
-    int TCPWaitToRead(std::vector<Socket*> &sk_list, uint32_t &num_of_triggered_fd, int millisecs) {
+    // -3：系统错误
+    // -2：套接口出错
+    // -1：超时
+    // =0：成功
+    int TCPWaitToRead(std::vector<Socket*> &sk_list_to_read,
+                      std::vector<Socket*> &sk_list_triggered,
+                      std::vector<Socket*> &sk_list_error,
+                      uint32_t num_of_triggered_fd, int timeout_millisecs) {
 
         ENTERING;
-        uint32_t len = sk_list.size();
+        uint32_t len = sk_list_to_read.size();
         assert(len >= num_of_triggered_fd);
         assert(num_of_triggered_fd > 0);
 
         std::vector<struct epoll_event> evs(len);
-        uint32_t num = num_of_triggered_fd;
-        num_of_triggered_fd = 0;
 
         int ret = 0;
         // add fd to epoll
         for (uint32_t i = 0; i < len; i++) {
 
             evs[i].events = EPOLLIN|EPOLLONESHOT; // NOTE: onshot event
-            evs[i].data.fd = sk_list[i]->sk();
+            evs[i].data.fd = sk_list_to_read[i]->sk();
             evs[i].data.u32 = i;
             if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, evs[i].data.fd, &evs[i]) < 0) {
                 // roll back
+                SLOG(2, "epoll_ctl(add) error: %s\n", strerror(errno));
                 for (uint32_t j = 0; j <= i; j++) {
                     epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, evs[j].data.fd, 0);
                 }
+                sk_list_error.push_back(sk_list_to_read[i]);
                 LEAVING;
-                return i;
+                return -2;
             }
         }// for
 
@@ -154,7 +157,7 @@ public:
             ret = epoll_wait(epoll_fd_, &evs[0], len, timeout);
             if (ret < 0) {
                 if (errno != EINTR) {
-                    perror("epoll_wait error:");
+                    SLOG(2, "epoll_wait error: %s\n", strerror(errno));
                     LEAVING;
                     return -3;
                 }
@@ -163,20 +166,33 @@ public:
                             + (end_time.tv_usec - start_time.tv_usec) / 1000;
 
                 if (timeout <= 10) {
+                    SLOG(2, "timeout\n");
                     LEAVING;
-                    return -2;
+                    return -1;
                 }
                 continue;
             }
 
-            num_of_triggered_fd += ret;
-            if (num_of_triggered_fd == num) {
+            for (int i = 0; i < ret; i++) {
+                if (evs[i].events & EPOLLEIN) {
+                    sk_list_triggered.push_back([sk_list_to_read[evs[i].data.u32]);
+                } else if (evs[i].events & EPOLLERR) {
+                    sk_list_error.push_back([sk_list_to_read[evs[i].data.u32]);
+                } else {
+                    SLOG(2, "event error: %d\n", evs[i].events);
+                    assert(false);
+                }
+
+            }
+            uint32_t real_num = sk_list_error.size() + sk_list_triggered.size();
+            if (num_of_triggered_fd <= real_num) {
+                SLOG(2, "%u socket triggered\n", real_num);
                 break;
             }
         }// while
 
         LEAVING;
-        return -1;
+        return 0;
     };
 public:
     int max_udp_pkt_size() { return max_udp_pkt_size_;};

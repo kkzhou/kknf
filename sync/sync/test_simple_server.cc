@@ -60,6 +60,8 @@ public:
             ret = recv(sk->sk(), &len_field, 4 - byte_num, 0);
             if (ret < 0) {
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                    SLOG(4, "recv() len field error: %s\n", strerror(errno));
+                    LEAVING;
                     return -1;
                 }
             } else {
@@ -70,6 +72,7 @@ public:
 
         int len = ntohl(len_field);
         if ( len <= 0 || len > max_tcp_pkt_size()) {
+            SLOG(4, "len field error: %d\n", len);
             LEAVING;
             return -2;
         }
@@ -81,6 +84,7 @@ public:
             ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
             if (ret < 0) {
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                    SLOG(2, "recv() data field error: %s\n", strerror(errno));
                     LEAVING;
                     return -2;
                 }
@@ -102,7 +106,8 @@ public:
             // 阻塞获取有数据到来的套接口
             Socket *sk = srv()->GetServerReadySocket(pool_index());
             if (!sk) {
-                continue;
+                SLOG(2, "GetServerReadySocket() error\n");
+                exit(1);
             }
             // 第二步
             // 阻塞接收数据
@@ -110,6 +115,7 @@ public:
             int ret = TCPRecv(sk, buf);
             if (ret < 0) {
                 // 错误，不可恢复
+                SLOG(4, "TCPRecv() error, destroy this socket\n");
                 sk->Close();
                 delete sk;
                 continue;
@@ -120,18 +126,18 @@ public:
             req->l_ = ntohl(req->l_);
             req->num_ = ntohl(req->num_);
             req->seq_ = ntohl(req->seq_);
-            cout << "Recv Req seq = " << req->seq_ << " num = " << req->num_ << endl;
+            SLOG(4, "Recv Req seq = %d, num = %d\n", req->seq_, req->num_);
 
             Rsp rsp;
             rsp.num2_ = htonl(req->num_ + 1);
             rsp.l_ = htonl(sizeof(Rsp));
             rsp.seq_ = htonl(req->seq_);
-            cout << "Send Rsp seq = " << rsp.seq_ << " num2_ = " << rsp.num2_ << endl;
+            SLOG(4, "Send Rsp seq = %d, num2 = %d\n", rsp.seq_, rsp.num2_);
             // 第四步
             // 返回结果
             ret = TCPSend(sk, reinterpret_cast<char*>(&rsp), sizeof(Rsp));
             if (ret < 0) {
-                cout << "Send error" << endl;
+                SLOG(4, "Send response error: %d\n", ret);
             }
 
             srv()->InsertServerReuseSocket(pool_index(), sk);
@@ -153,7 +159,7 @@ public:
     virtual int TimerHandler() {
 
         ENTERING;
-        cout << "Timer triggered " << __PRETTY_FUNCTION__ << endl;
+        SLOG(4, "Timer triggered\n");
         LEAVING;
         return Server::TimerHandler();
     };
@@ -167,7 +173,7 @@ int main(int argc, char **argv) {
 
     int ret = srv->AddListenSocket(myip1, myport1);
     if (ret < 0) {
-        SLOG(2, "AddListenSocket() error: ip=%s port=%u\n", myip1.c_str(), myport1);
+        SLOG(4, "AddListenSocket() error: ip=%s port=%u\n", myip1.c_str(), myport1);
         return -1;
     }
 
@@ -175,7 +181,7 @@ int main(int argc, char **argv) {
     // epoll线程启动，即用于检测套接口的线程
     pthread_t epoll_pid;
     if (pthread_create(&epoll_pid, 0, Server::ServerThreadProc, srv) < 0) {
-        SLOG(2, "%s\n", "Create thread for epoll error");
+        SLOG(4, "Create thread for epoll error\n");
         return -1;
     }
     // 启动worker线程
@@ -185,16 +191,16 @@ int main(int argc, char **argv) {
     worker_processor = new TestSimpleProcessor(srv, 0);
 
     if (pthread_create(&worker_pid, 0, Processor::ProcessorThreadProc, worker_processor) < 0) {
-        SLOG(2, "%s\n", "Create thread for worker error");
+        SLOG(4, "%s\n", "Create thread for worker error");
         return -1;
     }
 
     // 等待线程完成
     pthread_join(epoll_pid, 0);
-    SLOG(2, "%s\n", "Thread for epoll exit");
+    SLOG(4, "Thread for epoll exit\n");
 
     pthread_join(worker_pid, 0);
-    SLOG(2, "%s\n", "Thread for worker exit");
+    SLOG(4, "Thread for worker exit\n");
 
     return 0;
 }

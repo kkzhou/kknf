@@ -177,6 +177,44 @@ public:
         return 0;
     };
 
+    // 添加一个UDP套接口，收发都用它
+    int InitUDPSocket(std::string &ip, uint16_t port) {
+
+        ENTERING;
+        SLOG(2, "Init a UDP socket with local address <%s : %u>\n", ip.c_str(), port);
+        int fd = socket(PF_INET, SOCK_DGRAM, 0);
+        if (fd < 0) {
+            perror("socket() error:");
+            LEAVING;
+            return -1;
+        }
+
+        // Bind address
+        struct sockaddr_in listen_addr;
+        listen_addr.sin_family = AF_INET;
+        listen_addr.sin_port = htons(port);
+        if (inet_aton(ip.c_str(), &listen_addr.sin_addr) == 0) {
+            SLOG(2, "%s\n", "inet_aton() error");
+            LEAVING;
+            return -1;
+        }
+        socklen_t addr_len = sizeof(struct sockaddr_in);
+        if (bind(fd, (struct sockaddr*)&listen_addr, addr_len) == -1) {
+            perror("bind() error:");
+            LEAVING;
+            return -1;
+        }
+
+        udp_socket_ = new Socket(fd);
+        udp_socket_->set_my_ipstr(ip);
+        udp_socket_->set_my_ip(listen_addr.sin_addr);
+        udp_socket_->set_my_port(port);
+        udp_socket_->SetReuse();
+        udp_socket_->set_id(0xFFFFFFFF);
+        udp_socket_->set_type(3);
+        LEAVING;
+        return 0;
+    };
 
     int AddListenSocket(std::string &ip, uint16_t port) {
 
@@ -292,44 +330,6 @@ public:
         return ret_sk;
     };
 
-    // 添加一个UDP套接口，收发都用它
-    int InitUDPSocket(std::string &ip, uint16_t port) {
-
-        ENTERING;
-        SLOG(2, "Init a UDP socket with local address <%s : %u>\n", ip.c_str(), port);
-        int fd = socket(PF_INET, SOCK_DGRAM, 0);
-        if (fd < 0) {
-            perror("socket() error:");
-            LEAVING;
-            return -1;
-        }
-
-        // Bind address
-        struct sockaddr_in listen_addr;
-        listen_addr.sin_family = AF_INET;
-        listen_addr.sin_port = htons(port);
-        if (inet_aton(ip.c_str(), &listen_addr.sin_addr) == 0) {
-            SLOG(2, "%s\n", "inet_aton() error");
-            LEAVING;
-            return -1;
-        }
-        socklen_t addr_len = sizeof(struct sockaddr_in);
-        if (bind(fd, (struct sockaddr*)&listen_addr, addr_len) == -1) {
-            perror("bind() error:");
-            LEAVING;
-            return -1;
-        }
-
-        udp_socket_ = new Socket(fd);
-        udp_socket_->set_my_ipstr(ip);
-        udp_socket_->set_my_ip(listen_addr.sin_addr);
-        udp_socket_->set_my_port(port);
-        udp_socket_->SetReuse();
-        udp_socket_->set_id(0xFFFFFFFF);
-        udp_socket_->set_type(3);
-        LEAVING;
-        return 0;
-    };
 
     // worker线程要发送数据给后端服务器的时候，通过这个函数找一个空闲的
     // 连接，如果没有则返回-1，worker线程用MakeConnection函数建立一个新的连接
