@@ -706,13 +706,13 @@ private:
     int EpollProcess(struct epoll_event &e, std::map<uint32_t, std::list<Socket*> > &server_sk_map) {
 
         ENTERING;
+        Socket *triggered_sk = reinterpret_cast<Socket*>(e.data.ptr);
         SLOG(2, "Socket triggered <%s : %u> -> <%s : %u>\n",
                  triggered_sk->peer_ipstr().c_str(),
                  triggered_sk->peer_port(),
                  triggered_sk->my_ipstr().c_str(),
                  triggered_sk->my_port());
 
-        Socket *triggered_sk = reinterpret_cast<Socket*>(e.data.ptr);
         if (e.events & EPOLLERR) {
             SLOG(2, "Error happends\n");
             LEAVING;

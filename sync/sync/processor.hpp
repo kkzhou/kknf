@@ -149,7 +149,7 @@ public:
         }// for
 
         // wait
-        int timeout = millisecs;
+        int timeout = timeout_millisecs;
         while (true) {
 
             struct timeval start_time, end_time;
@@ -174,10 +174,10 @@ public:
             }
 
             for (int i = 0; i < ret; i++) {
-                if (evs[i].events & EPOLLEIN) {
-                    sk_list_triggered.push_back([sk_list_to_read[evs[i].data.u32]);
+                if (evs[i].events & EPOLLIN) {
+                    sk_list_triggered.push_back(sk_list_to_read[evs[i].data.u32]);
                 } else if (evs[i].events & EPOLLERR) {
-                    sk_list_error.push_back([sk_list_to_read[evs[i].data.u32]);
+                    sk_list_error.push_back(sk_list_to_read[evs[i].data.u32]);
                 } else {
                     SLOG(2, "event error: %d\n", evs[i].events);
                     assert(false);
