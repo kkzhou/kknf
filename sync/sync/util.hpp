@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef __UTIL_HPP_
+#ifndef __UTIL_HPP__
 #define __UTIL_HPP__
 
 #include <string.h>

@@ -34,10 +34,10 @@ public:
     // constructors/destructors
     Socket(int sk = -1)
         : sk_(sk),
-        id_(0xFFFFFFFF),
-        type_(0),
         peer_port_(0),
-        my_port_(0) {
+        my_port_(0),
+        id_(0xFFFFFFFF),
+        type_(0) {
     };
 
     ~Socket() { };
