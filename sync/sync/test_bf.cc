@@ -202,12 +202,13 @@ public:
             }
             // 3， 等待接收
             vector<Socket*> sk_list;
+            vector<uint32_t> sk_list_error, sk_list_triggered;
             sk_list.push_back(bb1_sk);
             sk_list.push_back(bb2_sk);
 
             uint32_t num = 2;
-            ret = TCPWaitToRead(sk_list, num, 1000);
-            if (ret <= -3) {
+            ret = TCPWaitToRead(sk_list, sk_list_triggered, sk_list_error, num, 1000);
+            if (ret < 0) {
                 // 出现错误，删除套接口
                 sk->Close();
                 delete sk;

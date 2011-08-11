@@ -169,8 +169,8 @@ public:
     // -1£º³¬Ê±
     // =0£º³É¹¦
     int TCPWaitToRead(std::vector<Socket*> &sk_list_to_read,
-                      std::vector<Socket*> &sk_list_triggered,
-                      std::vector<Socket*> &sk_list_error,
+                      std::vector<uint32_t> &sk_list_triggered,
+                      std::vector<uint32_t> &sk_list_error,
                       uint32_t num_of_triggered_fd, int timeout_millisecs) {
 
         ENTERING;
@@ -193,14 +193,14 @@ public:
                 for (uint32_t j = 0; j <= i; j++) {
                     epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, evs[j].data.fd, 0);
                 }
-                sk_list_error.push_back(sk_list_to_read[i]);
+                sk_list_error.push_back(i);
                 LEAVING;
                 return -2;
             }
         }// for
 
         // wait
-        int timeout = millisecs;
+        int timeout = timeout_millisecs;
         while (true) {
 
             struct timeval start_time, end_time;
@@ -225,10 +225,10 @@ public:
             }
 
             for (int i = 0; i < ret; i++) {
-                if (evs[i].events & EPOLLEIN) {
-                    sk_list_triggered.push_back([sk_list_to_read[evs[i].data.u32]);
+                if (evs[i].events & EPOLLIN) {
+                    sk_list_triggered.push_back(evs[i].data.u32);
                 } else if (evs[i].events & EPOLLERR) {
-                    sk_list_error.push_back([sk_list_to_read[evs[i].data.u32]);
+                    sk_list_error.push_back(evs[i].data.u32);
                 } else {
                     SLOG(2, "event error: %d\n", evs[i].events);
                     assert(false);
