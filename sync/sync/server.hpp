@@ -764,19 +764,27 @@ private:
                     new_sk->set_my_ipstr(listen_sk->my_ipstr());
                     new_sk->set_my_port(listen_sk->my_port());
                     new_sk->set_peer_ip(from_addr.sin_addr);
+                    new_sk->set_peer_port(htons(from_addr.sin_port));
                     new_sk->set_id(listen_sk->id());
                     new_sk->set_type(2);
 
                     char *from_addr_str = inet_ntoa(from_addr.sin_addr);
                     if (from_addr_str == 0) {
+                        SLOG(2, "inet_ntoa() error\n");
                         delete new_sk;
                         continue;
                     }
-
-                    uint32_t index = new_sk->id();
                     std::string tmps;
                     tmps.append(from_addr_str);
                     new_sk->set_peer_ipstr(tmps);
+
+                    SLOG(2, "Create a new server socket <%s : %u> -> <%s : %u>\n",
+                         new_sk->peer_ipstr().c_str(),
+                         new_sk->peer_port(),
+                         new_sk->my_ipstr().c_str(),
+                         new_sk->my_port());
+
+                    uint32_t index = new_sk->id();
 
                     // sk_map是用来装返回数据的！
                     // 如果index不存在，map会自动创建新元素，即一个空list
