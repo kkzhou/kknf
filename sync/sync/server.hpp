@@ -284,7 +284,7 @@ public:
         SLOG(2, "Make connection to <%s : %u>\n", ip.c_str(), port);
         int fd = -1;
         // prepare socket
-        if ((fd = socket(PF_INET, SOCK_STREAM, 0) < 0)) {
+        if ((fd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
             SLOG(2, "socket() error %s\n", strerror(errno));
             LEAVING;
             return 0;

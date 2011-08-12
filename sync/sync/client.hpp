@@ -155,7 +155,7 @@ public:
         char *cur = buf_to_send;
         SLOG(2, "Begin to send %u bytes\n", buf_to_send_size);
         while (size_left) {
-            SLOG(2, "%u bytes left\n", size_left);
+
             int ret = send(sk->sk(), buf_to_send, buf_to_send_size, 0);
             if (ret == -1) {
                 SLOG(2, "send() error %s\n", strerror(errno));
@@ -166,9 +166,10 @@ public:
             } else {
                 size_left -= ret;
                 cur += ret;
+                SLOG(2, "%u bytes left\n", size_left);
             }
         }
-
+        SLOG(2, "Send OK");
         LEAVING;
         return 0;
     };
