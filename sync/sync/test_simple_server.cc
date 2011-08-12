@@ -28,12 +28,14 @@ public:
     int l_;
     int seq_;
     int num_;
+    int pad_[1000];
 };
 class Rsp{
 public:
     int l_;
     int seq_;
     int num2_;
+    int pad_[1000];
 };
 #pragma pack(0)
 
@@ -195,22 +197,30 @@ int main(int argc, char **argv) {
         return -1;
     }
     // 启动worker线程
-    pthread_t worker_pid;
-    Processor *worker_processor;
+    pthread_t worker_pid[4];
+    int num = 4;
 
-    worker_processor = new TestSimpleProcessor(srv, 0);
+    for (int i = 0; i < num; i++) {
+        Processor *worker_processor;
 
-    if (pthread_create(&worker_pid, 0, Processor::ProcessorThreadProc, worker_processor) < 0) {
-        SLOG(4, "%s\n", "Create thread for worker error");
-        return -1;
+        worker_processor = new TestSimpleProcessor(srv, 0);
+
+        if (pthread_create(&worker_pid[i], 0, Processor::ProcessorThreadProc, worker_processor) < 0) {
+            SLOG(4, "Create thread for worker error");
+            return -1;
+        }
+
+        SLOG(4, "No%d worker thread started\n", i);
     }
 
     // 等待线程完成
     pthread_join(epoll_pid, 0);
     SLOG(4, "Thread for epoll exit\n");
+    for (int i = 0; i < num; i++) {
+        pthread_join(worker_pid, 0);
+        SLOG(4, "No%d worker thread exited\n", i);
+    }
 
-    pthread_join(worker_pid, 0);
-    SLOG(4, "Thread for worker exit\n");
 
     return 0;
 }

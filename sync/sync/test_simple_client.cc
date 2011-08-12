@@ -27,12 +27,14 @@ public:
     int l_;
     int seq_;
     int num_;
+    int pad_[1000];
 };
 class Rsp{
 public:
     int l_;
     int seq_;
     int num2_;
+    int pad_[1000];
 };
 #pragma pack(0)
 
@@ -65,7 +67,7 @@ public:
         } // while
 
         int len = ntohl(len_field);
-        SLOG(2, "The len is %d bytes\n", len);
+        SLOG(4, "The len is %d bytes\n", len);
         if ( len <= 0 || len > max_tcp_pkt_size()) {
             SLOG(4, "len field error: %d\n", len);
             LEAVING;
@@ -75,23 +77,23 @@ public:
         // 收数据域
         byte_num = 4;
         buf_to_fill.resize(len);
-        SLOG(2, "Begin to recv %d bytes date field\n", len);
+        SLOG(4, "Begin to recv %d bytes date field\n", len);
         while (byte_num < len) {
             ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
             if (ret < 0) {
-                SLOG(2, "Recv returns %d, error: %s\n", ret, strerror(errno));
+                SLOG(4, "Recv returns %d, error: %s\n", ret, strerror(errno));
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
-                    SLOG(2, "recv() data field error: %s\n", strerror(errno));
+                    SLOG(4, "recv() data field error: %s\n", strerror(errno));
                     LEAVING;
                     return -2;
                 }
             } else if (ret == 0) {
-                SLOG(2, "Closed by peer\n");
+                SLOG(4, "Closed by peer\n");
                 LEAVING;
                 return -2;
             } else {
                 byte_num += ret;
-                SLOG(2, "%d bytes have been recved\n", byte_num);
+                SLOG(4, "%d bytes have been recved\n", byte_num);
                 continue;
             }
         } // while
@@ -101,17 +103,17 @@ public:
 private:
 };
 
+void ClientThreadProc(void *arg) {
 
-int main (int argc, char **argv) {
+    Client *client1 = reinterpret_cast<Client*>(arg);
 
-    Client *client1 = new TestSimpleClient;
     static int seq = 0;
 
     string srvip1 = "127.0.0.1";
     uint16_t srvport1 = 20031;
 
     while (true) {
-        getchar();
+        sleep(1);
 
         Req req1;
         req1.l_ = htonl(sizeof(Req));
@@ -122,14 +124,14 @@ int main (int argc, char **argv) {
         if (!sk) {
             sk = client1->MakeConnection(srvip1, srvport1);
             if (!sk) {
-                cout << "Can't make connection to server" << endl;
+                SLOG(4, "MakeConnection() error\n");
                 return -1;
             }
         }
 
         int ret = client1->TCPSend(sk, reinterpret_cast<char*>(&req1), sizeof(Req));
         if (ret < 0) {
-            cout << "Send to server error" << endl;
+            SLOG(4, "TCPSend() error\n");
             return -2;
         }
 
@@ -137,15 +139,39 @@ int main (int argc, char **argv) {
         vector<char> buf;
         ret = client1->TCPRecv(sk, buf);
         if (ret < 0) {
-            cout << "Can't recv from server" << endl;
+            SLOG(4, "TCPRecv() error\n");
             return -2;
         }
 
         Rsp *rsp = reinterpret_cast<Rsp*>(&buf[0]);
-        cout << "Recv Rsp seq = " << ntohl(rsp->seq_) << " num2 = " << ntohl(rsp->num2_) << endl;
+        SLOG(4, "Recv Rsp seq = %d num2 = %d\n", ntohl(rsp->seq_), ntohl(rsp->num2_));
         client1->InsertClientSocket(sk);
         sk = 0;
     } // while
+    return;
+};
+
+int main (int argc, char **argv) {
+
+    Client *client = new TestSimpleClient;
+
+    pthread_t worker_pid[10];
+    int num = 10;
+
+    for (int i = 0; i < num; i++) {
+
+        if (pthread_create(&worker_pid[i], 0, ClientThreadProc, client) < 0) {
+            SLOG(4, "Create thread error\n");
+            return -1;
+        }
+        SLOG(4, "No.%d thread started\n", i);
+    }
+
+    // 等待线程完成
+    for (int i = 0; i < num; i++) {
+        pthread_join(worker_pid, 0);
+        SLOG(4, " No.%d thread exited\n", i);
+    }
 
     return 0;
 };
