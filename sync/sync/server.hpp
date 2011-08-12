@@ -270,7 +270,7 @@ public:
         server_socket_ready_list_mutex_.push_back(new_mutex);
         server_socket_ready_list_cond_.push_back(new_cond);
         server_socket_ready_list_.push_back(std::list<Socket*>());
-
+        SLOG(2, "There are %lu server_socket_ready_list(s)\n", server_socket_ready_list_.size());
         int index = static_cast<int>(server_socket_ready_list_.size()) - 1;
         assert(index >= 0);
         LEAVING;
@@ -458,9 +458,10 @@ public:
     Socket* GetServerReadySocket(uint32_t index) {
 
         ENTERING;
-
+        SLOG(2, "To get a server ready socket in index = %lu\n", index);
         if (index >= server_socket_ready_list_.size()) {
-
+            SLOG(2, "index invalid: index = %lu but server_socket_ready_list_'s size = %lu\n",
+                 index, server_socket_ready_list_.size());
             LEAVING;
             return 0;
         }
