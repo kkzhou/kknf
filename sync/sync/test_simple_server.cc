@@ -202,7 +202,7 @@ int main(int argc, char **argv) {
         SLOG(4, "Create thread for epoll error\n");
         return -1;
     }
-    SLOG(4, "Epoll thread started, pid = %u\n", epoll_pid);
+    SLOG(4, "Epoll thread started, pid = %lu\n", epoll_pid);
     // 启动worker线程
     pthread_t worker_pid[4];
     int num = 4;
@@ -217,15 +217,15 @@ int main(int argc, char **argv) {
             return -1;
         }
 
-        SLOG(4, "No%d worker thread started, pid = %u\n", i, worker_pid[i]);
+        SLOG(4, "No%d worker thread started, pid = %lu\n", i, worker_pid[i]);
     }
 
     // 等待线程完成
     pthread_join(epoll_pid, 0);
-    SLOG(4, "Thread for epoll exit, pid = %u\n", epoll_pid);
+    SLOG(4, "Thread for epoll exit, pid = %lu\n", epoll_pid);
     for (int i = 0; i < num; i++) {
         pthread_join(worker_pid[i], 0);
-        SLOG(4, "No%d worker thread exited, pid = %u\n", i, worker_pid[i]);
+        SLOG(4, "No%d worker thread exited, pid = %lu\n", i, worker_pid[i]);
     }
 
 
