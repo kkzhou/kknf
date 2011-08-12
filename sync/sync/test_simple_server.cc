@@ -204,13 +204,13 @@ int main(int argc, char **argv) {
     }
     SLOG(4, "Epoll thread started, pid = %lu\n", epoll_pid);
     // ∆Ù∂Øworkerœﬂ≥Ã
-    pthread_t worker_pid[4];
-    int num = 4;
+    pthread_t worker_pid[6];
+    int num = 6;
 
     for (int i = 0; i < num; i++) {
         Processor *worker_processor;
 
-        worker_processor = new TestSimpleProcessor(srv, i);
+        worker_processor = new TestSimpleProcessor(srv, i % srvnum);
 
         if (pthread_create(&worker_pid[i], 0, Processor::ProcessorThreadProc, worker_processor) < 0) {
             SLOG(4, "Create thread for worker error");
