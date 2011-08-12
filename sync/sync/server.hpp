@@ -460,7 +460,7 @@ public:
         ENTERING;
         SLOG(2, "To get a server ready socket in index = %zd\n", index);
         if (index >= server_socket_ready_list_.size()) {
-            SLOG(2, "index invalid: index = %zd but server_socket_ready_list_'s size = %lu\n",
+            SLOG(2, "index invalid: index = %zd but server_socket_ready_list_'s size = %zd\n",
                  index, server_socket_ready_list_.size());
             LEAVING;
             return 0;
