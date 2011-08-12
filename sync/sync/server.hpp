@@ -397,7 +397,7 @@ public:
         if (it != client_socket_idle_list_.end()) {
 
             assert(it->second.size() > 0);
-            SLOG(2, "Already exist %u socket to <%s : %u>\n", it->second.size(), addr.ip_.c_str(), addr.port_);
+            SLOG(2, "Already exist %zd socket to <%s : %u>\n", it->second.size(), addr.ip_.c_str(), addr.port_);
             it->second.push_back(sk);
 
         } else {
@@ -433,7 +433,7 @@ public:
             server_socket_ready_list_[index].insert(server_socket_ready_list_[index].end(),
                                                     it->second.begin(), it->second.end());
 
-            SLOG(2, "Inserted %u ready server sockets for <%s : %u> -> <%s : %u> with index=%u\n",
+            SLOG(2, "Inserted %zd ready server sockets for <%s : %u> -> <%s : %u> with index=%u\n",
                  it->second.size(),
                  (*it->second.begin())->peer_ipstr().c_str(),
                  (*it->second.begin())->peer_port(),
@@ -514,7 +514,7 @@ public:
         server_socket_reuse_list_.swap(sk_list);
         pthread_mutex_unlock(server_socket_reuse_list_mutex_);
         LEAVING;
-        SLOG(2, "Got %u server sockets to reuse\n", sk_list.size());
+        SLOG(2, "Got %zd server sockets to reuse\n", sk_list.size());
         return;
     };
 
@@ -522,7 +522,7 @@ public:
     int InsertUDPRecvPacket(std::list<Packet*> &pkt_list) {
 
         ENTERING;
-        SLOG(2, "Insert %u packets to list\n", pkt_list.size());
+        SLOG(2, "Insert %zd packets to list\n", pkt_list.size());
         pthread_mutex_lock(udp_recv_list_mutex_);
         udp_recv_list_.insert(udp_recv_list_.end(), pkt_list.begin(), pkt_list.end());
         pthread_mutex_unlock(udp_recv_list_mutex_);
@@ -800,7 +800,7 @@ private:
                 LEAVING;
                 return 1;
 
-            } else if (triggered_sk->type() == 2) {
+            } else if (triggered_sk->type() == 3) {
                 // UDP socket
                 SLOG(2, "UDP socket triggered\n");
                 std::vector<char> buf_for_udp(65536); // buf used to recv udp data
@@ -834,7 +834,7 @@ private:
                     new_pkt_list.push_back(new_pkt);
                 }
 
-                SLOG(2, "%u packets recved\n", new_pkt_list.size());
+                SLOG(2, "%zd packets recved\n", new_pkt_list.size());
 
                 if (new_pkt_list.size() > 0) {
                     InsertUDPRecvPacket(new_pkt_list);
@@ -843,7 +843,7 @@ private:
                 LEAVING;
                 return 0;
 
-            } else if (triggered_sk->type() == 3) {
+            } else if (triggered_sk->type() == 4) {
                 // local socket
                 SLOG(2, "Local socket triggered\n");
                 char local_data[1024];
@@ -862,6 +862,8 @@ private:
                     if (ret == 1024) {
                         // read
                         continue;
+                    } else {
+                        break;
                     }
                 }
 

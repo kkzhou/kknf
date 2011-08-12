@@ -57,6 +57,7 @@ public:
 
         // 收长度域，4字节
         while (byte_num < 4) {
+            SLOG(2, "Begin to recv len field\n");
             ret = recv(sk->sk(), &len_field, 4 - byte_num, 0);
             if (ret < 0) {
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
@@ -66,11 +67,13 @@ public:
                 }
             } else {
                 byte_num += ret;
+                SLOG(2, "Recved %d bytes\n", byte_num);
                 continue;
             }
         } // while
 
         int len = ntohl(len_field);
+        SLOG(2, "The len is %d bytes\n", len);
         if ( len <= 0 || len > max_tcp_pkt_size()) {
             SLOG(4, "len field error: %d\n", len);
             LEAVING;
@@ -78,18 +81,25 @@ public:
         }
 
         // 收数据域
-        byte_num = 0;
+        byte_num = 4;
         buf_to_fill.resize(len);
+        SLOG(2, "Begin to recv %d bytes date field\n", len);
         while (byte_num < len) {
             ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
             if (ret < 0) {
+                SLOG(2, "Recv returns %d, error: %s\n", ret, strerror(errno));
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
                     SLOG(2, "recv() data field error: %s\n", strerror(errno));
                     LEAVING;
                     return -2;
                 }
+            } else if (ret == 0) {
+                SLOG(2, "Closed by peer\n");
+                LEAVING;
+                return -2;
             } else {
                 byte_num += ret;
+                SLOG(2, "%d bytes have been recved\n", byte_num);
                 continue;
             }
         } // while

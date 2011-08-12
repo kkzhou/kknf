@@ -102,7 +102,7 @@ int main (int argc, char **argv) {
         Req req1;
         req1.l_ = htonl(sizeof(Req));
         req1.seq_ = htonl(seq++);
-        req1.num_ = htonl(-1 * seq++);
+        req1.num_ = htonl(seq++);
 
         Socket *sk = client1->GetClientSocket(srvip1, srvport1);
         if (!sk) {
