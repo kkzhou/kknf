@@ -15,6 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 #include <iostream>
+#include <stdlib.h>
 
 #include "client.hpp"
 
@@ -118,8 +119,6 @@ void* ClientThreadProc(void *arg) {
         srvip[i] = "127.0.0.1";
         srvport[i] = 20031 + i;
     }
-    uint32_t index = pthread_self() % srvnum ;
-    SLOG(4, "My pid = %lu, my index = %u\n", pthread_self(), index);
 
     while (true) {
         usleep(1000);
@@ -128,6 +127,8 @@ void* ClientThreadProc(void *arg) {
         req1.l_ = htonl(sizeof(Req));
         req1.seq_ = htonl(seq++);
         req1.num_ = htonl(seq++);
+        int index = rand();
+        index %= srvnum;
 
         Socket *sk = client1->GetClientSocket(srvip[index], srvport[index]);
         if (!sk) {

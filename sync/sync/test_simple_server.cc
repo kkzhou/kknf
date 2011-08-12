@@ -210,7 +210,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < num; i++) {
         Processor *worker_processor;
 
-        worker_processor = new TestSimpleProcessor(srv, 0);
+        worker_processor = new TestSimpleProcessor(srv, i);
 
         if (pthread_create(&worker_pid[i], 0, Processor::ProcessorThreadProc, worker_processor) < 0) {
             SLOG(4, "Create thread for worker error");
