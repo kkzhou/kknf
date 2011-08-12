@@ -316,7 +316,8 @@ public:
             return 0;
         }
 
-        std::string tmpip = inet_ntoa(myaddr.sin_addr);
+        std::string tmpip;
+        tmpip.append(inet_ntoa(myaddr.sin_addr));
         Socket *ret_sk = new Socket(fd);
         ret_sk->set_my_ipstr(tmpip);
         ret_sk->set_my_ip(myaddr.sin_addr);

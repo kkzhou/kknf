@@ -119,6 +119,7 @@ void* ClientThreadProc(void *arg) {
         srvport[i] = 20031 + i;
     }
     uint32_t index = pthread_self() % srvnum ;
+    SLOG(4, "My pid = %lu, my index = %u\n", pthread_self(), index);
 
     while (true) {
         usleep(1000);
