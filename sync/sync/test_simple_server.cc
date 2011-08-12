@@ -183,10 +183,24 @@ int main(int argc, char **argv) {
     Server *srv = new TestSimpleServer(1024, 1024, 100, 10000);
     string myip1 = "127.0.0.1";
     uint16_t myport1 = 20031;
+    string myip2 = "127.0.0.1";
+    uint16_t myport2 = 20032;
+    string myip3 = "127.0.0.1";
+    uint16_t myport3 = 20033;
 
     int ret = srv->AddListenSocket(myip1, myport1);
     if (ret < 0) {
         SLOG(4, "AddListenSocket() error: ip=%s port=%u\n", myip1.c_str(), myport1);
+        return -1;
+    }
+    ret = srv->AddListenSocket(myip2, myport2);
+    if (ret < 0) {
+        SLOG(4, "AddListenSocket() error: ip=%s port=%u\n", myip2.c_str(), myport2);
+        return -1;
+    }
+    ret = srv->AddListenSocket(myip3, myport3);
+    if (ret < 0) {
+        SLOG(4, "AddListenSocket() error: ip=%s port=%u\n", myip3.c_str(), myport3);
         return -1;
     }
 

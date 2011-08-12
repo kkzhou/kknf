@@ -110,8 +110,15 @@ void* ClientThreadProc(void *arg) {
 
     static int seq = 0;
 
-    string srvip1 = "127.0.0.1";
-    uint16_t srvport1 = 20031;
+    string srvip[3];
+    uint16_t srvport[3];
+    uint32_t srvnum = 3;
+
+    for (int i = 0; i < srvnum ; i++) {
+        srvip[i] = "127.0.0.1";
+        srvport[i] = 20031 + i;
+    }
+    uint32_t index = pthread_self() % srvnum ;
 
     while (true) {
         usleep(1000);
@@ -121,9 +128,9 @@ void* ClientThreadProc(void *arg) {
         req1.seq_ = htonl(seq++);
         req1.num_ = htonl(seq++);
 
-        Socket *sk = client1->GetClientSocket(srvip1, srvport1);
+        Socket *sk = client1->GetClientSocket(srvip[index], srvport[index]);
         if (!sk) {
-            sk = client1->MakeConnection(srvip1, srvport1);
+            sk = client1->MakeConnection(srvip[index], srvport[index]);
             if (!sk) {
                 SLOG(4, "MakeConnection() error\n");
                 continue;
@@ -161,8 +168,8 @@ int main (int argc, char **argv) {
 
     Client *client = new TestSimpleClient;
 
-    pthread_t worker_pid[10];
-    int num = 10;
+    pthread_t worker_pid[100];
+    int num = 100;
 
     for (int i = 0; i < num; i++) {
 
