@@ -112,9 +112,9 @@ void* ClientThreadProc(void *arg) {
 
     string srvip[3];
     uint16_t srvport[3];
-    uint32_t srvnum = 3;
+    uint16_t srvnum = 3;
 
-    for (int i = 0; i < srvnum ; i++) {
+    for (uint16_t i = 0; i < srvnum ; i++) {
         srvip[i] = "127.0.0.1";
         srvport[i] = 20031 + i;
     }
