@@ -59,7 +59,10 @@ public:
 
 class Client {
 public:
-    Client() {
+    Client()
+    : max_udp_pkt_size_(2048),
+        max_tcp_pkt_size_(2 * 1024 * 1024) {
+
         epoll_fd_ = epoll_create(1024);
         client_socket_idle_list_mutex_ = new pthread_mutex_t;
         pthread_mutex_init(client_socket_idle_list_mutex_, 0);
@@ -407,7 +410,9 @@ public:
     };
 
     int max_udp_pkt_size() { return max_udp_pkt_size_;};
+    void set_max_udp_pkt_size(int max) { max_udp_pkt_size_ = max; };
     int max_tcp_pkt_size() { return max_tcp_pkt_size_;};
+    void set_max_tcp_pkt_size(int max) { max_tcp_pkt_size_ = max; };
 private:
     // 连接服务器的套接口，对同一个ip：port可能有多个套接口
     std::map<SocketAddr, std::list<Socket*> > client_socket_idle_list_;
