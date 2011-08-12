@@ -103,7 +103,7 @@ public:
 private:
 };
 
-void ClientThreadProc(void *arg) {
+void* ClientThreadProc(void *arg) {
 
     Client *client1 = reinterpret_cast<Client*>(arg);
 
@@ -153,7 +153,7 @@ void ClientThreadProc(void *arg) {
         client1->InsertClientSocket(sk);
         sk = 0;
     } // while
-    return;
+    return 0;
 };
 
 int main (int argc, char **argv) {
