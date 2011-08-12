@@ -139,7 +139,7 @@ void* ClientThreadProc(void *arg) {
 
         }
 
-        cout << "Send Req seq = " << ntohl(req1.seq_) << " num = " << ntohl(req1.num_) << endl;
+        SLOG(4, "Send Req seq = %d num = %d\n", ntohl(req1.seq_), ntohl(req1.num_));
         vector<char> buf;
         ret = client1->TCPRecv(sk, buf);
         if (ret < 0) {

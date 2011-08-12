@@ -145,7 +145,7 @@ public:
             rsp.num2_ = htonl(req->num_ + 1);
             rsp.l_ = htonl(sizeof(Rsp));
             rsp.seq_ = htonl(req->seq_);
-            SLOG(4, "Send Rsp seq = %d, num2 = %d\n", ntohl(rsp.seq_), ntohl(rsp.num2_);
+            SLOG(4, "Send Rsp seq = %d, num2 = %d\n", ntohl(rsp.seq_), ntohl(rsp.num2_));
             // 第四步
             // 返回结果
             ret = TCPSend(sk, reinterpret_cast<char*>(&rsp), sizeof(Rsp));
