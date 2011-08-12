@@ -125,7 +125,7 @@ void ClientThreadProc(void *arg) {
             sk = client1->MakeConnection(srvip1, srvport1);
             if (!sk) {
                 SLOG(4, "MakeConnection() error\n");
-                continue
+                continue;
             }
         }
 
@@ -134,7 +134,7 @@ void ClientThreadProc(void *arg) {
             SLOG(4, "TCPSend() error, to delete this socket\n");
             sk->Close();
             delete sk;
-            continue
+            continue;
 
         }
 
@@ -145,7 +145,7 @@ void ClientThreadProc(void *arg) {
             SLOG(4, "TCPRecv() error, to delete this socket\n");
             sk->Close();
             delete sk;
-            continue
+            continue;
         }
 
         Rsp *rsp = reinterpret_cast<Rsp*>(&buf[0]);
