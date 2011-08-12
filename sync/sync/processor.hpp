@@ -34,7 +34,7 @@ public:
         ENTERING;
         epoll_fd_ = epoll_create(100);
         if (epoll_fd_ < 0) {
-            perror("Create epoll error: ");
+            SLOG(2, "epoll_create() error %s\n", strerror(errno));
         }
         max_udp_pkt_size_ = 1472; // 1500 - 20 - 8
         max_tcp_pkt_size_ = 1024 * 1024 * 10; // 10M
@@ -73,8 +73,10 @@ public:
     Socket* GetIdleClientSocket(std::string &to_ip, uint16_t to_port) {
 
         ENTERING;
+        SLOG(2, "To get a client socket to <%s : %u>\n", to_ip.c_str(), to_port);
         Socket *ret_sk = srv_->GetClientSocket(to_ip, to_port);
         if (!ret_sk) {
+            SLOG(2, "Not found to make a new one\n");
             ret_sk = srv_->MakeConnection(to_ip, to_port);
         }
         LEAVING;
@@ -87,6 +89,7 @@ public:
 
         ENTERING;
         if (buf_to_send == 0) {
+            SLOG(2, "Parameter error\n");
             LEAVING;
             return -1;
         }
@@ -94,9 +97,12 @@ public:
         // send
         uint32_t size_left = buf_to_send_size;
         char *cur = buf_to_send;
+        SLOG(2, "Begin to send %u bytes\n", buf_to_send_size);
         while (size_left) {
+            SLOG(2, "%u bytes left\n", size_left);
             int ret = send(sk->sk(), buf_to_send, buf_to_send_size, 0);
             if (ret == -1) {
+                SLOG(2, "send() error %s\n", strerror(errno));
                 if (errno != EWOULDBLOCK || errno != EAGAIN) {
                     LEAVING;
                     return -2;
@@ -106,6 +112,7 @@ public:
                 cur += ret;
             }
         }
+
         LEAVING;
         return 0;
     };
@@ -131,6 +138,7 @@ public:
 
         int ret = 0;
         // add fd to epoll
+        SLOG(2, "To wait %u sockets\n", len);
         for (uint32_t i = 0; i < len; i++) {
 
             evs[i].events = EPOLLIN|EPOLLONESHOT; // NOTE: onshot event
@@ -146,18 +154,20 @@ public:
                 LEAVING;
                 return -2;
             }
+            SLOG(2, "No.%u added\n", i);
         }// for
 
         // wait
         int timeout = timeout_millisecs;
         while (true) {
 
+            SLOG(2, "Begin epoll_wait()\n");
             struct timeval start_time, end_time;
             gettimeofday(&start_time, 0);
             ret = epoll_wait(epoll_fd_, &evs[0], len, timeout);
             if (ret < 0) {
+                SLOG(2, "epoll_wait() error: %s\n", strerror(errno));
                 if (errno != EINTR) {
-                    SLOG(2, "epoll_wait error: %s\n", strerror(errno));
                     LEAVING;
                     return -3;
                 }
@@ -166,7 +176,7 @@ public:
                             + (end_time.tv_usec - start_time.tv_usec) / 1000;
 
                 if (timeout <= 10) {
-                    SLOG(2, "timeout\n");
+                    SLOG(2, "It's timeout\n");
                     LEAVING;
                     return -1;
                 }
@@ -175,11 +185,13 @@ public:
 
             for (int i = 0; i < ret; i++) {
                 if (evs[i].events & EPOLLIN) {
+                    SLOG(2, "A socket ready: %d\n", i);
                     sk_list_triggered.push_back(evs[i].data.u32);
                 } else if (evs[i].events & EPOLLERR) {
+                    SLOG(2, "A socket error: %d\n", i);
                     sk_list_error.push_back(evs[i].data.u32);
                 } else {
-                    SLOG(2, "event error: %d\n", evs[i].events);
+                    SLOG(2, "event not supported: %d\n", evs[i].events);
                     assert(false);
                 }
 

@@ -125,7 +125,7 @@ public:
     // 定时处理函数，返回值是告诉epoll_wait等待多久
     virtual int TimerHandler() {
         ENTERING;
-        SLOG(2, "%s\n", "Handle timout");
+        SLOG(2, "Handle timout\n");
         LEAVING;
         return timer_interval_;
     };
@@ -137,7 +137,7 @@ public:
         SLOG(2, "To Create epoll\n");
         epoll_fd_ = epoll_create(epoll_size_);
         if (epoll_fd_ < 0) {
-            perror("Create epoll error: ");
+            SLOG(2, "epoll_create() error %s\n", strerror(errno));
             LEAVING;
             return -1;
         }
@@ -145,7 +145,7 @@ public:
         SLOG(2, "To Create local socket pair\n");
         int ret = socketpair(AF_UNIX, SOCK_STREAM, 0, local_socket_pair_);
         if (ret != 0) {
-            perror("Create localsocket error: ");
+            SLOG(2, "socketpair() error %s\n", strerror(errno));
             LEAVING;
             return -1;
         }
@@ -184,7 +184,7 @@ public:
         SLOG(2, "Init a UDP socket with local address <%s : %u>\n", ip.c_str(), port);
         int fd = socket(PF_INET, SOCK_DGRAM, 0);
         if (fd < 0) {
-            perror("socket() error:");
+            SLOG(2, "socket() error %s\n", strerror(errno));
             LEAVING;
             return -1;
         }
@@ -194,7 +194,7 @@ public:
         listen_addr.sin_family = AF_INET;
         listen_addr.sin_port = htons(port);
         if (inet_aton(ip.c_str(), &listen_addr.sin_addr) == 0) {
-            SLOG(2, "%s\n", "inet_aton() error");
+            SLOG(2, "inet_aton() error\n");
             LEAVING;
             return -1;
         }
@@ -222,7 +222,7 @@ public:
         SLOG(2, "Add listen socket on <%s : %u>\n", ip.c_str(), port);
         int fd = socket(PF_INET, SOCK_STREAM, 0);
         if (fd < 0) {
-            perror("socket() error:");
+            SLOG(2, "socket() error %s\n", strerror(errno));
             LEAVING;
             return -1;
         }
@@ -231,21 +231,21 @@ public:
         listen_addr.sin_family = AF_INET;
         listen_addr.sin_port = htons(port);
         if (inet_aton(ip.c_str(), &listen_addr.sin_addr) == 0) {
-            SLOG(2, "%s\n", "inet_aton() error");
+            SLOG(2, "inet_aton() error\n");
             LEAVING;
             return -1;
         }
 
         socklen_t addr_len = sizeof(struct sockaddr_in);
         if (bind(fd, (struct sockaddr*)&listen_addr, addr_len) == -1) {
-            perror("bind() error:");
+            SLOG(2, "bind() error %s\n", strerror(errno));
             LEAVING;
             return -1;
         }
 
         // Listen
         if (listen(fd, 1024) == -1) {
-            perror("listen() error:");
+            SLOG(2, "listen() error %s\n", strerror(errno));
             LEAVING;
             return -1;
         }
@@ -285,7 +285,7 @@ public:
         int fd = -1;
         // prepare socket
         if ((fd = socket(PF_INET, SOCK_STREAM, 0) < 0)) {
-            perror("socket() error:");
+            SLOG(2, "socket() error %s\n", strerror(errno));
             LEAVING;
             return 0;
         }
@@ -294,7 +294,7 @@ public:
         server_addr.sin_family = AF_INET;
         server_addr.sin_port = htons(port);
         if (inet_aton(ip.c_str(), &server_addr.sin_addr) == 0) {
-            SLOG(2, "%s\n", "inet_aton() error");
+            SLOG(2, "inet_aton() error\n");
             LEAVING;
             return 0;
         }
@@ -302,7 +302,7 @@ public:
 
         // connect
         if (connect(fd, (struct sockaddr*)&server_addr, addr_len) == -1) {
-            perror("connect() error:");
+            SLOG(2, "connect() error %s\n", strerror(errno));
             LEAVING;
             return 0;
         }
@@ -311,7 +311,7 @@ public:
         struct sockaddr_in myaddr;
         socklen_t myaddr_len;
         if (getsockname(fd, (struct sockaddr*)&myaddr, &myaddr_len) == -1) {
-            perror("getsockname() error:");
+            SLOG(2, "getsockname() error %s\n", strerror(errno));
             LEAVING;
             return 0;
         }
@@ -367,6 +367,8 @@ public:
                 SLOG(2, "This is the last idle socket to <%s : %u>\n", ip.c_str(), port);
                 client_socket_idle_list_.erase(it);
             }
+        } else {
+            SLOG(2, "Not found\n");
         }
 
         pthread_mutex_unlock(client_socket_idle_list_mutex_);

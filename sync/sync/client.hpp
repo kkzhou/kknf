@@ -72,6 +72,7 @@ public:
         ENTERING;
         int fd = socket(PF_INET, SOCK_DGRAM, 0);
         if (fd < 0) {
+            SLOG(2, "Make udp socket error: %s\n", strerror(errno));
             LEAVING;
             return -1;
         }
@@ -79,13 +80,16 @@ public:
         LEAVING;
         return fd;
     };
-    // 阻塞的创建一个连接，然后设置成非阻塞
+
+    // 阻塞的创建一个连接
     Socket* MakeConnection(std::string &ip, uint16_t port) {
 
         ENTERING;
+        SLOG(2, "Make connection to <%s : %u>\n", ip.c_str(), port);
         int fd = -1;
         // prepare socket
-        if ((fd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+        if ((fd = socket(PF_INET, SOCK_STREAM, 0) < 0)) {
+            SLOG(2, "socket() error %s\n", strerror(errno));
             LEAVING;
             return 0;
         }
@@ -94,6 +98,7 @@ public:
         server_addr.sin_family = AF_INET;
         server_addr.sin_port = htons(port);
         if (inet_aton(ip.c_str(), &server_addr.sin_addr) == 0) {
+            SLOG(2, "inet_aton() error\n");
             LEAVING;
             return 0;
         }
@@ -101,6 +106,7 @@ public:
 
         // connect
         if (connect(fd, (struct sockaddr*)&server_addr, addr_len) == -1) {
+            SLOG(2, "connect() error %s\n", strerror(errno));
             LEAVING;
             return 0;
         }
@@ -109,6 +115,7 @@ public:
         struct sockaddr_in myaddr;
         socklen_t myaddr_len;
         if (getsockname(fd, (struct sockaddr*)&myaddr, &myaddr_len) == -1) {
+            SLOG(2, "getsockname() error %s\n", strerror(errno));
             LEAVING;
             return 0;
         }
@@ -121,6 +128,13 @@ public:
         ret_sk->set_peer_ip(server_addr.sin_addr);
         ret_sk->set_peer_ipstr(ip);
         ret_sk->set_peer_port(port);
+        ret_sk->set_id(0xFFFFFFFF);
+        ret_sk->set_type(5);
+        SLOG(2, "Made a socket <%s : %u> -> <%s : %u>\n",
+             ret_sk->peer_ipstr().c_str(),
+             ret_sk->peer_port(),
+             ret_sk->my_ipstr().c_str(),
+             ret_sk->my_port());
         LEAVING;
         return ret_sk;
     };
@@ -131,6 +145,7 @@ public:
 
         ENTERING;
         if (buf_to_send == 0) {
+            SLOG(2, "Parameter error\n");
             LEAVING;
             return -1;
         }
@@ -138,9 +153,12 @@ public:
         // send
         uint32_t size_left = buf_to_send_size;
         char *cur = buf_to_send;
+        SLOG(2, "Begin to send %u bytes\n", buf_to_send_size);
         while (size_left) {
+            SLOG(2, "%u bytes left\n", size_left);
             int ret = send(sk->sk(), buf_to_send, buf_to_send_size, 0);
             if (ret == -1) {
+                SLOG(2, "send() error %s\n", strerror(errno));
                 if (errno != EWOULDBLOCK || errno != EAGAIN) {
                     LEAVING;
                     return -2;
@@ -150,6 +168,7 @@ public:
                 cur += ret;
             }
         }
+
         LEAVING;
         return 0;
     };
@@ -182,6 +201,7 @@ public:
 
         int ret = 0;
         // add fd to epoll
+        SLOG(2, "To wait %u sockets\n", len);
         for (uint32_t i = 0; i < len; i++) {
 
             evs[i].events = EPOLLIN|EPOLLONESHOT; // NOTE: onshot event
@@ -197,18 +217,20 @@ public:
                 LEAVING;
                 return -2;
             }
+            SLOG(2, "No.%u added\n", i);
         }// for
 
         // wait
         int timeout = timeout_millisecs;
         while (true) {
 
+            SLOG(2, "Begin epoll_wait()\n");
             struct timeval start_time, end_time;
             gettimeofday(&start_time, 0);
             ret = epoll_wait(epoll_fd_, &evs[0], len, timeout);
             if (ret < 0) {
+                SLOG(2, "epoll_wait() error: %s\n", strerror(errno));
                 if (errno != EINTR) {
-                    SLOG(2, "epoll_wait error: %s\n", strerror(errno));
                     LEAVING;
                     return -3;
                 }
@@ -217,7 +239,7 @@ public:
                             + (end_time.tv_usec - start_time.tv_usec) / 1000;
 
                 if (timeout <= 10) {
-                    SLOG(2, "timeout\n");
+                    SLOG(2, "It's timeout\n");
                     LEAVING;
                     return -1;
                 }
@@ -226,11 +248,13 @@ public:
 
             for (int i = 0; i < ret; i++) {
                 if (evs[i].events & EPOLLIN) {
+                    SLOG(2, "A socket ready: %d\n", i);
                     sk_list_triggered.push_back(evs[i].data.u32);
                 } else if (evs[i].events & EPOLLERR) {
+                    SLOG(2, "A socket error: %d\n", i);
                     sk_list_error.push_back(evs[i].data.u32);
                 } else {
-                    SLOG(2, "event error: %d\n", evs[i].events);
+                    SLOG(2, "event not supported: %d\n", evs[i].events);
                     assert(false);
                 }
 
@@ -253,9 +277,11 @@ public:
         struct sockaddr_in to_addr;
         socklen_t addr_len;
 
+        SLOG(2, "Send to <%s : %u>\n", to_ip.c_str(), to_port);
         memset(&to_addr, sizeof(struct sockaddr_in), 0);
         to_addr.sin_port = htons(to_port);
         if (inet_aton(to_ip.c_str(), &to_addr.sin_addr) == 0) {
+            SLOG(2, "inet_aton() error\n");
             LEAVING;
             return -1;
         }
@@ -265,6 +291,7 @@ public:
                          (struct sockaddr*)(&to_addr), addr_len);
 
         if (ret <= 0) {
+            SLOG(2, "Send error: %s\n", strerror(errno));
             LEAVING;
             return -1;
         }
@@ -288,6 +315,7 @@ public:
                          (struct sockaddr*)(&from_addr), &addr_len);
 
         if (ret <= 0) {
+            SLOG(2, "recvfrom() error: %s\n", strerror(errno));
             LEAVING;
             return -1;
         }
@@ -295,6 +323,7 @@ public:
         from_ip = inet_ntoa(from_addr.sin_addr);
         from_port = ntohs(from_addr.sin_port);
         buf_to_fill.resize(ret);
+        SLOG(2, "Recved %zd bytes from <%s : %u>\n", buf_to_fill.size(), from_ip.c_str(), from_port);
         LEAVING;
         return 0;
     };
@@ -309,8 +338,9 @@ public:
         addr.ip_ = ip;
         addr.port_ = port;
 
-        std::map<SocketAddr, std::list<Socket*> >::iterator it;
+        SLOG(2, "To find a client socket to <%s : %u>\n", ip.c_str(), port);
 
+        std::map<SocketAddr, std::list<Socket*> >::iterator it;
         pthread_mutex_lock(client_socket_idle_list_mutex_);
         it = client_socket_idle_list_.find(addr);
 
@@ -319,13 +349,22 @@ public:
             assert(it->second.size() != 0);
             ret_sk = it->second.front();
             it->second.pop_front();
+            SLOG(2, "Found a socket <%s : %u> -> <%s : %u>\n",
+                 ret_sk->peer_ipstr().c_str(),
+                 ret_sk->peer_port(),
+                 ret_sk->my_ipstr().c_str(),
+                 ret_sk->my_port());
 
             if (it->second.size() == 0) {
+                SLOG(2, "This is the last idle socket to <%s : %u>\n", ip.c_str(), port);
                 client_socket_idle_list_.erase(it);
             }
+        } else {
+            SLOG(2, "Not found\n");
         }
 
         pthread_mutex_unlock(client_socket_idle_list_mutex_);
+
         LEAVING;
         return ret_sk;
     };
@@ -338,6 +377,11 @@ public:
         SocketAddr addr;
         addr.ip_ = sk->peer_ipstr();
         addr.port_ = sk->peer_port();
+        SLOG(2, "Insert a client socket <%s : %u> -> <%s : %u>\n",
+                 sk->peer_ipstr().c_str(),
+                 sk->peer_port(),
+                 sk->my_ipstr().c_str(),
+                 sk->my_port());
 
         pthread_mutex_lock(client_socket_idle_list_mutex_);
         std::map<SocketAddr, std::list<Socket*> >::iterator it;
@@ -347,10 +391,11 @@ public:
         if (it != client_socket_idle_list_.end()) {
 
             assert(it->second.size() > 0);
+            SLOG(2, "Already exist %zd socket to <%s : %u>\n", it->second.size(), addr.ip_.c_str(), addr.port_);
             it->second.push_back(sk);
 
         } else {
-
+            SLOG(2, "No socket to <%s : %u> exists\n", addr.ip_.c_str(), addr.port_);
             std::list<Socket*> new_list;
             new_list.push_back(sk);
             client_socket_idle_list_.insert(std::pair<SocketAddr, std::list<Socket*> >(addr, new_list));
