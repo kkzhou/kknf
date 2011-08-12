@@ -97,6 +97,7 @@ public:
                 continue;
             }
         } // while
+        SLOG(4, "%d bytes recved\n", byte_num);
         LEAVING;
         return 0;
     };
@@ -113,7 +114,7 @@ void* ClientThreadProc(void *arg) {
     uint16_t srvport1 = 20031;
 
     while (true) {
-        sleep(1);
+        usleep(1000);
 
         Req req1;
         req1.l_ = htonl(sizeof(Req));
