@@ -693,8 +693,12 @@ private:
                              triggered_sk->my_port());
 
                         epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, triggered_sk->sk(), 0);
+                        triggered_sk->Close();
+                        all_epoll_events_[i].data.ptr = 0;
+                        delete triggered_sk;
                     }
-                }
+                } // for
+
                 if (server_sk_map.size() > 0) {
                     SLOG(2, "There are some server sockets ready!\n");
                     InsertServerReadySocket(server_sk_map);
@@ -738,7 +742,7 @@ private:
             LEAVING;
             return -1;
 
-        } else if (e.events & EPOLLIN) {
+        } else if (e.events & EPOLLIN || e.events & EPOLLRDHUP) {
 
             if (triggered_sk->type() == 1) {
                 // TCP listen socket
@@ -796,6 +800,11 @@ private:
 
             } else if (triggered_sk->type() == 2) {
                 // TCP server socket
+                if (e.events & EPOLLRDHUP) {
+                    SLOG(2, "TCP server socket closed by peer\n");
+                    return -2;
+                }
+
                 SLOG(2, "TCP server socket triggered\n");
                 uint32_t index = triggered_sk->id();
                 server_sk_map[index].push_back(triggered_sk);
@@ -885,7 +894,7 @@ private:
                     for (; list_it != list_endit; list_it++) {
                         struct epoll_event new_ev;
                         memset(&new_ev, sizeof(struct epoll_event), 0);
-                        new_ev.events = EPOLLIN;
+                        new_ev.events = EPOLLIN | EPOLLRDHUP;
                         new_ev.data.ptr = (*list_it);
 
                         SLOG(2, "To add reuse socket, fd=%d\n", (*list_it)->sk());

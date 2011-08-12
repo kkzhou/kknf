@@ -172,7 +172,7 @@ public:
                 SLOG(2, "%u bytes left\n", size_left);
             }
         }
-        SLOG(2, "Send OK");
+        SLOG(2, "Send OK\n");
         LEAVING;
         return 0;
     };
