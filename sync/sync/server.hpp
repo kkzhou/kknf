@@ -693,9 +693,14 @@ private:
                              triggered_sk->my_port());
 
                         epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, triggered_sk->sk(), 0);
-                        triggered_sk->Close();
-                        all_epoll_events_[i].data.ptr = 0;
-                        delete triggered_sk;
+
+                        if (result < 0) {
+                            SLOG(2, "Socket error, to destroy\n");
+                            triggered_sk->Close();
+                            all_epoll_events_[i].data.ptr = 0;
+                            delete triggered_sk;
+                        }
+
                     }
                 } // for
 
