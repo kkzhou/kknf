@@ -125,22 +125,27 @@ void ClientThreadProc(void *arg) {
             sk = client1->MakeConnection(srvip1, srvport1);
             if (!sk) {
                 SLOG(4, "MakeConnection() error\n");
-                return -1;
+                continue
             }
         }
 
         int ret = client1->TCPSend(sk, reinterpret_cast<char*>(&req1), sizeof(Req));
         if (ret < 0) {
-            SLOG(4, "TCPSend() error\n");
-            return -2;
+            SLOG(4, "TCPSend() error, to delete this socket\n");
+            sk->Close();
+            delete sk;
+            continue
+
         }
 
         cout << "Send Req seq = " << ntohl(req1.seq_) << " num = " << ntohl(req1.num_) << endl;
         vector<char> buf;
         ret = client1->TCPRecv(sk, buf);
         if (ret < 0) {
-            SLOG(4, "TCPRecv() error\n");
-            return -2;
+            SLOG(4, "TCPRecv() error, to delete this socket\n");
+            sk->Close();
+            delete sk;
+            continue
         }
 
         Rsp *rsp = reinterpret_cast<Rsp*>(&buf[0]);
