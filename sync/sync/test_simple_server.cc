@@ -181,27 +181,18 @@ public:
 int main(int argc, char **argv) {
 
     Server *srv = new TestSimpleServer(1024, 1024, 100, 10000);
-    string myip1 = "127.0.0.1";
-    uint16_t myport1 = 20031;
-    string myip2 = "127.0.0.1";
-    uint16_t myport2 = 20032;
-    string myip3 = "127.0.0.1";
-    uint16_t myport3 = 20033;
+    string myip[3];
+    uint16_t myport[3];
+    uint16_t srvnum = 3;
 
-    int ret = srv->AddListenSocket(myip1, myport1);
-    if (ret < 0) {
-        SLOG(4, "AddListenSocket() error: ip=%s port=%u\n", myip1.c_str(), myport1);
-        return -1;
-    }
-    ret = srv->AddListenSocket(myip2, myport2);
-    if (ret < 0) {
-        SLOG(4, "AddListenSocket() error: ip=%s port=%u\n", myip2.c_str(), myport2);
-        return -1;
-    }
-    ret = srv->AddListenSocket(myip3, myport3);
-    if (ret < 0) {
-        SLOG(4, "AddListenSocket() error: ip=%s port=%u\n", myip3.c_str(), myport3);
-        return -1;
+    for (uint16_t i = 0; i < srvnum; i++) {
+        myip[i] = "127.0.0.1";
+        myport[i] = 20031 + i;
+        int ret = srv->AddListenSocket(myip[i], myport[i]);
+        if (ret < 0) {
+            SLOG(4, "AddListenSocket() error: ip=%s port=%u\n", myip[i].c_str(), myport[i]);
+            return -1;
+        }
     }
 
     srv->InitServer();
@@ -211,6 +202,7 @@ int main(int argc, char **argv) {
         SLOG(4, "Create thread for epoll error\n");
         return -1;
     }
+    SLOG(4, "Epoll thread started, pid = %u\n", epoll_pid);
     // 启动worker线程
     pthread_t worker_pid[4];
     int num = 4;
@@ -225,15 +217,15 @@ int main(int argc, char **argv) {
             return -1;
         }
 
-        SLOG(4, "No%d worker thread started\n", i);
+        SLOG(4, "No%d worker thread started, pid = %u\n", i, worker_pid[i]);
     }
 
     // 等待线程完成
     pthread_join(epoll_pid, 0);
-    SLOG(4, "Thread for epoll exit\n");
+    SLOG(4, "Thread for epoll exit, pid = %u\n", epoll_pid);
     for (int i = 0; i < num; i++) {
         pthread_join(worker_pid[i], 0);
-        SLOG(4, "No%d worker thread exited\n", i);
+        SLOG(4, "No%d worker thread exited, pid = %u\n", i, worker_pid[i]);
     }
 
 

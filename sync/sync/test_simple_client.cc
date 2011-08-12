@@ -177,13 +177,13 @@ int main (int argc, char **argv) {
             SLOG(4, "Create thread error\n");
             return -1;
         }
-        SLOG(4, "No.%d thread started\n", i);
+        SLOG(4, "No.%d thread started, pid = %u\n", i, worker_pid[i]);
     }
 
     // 等待线程完成
     for (int i = 0; i < num; i++) {
         pthread_join(worker_pid[i], 0);
-        SLOG(4, " No.%d thread exited\n", i);
+        SLOG(4, " No.%d thread exited, pid = \n", i, worker_pid[i]);
     }
 
     return 0;
