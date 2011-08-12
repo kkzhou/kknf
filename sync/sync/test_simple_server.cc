@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
     pthread_join(epoll_pid, 0);
     SLOG(4, "Thread for epoll exit\n");
     for (int i = 0; i < num; i++) {
-        pthread_join(worker_pid, 0);
+        pthread_join(worker_pid[i], 0);
         SLOG(4, "No%d worker thread exited\n", i);
     }
 

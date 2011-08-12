@@ -169,7 +169,7 @@ int main (int argc, char **argv) {
 
     // 等待线程完成
     for (int i = 0; i < num; i++) {
-        pthread_join(worker_pid, 0);
+        pthread_join(worker_pid[i], 0);
         SLOG(4, " No.%d thread exited\n", i);
     }
 
