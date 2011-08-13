@@ -64,38 +64,53 @@ public:
 
         // 收长度域，4字节
         while (byte_num < 4) {
+            SLOG(2, "Begin to recv len field\n");
             ret = recv(sk->sk(), &len_field, 4 - byte_num, 0);
             if (ret < 0) {
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                    SLOG(4, "recv() len field error: %s\n", strerror(errno));
+                    LEAVING;
                     return -1;
                 }
             } else {
                 byte_num += ret;
+                SLOG(2, "Recved %d bytes\n", byte_num);
                 continue;
             }
         } // while
 
         int len = ntohl(len_field);
+        SLOG(2, "The len is %d bytes\n", len);
         if ( len <= 0 || len > max_tcp_pkt_size()) {
+            SLOG(4, "len field error: %d\n", len);
             LEAVING;
             return -2;
         }
 
         // 收数据域
-        byte_num = 0;
+        byte_num = 4;
         buf_to_fill.resize(len);
+        SLOG(2, "Begin to recv %d bytes date field\n", len);
         while (byte_num < len) {
             ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
             if (ret < 0) {
+                SLOG(2, "Recv returns %d, error: %s\n", ret, strerror(errno));
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                    SLOG(2, "recv() data field error: %s\n", strerror(errno));
                     LEAVING;
                     return -2;
                 }
+            } else if (ret == 0) {
+                SLOG(2, "Closed by peer\n");
+                LEAVING;
+                return -2;
             } else {
                 byte_num += ret;
+                SLOG(2, "%d bytes have been recved\n", byte_num);
                 continue;
             }
         } // while
+        SLOG(4, "%d bytes recved\n", byte_num);
         LEAVING;
         return 0;
     };
@@ -155,22 +170,23 @@ public:
         : Processor(srv, pool_index) {
     };
     //接收数据，需要根据业务定义的Packetize策略来处理
-    // 本测试程序中是line格式
+    // 本测试程序中是line格式。简单起见，不判断是否收到整行，假设都是整行，而且只提取第一行。
     virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
 
         ENTERING;
         int ret = 0;
-
+        SLOG(4, "Begin to recv a line\n");
         buf_to_fill.resize(1024);
         ret = recv(sk->sk(), &buf_to_fill[0], buf_to_fill.size(), MSG_DONTWAIT);
         if (ret < 0) {
+            SLOG(4, "recv() error: %s\n", strerror(errno));
             if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
                 return -1;
             } else {
-                return 0;
+                return -2;
             }
         }
-
+        SLOG(4, "Recved %d bytes\n", ret);
         buf_to_fill.resize(ret);
         LEAVING;
         return 0;
@@ -183,8 +199,10 @@ public:
         while (true) {
             // 第一步
             // 阻塞获取有数据到来的套接口
+            SLOG(4, "To get a ready server socket in pool %lu\n", pool_index());
             Socket *sk = srv()->GetServerReadySocket(pool_index());
             if (!sk) {
+                SLOG(4, "Get ready server socket error(cann't be here)\n");
                 continue;
             }
             // 第二步
@@ -193,38 +211,50 @@ public:
             int ret = TCPRecv(sk, buf);
             if (ret < 0) {
                 // 错误，不可恢复
+                SLOG(4, "TCPRecv() error\n");
                 sk->Close();
                 delete sk;
                 continue;
-            } else if (ret == 0) {
-                srv()->InsertServerReuseSocket(pool_index(), sk);
+            } else if (ret == -2) {
+                SLOG(4, "TCPRecv() error, peer closed\n");
+                sk->Close();
+                delete sk;
                 continue;
             } else {
+                SLOG(4, "Recv OK, to process\n");
             }
             // 第三步
             // 处理逻辑
             ReqFormat2 *req = reinterpret_cast<ReqFormat2*>(&buf[0]);
             int i = 0;
+            string cmdline;
+
             for (i = 0; i < ret; i++) {
                 if (req->cmd_line_[i] == '\n') {
                     req->cmd_line_[i] = '\0';
+                    cmdline.append(&req->cmd_line_[0]);
+                    SLOG(4, "Line extraced: %s\n", cmdline.c_str());
+                    break;
                 }
             }
-            req->cmd_line_[ret - 1] = '\0';
+
+            if (i == ret) {
+                SLOG(4, "Recved data not contains a complete line\n");
+                sk->Close();
+                delete sk;
+                continue;
+            }
 
             i = 0;
-            while (i < ret) {
-                string cmd_line;
-                cmd_line.append(&req->cmd_line_[i]);
-                i += cmd_line.size() + 1;
 
-                cout << "Recv ReqFormat2 cmdline = " << cmd_line << endl;
-                string rsp_line = "You sent: " + cmd_line + "\n";
-                ret = TCPSend(sk, const_cast<char*>(rsp_line.data()), rsp_line.size());
-                if (ret < 0) {
-                    cout << "Send error" << endl;
-                }
+            SLOG(4, "cmdline = %s\n", cmdline.c_str());
+            string rspline = "You sent: " + cmdline + "\n";
+            SLOG(4, "Rsp is = %s\n", rspline.c_str());
+            ret = TCPSend(sk, const_cast<char*>(rspline.data()), rspline.size());
+            if (ret < 0) {
+                SLOG(4, "TCPSend() error\n");
             }
+            SLOG(4, "Return the ready server socket\n");
             srv()->InsertServerReuseSocket(pool_index(), sk);
         } // while
 
@@ -253,16 +283,19 @@ public:
         while (true) {
             // 第一步
             // 阻塞获取有数据到来的套接口
+            SLOG(4, "To get a UDP packet\n");
             Packet *pkt = srv()->GetUDPPacket();
             if (!pkt) {
+                SLOG("Get UDP packet error(cann't be here)\n");
                 continue;
             }
             // 第二步
             // 处理逻辑
             ReqFormat3 *req = reinterpret_cast<ReqFormat3*>(&pkt->data_[0]);
             req->num_ = ntohl(req->num_);
+            req->seq_ = ntohl(req->seq_);
 
-            cout << "Recv ReqFormat3 num = " << req->num_ << endl;
+            SLOG(4, "Recv ReqFormat3 seq = %d num = %d\n", req->seq_, req->num_);
 
             RspFormat rsp;
             rsp.l_ = htonl(sizeof(RspFormat));
@@ -270,12 +303,12 @@ public:
             rsp.seq_ = htonl(req->seq_);
 
 
-            cout << "Send RspFormat seq = " << rsp.seq_ << " num = " << rsp.num2_ << endl;
+            SLOG(4, "To send RspFormat seq = %d num2 = %d\n", rsp->seq_, rsp->num2_);
             // 第四步
             // 返回结果
             int ret = srv()->UDPSend(pkt->from_.ip_, pkt->from_.port_, reinterpret_cast<char*>(&rsp), sizeof(RspFormat));
             if (ret < 0) {
-                cout << "Send error" << endl;
+                SLOG(4, "UDPSend() error\n")
             }
         } // while
 
@@ -293,7 +326,7 @@ public:
     virtual int TimerHandler() {
 
         ENTERING;
-        cout << "Timer triggered " << __PRETTY_FUNCTION__ << endl;
+        SLOG(4, "Timer triggered\n");
         LEAVING;
         return Server::TimerHandler();
     };
@@ -302,21 +335,22 @@ public:
 int main(int argc, char **argv) {
 
     Server *srv = new TestSimpleServer(1024, 1024, 100, 10000);
-    string myip1 = "127.0.0.1";
-    uint16_t myport1 = 20031;
-    string myip2 = "127.0.0.1";
-    uint16_t myport2 = 20032;
-    string myip3 = "127.0.0.1";
-    uint16_t myport3 = 20033;
-    srv->AddListenSocket(myip1, myport1);
-    srv->AddListenSocket(myip2, myport2);
-    srv->AddListenSocket(myip3, myport3);
+    string myip[3];
+    uint16_t myport[3];
+
+    for (uint16_t i = 0; i < 3; i++) {
+        myip[i] = "127.0.0.1";
+        myport[i] = 20031 + i;
+        SLOG(4, "Add listen socket\n");
+        srv->AddListenSocket(myip[i], myport[i]);
+    }
+
 
     srv->InitServer();
     // epoll线程启动，即用于检测套接口的线程
     pthread_t epoll_pid;
     if (pthread_create(&epoll_pid, 0, Server::ServerThreadProc, srv) < 0) {
-        cout << "Create epoll thread error" << endl;
+        SLOG(4, "Create epoll thread error\n");
         return -1;
     }
     // 启动worker线程
@@ -337,27 +371,28 @@ int main(int argc, char **argv) {
                 worker_processor[j][i] = new TestSimpleProcessor3(srv, j);
                 break;
             default:
-                cout << "Not supported format" << endl;
+                SLOG(4,"Not supported format\n");
                 return -1;
                 break;
             }// switch
 
 
             if (pthread_create(&worker_pid[j][i], 0, Processor::ProcessorThreadProc, worker_processor[j][i]) < 0) {
-                cout << "Create worker thread No." << i << " error" << endl;
+                SLOG(4, "Create worker thread error\n");
                 return -1;
             }
+            SLOG(4, "Create worker thread pid = %zd\n", worker_pid[j][i]);
         }
     } // for
 
     // 等待线程完成
     pthread_join(epoll_pid, 0);
-    cout << "epoll thread done" << endl;
+    SLOG(4, "epoll thread exits\n");
 
     for (int j = 0; j < 3; j++) {
         for (int i = 0; i < 4; i++) {
             pthread_join(worker_pid[j][i], 0);
-            cout << "worker thread No.[" << j << "][" << i << "] done" << endl;
+            SLOG(4, "worker thread[%d][%d] exists, pid = %zd\n", j, i, worker_pid[j][i]);
         }
     }
 
