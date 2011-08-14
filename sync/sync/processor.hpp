@@ -142,13 +142,12 @@ public:
         for (uint32_t i = 0; i < len; i++) {
 
             evs[i].events = EPOLLIN|EPOLLONESHOT; // NOTE: onshot event
-            evs[i].data.fd = sk_list_to_read[i]->sk();
             evs[i].data.u32 = i;
-            if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, evs[i].data.fd, &evs[i]) < 0) {
+            if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, sk_list_to_read[i]->sk(), &evs[i]) < 0) {
                 // roll back
-                SLOG(2, "epoll_ctl(add) error: %s, fd = %d\n", strerror(errno), evs[i].data.fd);
+                SLOG(2, "epoll_ctl(add) error: %s, fd = %d\n", strerror(errno), sk_list_to_read[i]->sk());
                 for (uint32_t j = 0; j <= i; j++) {
-                    epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, evs[j].data.fd, 0);
+                    epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, sk_list_to_read[j]->sk(), 0);
                 }
                 sk_list_error.push_back(i);
                 LEAVING;

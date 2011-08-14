@@ -174,7 +174,7 @@ public:
             // 1，发送请求给BB1，以得到a2
             std::string bb1_ip = "127.0.0.1";
             uint16_t bb1_port = 30021;
-            SLOG(4, "To get a idle client socket to BB1 <%s : %u>\n", bb1_ip.c_str(), bb1_port);
+            SLOG(4, "To get an idle client socket to BB1 <%s : %u>\n", bb1_ip.c_str(), bb1_port);
 
             Socket *bb1_sk = srv()->GetClientSocket(bb1_ip, bb1_port);
             if (!bb1_sk) {
@@ -205,7 +205,7 @@ public:
             // 2， 发送请求给BB2，以得到b2
             std::string bb2_ip = "127.0.0.1";
             uint16_t bb2_port = 30022;
-            SLOG(4, "To get a idle client socket to BB2 <%s : %u>\n", bb2_ip.c_str(), bb2_port);
+            SLOG(4, "To get an idle client socket to BB2 <%s : %u>\n", bb2_ip.c_str(), bb2_port);
 
             Socket *bb2_sk = srv()->GetClientSocket(bb2_ip, bb2_port);
             if (!bb2_sk) {
