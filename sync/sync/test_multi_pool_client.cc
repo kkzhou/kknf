@@ -15,8 +15,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 #include <iostream>
+#include <stdlib.h>
 
 #include "client.hpp"
+
 
 using namespace std;
 using namespace NF;
@@ -126,7 +128,7 @@ public:
         int ret = 0;
         SLOG(4, "Begin to recv a line\n");
         buf_to_fill.resize(1024);
-        ret = recv(sk->sk(), &buf_to_fill[0], buf_to_fill.size(), MSG_DONTWAIT);
+        ret = recv(sk->sk(), &buf_to_fill[0], buf_to_fill.size(), 0);
         if (ret < 0) {
             SLOG(4, "recv() error: %s\n", strerror(errno));
             if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
@@ -170,6 +172,7 @@ int main (int argc, char **argv) {
         req1.seq_ = htonl(seq++);
         req1.num_ = htonl(-1 * seq++);
 
+        getchar();
         SLOG(4, "To get an idle client socket to send ReqFormat1, <%s : %u>\n", srvip1.c_str(), srvport1);
         Socket *sk = client1->GetClientSocket(srvip1, srvport1);
         if (!sk) {
@@ -201,6 +204,7 @@ int main (int argc, char **argv) {
         client1->InsertClientSocket(sk);
         sk = 0;
 
+        getchar();
         // 第二种格式的数据包
         string cmd_line = "Hello World!\n";
         //ReqFormat2 req2;
@@ -231,8 +235,8 @@ int main (int argc, char **argv) {
 
         char *tmp = &buf[0];
         string rspline;
-        int i = 0;
-        for (i = 0; i < ret; i++) {
+        uint32_t i = 0;
+        for (i = 0; i < buf.size(); i++) {
             if (tmp[i] == '\n') {
                 tmp[i] = '\0';
                 rspline.append(tmp);
@@ -240,7 +244,7 @@ int main (int argc, char **argv) {
                 break;
             }
         }
-        if (i != ret) {
+        if (i != buf.size()) {
             SLOG(4, "Data corrupted\n");
         } else {
             if (rspline.empty()) {
@@ -251,6 +255,7 @@ int main (int argc, char **argv) {
         client2->InsertClientSocket(sk);
         sk = 0;
 
+        getchar();
         // 第三种格式，UDP
         ReqFormat3 req3;
         req3.seq_ = htonl(seq++);

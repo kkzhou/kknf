@@ -557,10 +557,14 @@ public:
         ENTERING;
         struct sockaddr_in to_addr;
         socklen_t addr_len;
+        
+        SLOG(2, "To UDP sendto() <%s : %u>\n", to_ip.c_str(), to_port);
 
         memset(&to_addr, sizeof(struct sockaddr_in), 0);
+        to_addr.sin_family = AF_INET;
         to_addr.sin_port = htons(to_port);
         if (inet_aton(to_ip.c_str(), &to_addr.sin_addr) == 0) {
+            SLOG(2, "inet_aton() error\n");
             LEAVING;
             return -1;
         }
@@ -572,6 +576,7 @@ public:
                          (struct sockaddr*)(&to_addr), addr_len);
         pthread_mutex_unlock(udp_socket_mutex_);
         if (ret < 0) {
+            SLOG(2, "sendto() error: %s\n", strerror(errno));
             LEAVING;
             return -1;
         }
@@ -828,11 +833,11 @@ private:
                 while (true) {
 
                     struct sockaddr_in from_addr;
-                    socklen_t from_addr_len = 0;
+                    socklen_t from_addr_len = sizeof(struct sockaddr_in);
                     int ret = recvfrom(triggered_sk->sk(), &buf_for_udp[0], len, MSG_DONTWAIT,
                                        (struct sockaddr*)(&from_addr), &from_addr_len);
                     if (ret <= 0) {
-                        perror("recvfrom error:");
+                        SLOG(2, "recvfrom() error: %s\n", strerror(errno));
                         break;
                     }
 
@@ -841,6 +846,7 @@ private:
 
                     char *from_addr_str = inet_ntoa(from_addr.sin_addr);
                     if (!from_addr_str) {
+                        SLOG(2, "inet_ntoa() error\n");
                         delete new_pkt;
                         break;
                     }

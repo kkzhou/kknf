@@ -116,7 +116,7 @@ public:
 
         // Get my_ip of this socket
         struct sockaddr_in myaddr;
-        socklen_t myaddr_len;
+        socklen_t myaddr_len = sizeof(struct sockaddr_in);
         if (getsockname(fd, (struct sockaddr*)&myaddr, &myaddr_len) == -1) {
             SLOG(2, "getsockname() error %s\n", strerror(errno));
             LEAVING;
@@ -283,12 +283,14 @@ public:
 
         SLOG(2, "Send to <%s : %u>\n", to_ip.c_str(), to_port);
         memset(&to_addr, sizeof(struct sockaddr_in), 0);
+        to_addr.sin_family = AF_INET;
         to_addr.sin_port = htons(to_port);
         if (inet_aton(to_ip.c_str(), &to_addr.sin_addr) == 0) {
             SLOG(2, "inet_aton() error\n");
             LEAVING;
             return -1;
         }
+
         addr_len = sizeof(struct sockaddr_in);
         // udp_socket_ is BLOCKING fd
         int ret = sendto(sk, buf_to_send, buf_len, 0,

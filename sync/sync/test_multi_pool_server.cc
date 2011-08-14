@@ -181,7 +181,7 @@ public:
         int ret = 0;
         SLOG(4, "Begin to recv a line\n");
         buf_to_fill.resize(1024);
-        ret = recv(sk->sk(), &buf_to_fill[0], buf_to_fill.size(), MSG_DONTWAIT);
+        ret = recv(sk->sk(), &buf_to_fill[0], buf_to_fill.size(), 0);
         if (ret < 0) {
             SLOG(4, "recv() error: %s\n", strerror(errno));
             if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
@@ -230,10 +230,10 @@ public:
             // 第三步
             // 处理逻辑
             ReqFormat2 *req = reinterpret_cast<ReqFormat2*>(&buf[0]);
-            int i = 0;
+            uint32_t i = 0;
             string cmdline;
 
-            for (i = 0; i < ret; i++) {
+            for (i = 0; i < buf.size(); i++) {
                 if (req->cmd_line_[i] == '\n') {
                     req->cmd_line_[i] = '\0';
                     cmdline.append(&req->cmd_line_[0]);
@@ -242,7 +242,7 @@ public:
                 }
             }
 
-            if (i == ret) {
+            if (i == buf.size()) {
                 SLOG(4, "Recved data not contains a complete line\n");
                 sk->Close();
                 delete sk;
@@ -345,8 +345,12 @@ int main(int argc, char **argv) {
     for (uint16_t i = 0; i < 3; i++) {
         myip[i] = "127.0.0.1";
         myport[i] = 20031 + i;
-        SLOG(4, "Add listen socket\n");
-        srv->AddListenSocket(myip[i], myport[i]);
+        if (i == 2) {
+            srv->InitUDPSocket(myip[2], myport[2]);
+        } else {
+            SLOG(4, "Add listen socket\n");
+            srv->AddListenSocket(myip[i], myport[i]);
+        }
     }
 
 
