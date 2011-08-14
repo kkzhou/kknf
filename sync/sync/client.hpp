@@ -97,6 +97,7 @@ public:
             return 0;
         }
 
+        SLOG(2, "socket() made a fd = %d\n", fd);
         struct sockaddr_in server_addr;
         server_addr.sin_family = AF_INET;
         server_addr.sin_port = htons(port);

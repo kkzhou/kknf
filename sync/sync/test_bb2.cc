@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
 
     Server *srv = new TestBB2Server(1024, 1024, 100, 10000);
     string myip = "127.0.0.1";
-    uint16_t myport = 20022;
+    uint16_t myport = 30022;
     srv->AddListenSocket(myip, myport);
 
     srv->InitServer();

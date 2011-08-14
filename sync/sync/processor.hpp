@@ -146,7 +146,7 @@ public:
             evs[i].data.u32 = i;
             if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, evs[i].data.fd, &evs[i]) < 0) {
                 // roll back
-                SLOG(2, "epoll_ctl(add) error: %s\n", strerror(errno));
+                SLOG(2, "epoll_ctl(add) error: %s, fd = %d\n", strerror(errno), evs[i].data.fd);
                 for (uint32_t j = 0; j <= i; j++) {
                     epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, evs[j].data.fd, 0);
                 }
