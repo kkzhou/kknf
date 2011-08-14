@@ -17,7 +17,6 @@
 
 #include "server.hpp"
 #include "processor.hpp"
-
 #include <iostream>
 
 using namespace std;
@@ -56,38 +55,53 @@ public:
 
         // 收长度域，4字节
         while (byte_num < 4) {
+            SLOG(4, "Begin to recv len field\n");
             ret = recv(sk->sk(), &len_field, 4 - byte_num, 0);
             if (ret < 0) {
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                    SLOG(4, "recv() len field error: %s\n", strerror(errno));
+                    LEAVING;
                     return -1;
                 }
             } else {
                 byte_num += ret;
+                SLOG(4, "Recved %d bytes\n", byte_num);
                 continue;
             }
         } // while
 
         int len = ntohl(len_field);
+        SLOG(4, "The len is %d bytes\n", len);
         if ( len <= 0 || len > max_tcp_pkt_size()) {
+            SLOG(4, "len field error: %d\n", len);
             LEAVING;
             return -2;
         }
 
         // 收数据域
-        byte_num = 0;
+        byte_num = 4;
         buf_to_fill.resize(len);
+        SLOG(4, "Begin to recv %d bytes date field\n", len);
         while (byte_num < len) {
             ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
             if (ret < 0) {
+                SLOG(4, "Recv returns %d, error: %s\n", ret, strerror(errno));
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                    SLOG(4, "recv() data field error: %s\n", strerror(errno));
                     LEAVING;
                     return -2;
                 }
+            } else if (ret == 0) {
+                SLOG(4, "Closed by peer\n");
+                LEAVING;
+                return -2;
             } else {
                 byte_num += ret;
+                SLOG(4, "%d bytes have been recved\n", byte_num);
                 continue;
             }
         } // while
+        SLOG(4, "%d bytes recved\n", byte_num);
         LEAVING;
         return 0;
     };
@@ -99,16 +113,20 @@ public:
         while (true) {
             // 第一步
             // 阻塞获取有数据到来的套接口
+            SLOG(4, "To get a ready server socket\n");
             Socket *sk = srv()->GetServerReadySocket(pool_index());
             if (!sk) {
+                SLOG(4, "GetServerReadySocket() error(cann't be here)\n");
                 continue;
             }
             // 第二步
             // 阻塞接收数据
             std::vector<char> buf;
+            SLOG(4, "To recv ReqBB1 from BF\n");
             int ret = TCPRecv(sk, buf);
             if (ret < 0) {
                 // 错误，不可恢复
+                SLOG(4, "TCPRecv() error\n");
                 sk->Close();
                 delete sk;
                 continue;
@@ -119,20 +137,22 @@ public:
             req->l_ = ntohl(req->l_);
             req->a_ = ntohl(req->a_);
             req->seq_ = ntohl(req->seq_);
-            cout << "Recv seq = " << req->seq_ << " a = " << req->a_ << endl;
+            SLOG(4, "Recved ReqBB1: seq = %d a = %d\n", req->seq_, req->a_);
+
             RspBB1 rsp;
             rsp.a2_ = req->a_ + 1;
             rsp.l_ = sizeof(RspBB1);
             rsp.l_ = htonl(rsp.l_);
             rsp.a2_ = htonl(rsp.a2_);
             rsp.seq_ = htonl(req->seq_);
-            cout << "Send seq = " << rsp.seq_ << " a2 = " << rsp.a2_ << endl;
+            SLOG(4, "To send RspBB1: seq = %d a2 = %d\n", rsp->seq_, rsp->a2_);
             // 第四步
             // 返回结果
             ret = TCPSend(sk, reinterpret_cast<char*>(&rsp), sizeof(RspBB1));
             if (ret < 0) {
-                cout << "Send error" << endl;
+                SLOG(4, "TCPSend() error\n");
             }
+
         } // while
 
         LEAVING;
@@ -146,11 +166,10 @@ public:
            uint32_t max_client_socket_num, int timer_interval)
            :Server(epoll_size, max_server_socket_num, max_client_socket_num, timer_interval) {
     };
-
     virtual int TimerHandler() {
 
         ENTERING;
-        cout << "Timer triggered " << __PRETTY_FUNCTION__ << endl;
+        SLOG(4, "Timer fired\n");
         LEAVING;
         return Server::TimerHandler();
     };
@@ -167,30 +186,29 @@ int main(int argc, char **argv) {
     // epoll线程启动，即用于检测套接口的线程
     pthread_t epoll_pid;
     if (pthread_create(&epoll_pid, 0, Server::ServerThreadProc, srv) < 0) {
-        cout << "Create epoll thread error" << endl;
+        SLOG(4, "Create epoll thread error\n");
         return -1;
     }
     // 启动worker线程
     pthread_t worker_pid[4];
-    TestBB1Processor *worker_processor[4];
+    Processor *worker_processor[4];
 
     for (int i = 0; i < 4; i++) {
 
         worker_processor[i] = new TestBB1Processor(srv, 0);
 
         if (pthread_create(&worker_pid[i], 0, worker_processor[i]->ProcessorThreadProc, worker_processor[i]) < 0) {
-            cout << "Create worker thread No." << i << " error" << endl;
+            SLOG(4, "Create worker thread No.%d pid = %zd\n", i, worker_pid[i]);
             return -1;
         }
     }
 
     // 等待线程完成
     pthread_join(epoll_pid, 0);
-    cout << "epoll thread done" << endl;
+    SLOG(4, "epoll thread exists\n");
     for (int i = 0; i < 4; i++) {
         pthread_join(worker_pid[i], 0);
-        cout << "worker thread No." << i << " done" << endl;
+        SLOG(4, "worker thread No.%d pid = %zd exits\n", i, worker_pid[i]);
     }
     return 0;
 }
-

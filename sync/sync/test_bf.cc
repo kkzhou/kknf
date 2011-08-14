@@ -81,38 +81,53 @@ public:
 
         // 收长度域，4字节
         while (byte_num < 4) {
+            SLOG(4, "Begin to recv len field\n");
             ret = recv(sk->sk(), &len_field, 4 - byte_num, 0);
             if (ret < 0) {
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                    SLOG(4, "recv() len field error: %s\n", strerror(errno));
+                    LEAVING;
                     return -1;
                 }
             } else {
                 byte_num += ret;
+                SLOG(4, "Recved %d bytes\n", byte_num);
                 continue;
             }
         } // while
 
         int len = ntohl(len_field);
+        SLOG(4, "The len is %d bytes\n", len);
         if ( len <= 0 || len > max_tcp_pkt_size()) {
+            SLOG(4, "len field error: %d\n", len);
             LEAVING;
             return -2;
         }
 
         // 收数据域
-        byte_num = 0;
+        byte_num = 4;
         buf_to_fill.resize(len);
+        SLOG(4, "Begin to recv %d bytes date field\n", len);
         while (byte_num < len) {
             ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
             if (ret < 0) {
+                SLOG(4, "Recv returns %d, error: %s\n", ret, strerror(errno));
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                    SLOG(4, "recv() data field error: %s\n", strerror(errno));
                     LEAVING;
                     return -2;
                 }
+            } else if (ret == 0) {
+                SLOG(4, "Closed by peer\n");
+                LEAVING;
+                return -2;
             } else {
                 byte_num += ret;
+                SLOG(4, "%d bytes have been recved\n", byte_num);
                 continue;
             }
         } // while
+        SLOG(4, "%d bytes recved\n", byte_num);
         LEAVING;
         return 0;
     };
@@ -124,16 +139,20 @@ public:
         while (true) {
             // 第一步
             // 阻塞获取有数据到来的套接口
+            SLOG(4, "To get a ready server socket\n");
             Socket *sk = srv()->GetServerReadySocket(pool_index());
             if (!sk) {
+                SLOG(4, "GetServerReadySocket() error(cann't be here)\n");
                 continue;
             }
             // 第二步
             // 阻塞接收数据
             std::vector<char> buf;
+            SLOG(4, "To recv data from client\n");
             int ret = TCPRecv(sk, buf);
             if (ret < 0) {
                 // 错误，不可恢复
+                SLOG(4, "TCPRecv() error\n");
                 sk->Close();
                 delete sk;
                 continue;
@@ -146,16 +165,19 @@ public:
             req->b_ = ntohl(req->b_);
             req->seq_ = ntohl(req->seq_);
 
-            cout << "Recv ReqBF: seq = " << req->seq_ << " a = " << req->a_ << " b = " << req->b_ << endl;
+            SLOG(4, "Recved ReqBF: seq = %d a = %d b = %d\n", req->seq_, req->a_, req->b_);
 
             // 1，发送请求给BB1，以得到a2
             std::string bb1_ip = "127.0.0.1";
             uint16_t bb1_port = 30021;
+            SLOG(4, "To get a idle client socket to BB1 <%s : %u>\n", bb1_ip.c_str(), bb1_port);
+
             Socket *bb1_sk = srv()->GetClientSocket(bb1_ip, bb1_port);
             if (!bb1_sk) {
+                SLOG(4, "No idle client socket, make one\n");
                 bb1_sk = srv()->MakeConnection(bb1_ip, bb1_port);
                 if (!bb1_sk) {
-                    cout << "Cant get connection: <" << bb1_ip << ", " << bb1_port << ">" << endl;
+                    SLOG(4, "MakeConnection() error\n");
                     srv()->InsertServerReuseSocket(pool_index(), sk);
                     continue;
                 }
@@ -165,23 +187,28 @@ public:
             req1.l_ = htonl(sizeof(ReqBB1));
             req1.a_ = htonl(req->a_);
             req1.seq_ = htonl(req->seq_);
-            cout << "Send ReqBB1: seq = " << req1.seq_ << " a = " << req1.a_ << endl;
+            SLOG(4, "To send ReqBB1: seq = %d a = %d\n", req1.seq_, req1.a_);
             ret = TCPSend(bb1_sk, reinterpret_cast<char*>(&req1), sizeof(ReqBB1));
             if (ret < 0) {
-                cout << "Send error" << endl;
+                SLOG(4, "TCPSend() error\n");
                 bb1_sk->Close();
                 delete bb1_sk;
                 srv()->InsertServerReuseSocket(pool_index(), sk);
                 continue;
             }
+            SLOG(4, "Send ReqBB1 OK\n");
+
             // 2， 发送请求给BB2，以得到b2
             std::string bb2_ip = "127.0.0.1";
             uint16_t bb2_port = 30022;
+            SLOG(4, "To get a idle client socket to BB2 <%s : %u>\n", bb2_ip.c_str(), bb2_port);
+
             Socket *bb2_sk = srv()->GetClientSocket(bb2_ip, bb2_port);
             if (!bb2_sk) {
+                SLOG(4, "No idle client socket, make one\n");
                 bb2_sk = srv()->MakeConnection(bb2_ip, bb2_port);
                 if (!bb2_sk) {
-                    cout << "Cant get connection: <" << bb2_ip << ", " << bb2_port << ">" << endl;
+                    SLOG(4, "MakeConnection() error\n");
                     srv()->InsertServerReuseSocket(pool_index(), sk);
                     continue;
                 }
@@ -191,54 +218,64 @@ public:
             req2.l_ = htonl(sizeof(ReqBB1));
             req2.b_ = htonl(req->b_);
             req2.seq_ = htonl(req->seq_);
-            cout << "Send ReqBB2: seq = " << req2.seq_ << " b = " << req2.b_ << endl;
+            SLOG(4, "To send ReqBB2: seq = %d b = %d\n", req2.seq_, req2.b_);
             ret = TCPSend(bb2_sk, reinterpret_cast<char*>(&req2), sizeof(ReqBB2));
             if (ret < 0) {
-                cout << "Send error" << endl;
+                SLOG(4, "TCPSend() error\n");
                 bb2_sk->Close();
                 delete bb2_sk;
                 srv()->InsertServerReuseSocket(pool_index(), sk);
                 continue;
             }
             // 3， 等待接收
+
             vector<Socket*> sk_list;
             vector<uint32_t> sk_list_error, sk_list_triggered;
             sk_list.push_back(bb1_sk);
             sk_list.push_back(bb2_sk);
+            SLOG(4, "To wait RspBB1 and RspBB2\n");
 
             uint32_t num = 2;
             ret = TCPWaitToRead(sk_list, sk_list_triggered, sk_list_error, num, 1000);
             if (ret < 0) {
                 // 出现错误，删除套接口
+                SLOG(4, "TCPWaitToRead(() error: %d\n", ret);
                 sk->Close();
                 delete sk;
                 bb1_sk->Close();
                 delete bb1_sk;
                 bb2_sk->Close();
                 delete bb2_sk;
-
+                srv()->InsertServerReuseSocket(pool_index(), sk);
                 continue;
             }
+
             // 4，接收数据
+            SLOG(4, "Recv RspBB1\n");
             ret = TCPRecv(bb1_sk, buf);
             if (ret < 0) {
-                cout << "Recv from BB1 error" << endl;
+                SLOG(4, "TCPRecv() error\n");
                 bb1_sk->Close();
                 delete bb1_sk;
                 bb2_sk->Close();
                 delete bb2_sk;
+                srv()->InsertServerReuseSocket(pool_index(), sk);
                 continue;
             }
+
+            SLOG(4, "Recv RspBB2\n");
             RspBB1 *rsp1 = reinterpret_cast<RspBB1*>(&buf[0]);
             ret = TCPRecv(bb2_sk, buf);
             if (ret < 0) {
-                cout << "Recv from BB2 error" << endl;
+                SLOG(4, "TCPRecv() error\n");
                 bb1_sk->Close();
                 delete bb1_sk;
                 bb2_sk->Close();
                 delete bb2_sk;
+                srv()->InsertServerReuseSocket(pool_index(), sk);
                 continue;
             }
+
             RspBB2 *rsp2 = reinterpret_cast<RspBB2*>(&buf[0]);
             // 第四步
             // 返回结果
@@ -250,9 +287,10 @@ public:
             rsp.seq_ = htonl(req->seq_);
             rsp.sum_ = htonl(ntohl(rsp1->a2_) + ntohl(rsp2->b2_));
 
+            SLOG(4, "To send RspBF seq = %d sum = %d\n", ntohl(rsp.seq_), ntohl(rsp.sum_));
             ret = TCPSend(sk, reinterpret_cast<char*>(&rsp), sizeof(RspBB2));
             if (ret < 0) {
-                cout << "Send error" << endl;
+                SLOG(4, "TCPSend() error\n");
                 sk->Close();
                 delete sk;
                 continue;
