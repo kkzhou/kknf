@@ -145,7 +145,7 @@ public:
             rsp.l_ = htonl(rsp.l_);
             rsp.a2_ = htonl(rsp.a2_);
             rsp.seq_ = htonl(req->seq_);
-            SLOG(4, "To send RspBB1: seq = %d a2 = %d\n", rsp->seq_, rsp->a2_);
+            SLOG(4, "To send RspBB1: seq = %d a2 = %d\n", rsp.seq_, rsp.a2_);
             // 第四步
             // 返回结果
             ret = TCPSend(sk, reinterpret_cast<char*>(&rsp), sizeof(RspBB1));
@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
         worker_processor[i] = new TestBB1Processor(srv, 0);
 
         if (pthread_create(&worker_pid[i], 0, worker_processor[i]->ProcessorThreadProc, worker_processor[i]) < 0) {
-            SLOG(4, "Create worker thread No.%d pid = %zd\n", i, worker_pid[i]);
+            SLOG(4, "Create worker thread No.%d pid = %lu\n", i, worker_pid[i]);
             return -1;
         }
     }
@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
     SLOG(4, "epoll thread exists\n");
     for (int i = 0; i < 4; i++) {
         pthread_join(worker_pid[i], 0);
-        SLOG(4, "worker thread No.%d pid = %zd exits\n", i, worker_pid[i]);
+        SLOG(4, "worker thread No.%d pid = %lu exits\n", i, worker_pid[i]);
     }
     return 0;
 }

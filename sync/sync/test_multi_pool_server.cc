@@ -199,7 +199,7 @@ public:
         while (true) {
             // 第一步
             // 阻塞获取有数据到来的套接口
-            SLOG(4, "To get a ready server socket in pool %lu\n", pool_index());
+            SLOG(4, "To get a ready server socket in pool %zd\n", pool_index());
             Socket *sk = srv()->GetServerReadySocket(pool_index());
             if (!sk) {
                 SLOG(4, "Get ready server socket error(cann't be here)\n");
@@ -286,7 +286,7 @@ public:
             SLOG(4, "To get a UDP packet\n");
             Packet *pkt = srv()->GetUDPPacket();
             if (!pkt) {
-                SLOG("Get UDP packet error(cann't be here)\n");
+                SLOG(4, "Get UDP packet error(cann't be here)\n");
                 continue;
             }
             // 第二步
@@ -303,12 +303,12 @@ public:
             rsp.seq_ = htonl(req->seq_);
 
 
-            SLOG(4, "To send RspFormat seq = %d num2 = %d\n", rsp->seq_, rsp->num2_);
+            SLOG(4, "To send RspFormat seq = %d num2 = %d\n", rsp.seq_, rsp.num2_);
             // 第四步
             // 返回结果
             int ret = srv()->UDPSend(pkt->from_.ip_, pkt->from_.port_, reinterpret_cast<char*>(&rsp), sizeof(RspFormat));
             if (ret < 0) {
-                SLOG(4, "UDPSend() error\n")
+                SLOG(4, "UDPSend() error\n");
             }
         } // while
 
@@ -381,7 +381,7 @@ int main(int argc, char **argv) {
                 SLOG(4, "Create worker thread error\n");
                 return -1;
             }
-            SLOG(4, "Create worker thread pid = %zd\n", worker_pid[j][i]);
+            SLOG(4, "Create worker thread pid = %lu\n", worker_pid[j][i]);
         }
     } // for
 
@@ -392,7 +392,7 @@ int main(int argc, char **argv) {
     for (int j = 0; j < 3; j++) {
         for (int i = 0; i < 4; i++) {
             pthread_join(worker_pid[j][i], 0);
-            SLOG(4, "worker thread[%d][%d] exists, pid = %zd\n", j, i, worker_pid[j][i]);
+            SLOG(4, "worker thread[%d][%d] exists, pid = %lu\n", j, i, worker_pid[j][i]);
         }
     }
 

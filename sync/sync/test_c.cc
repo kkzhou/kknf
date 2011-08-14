@@ -114,7 +114,7 @@ int main (int argc, char **argv) {
     req.seq_ = htonl(1000);
     string bfip = "127.0.0.1";
     uint16_t bfport = 20021;
-    SLOG(4, "To get idle client socket to BF <%s : %p>\n", bfip.c_str(), bfport);
+    SLOG(4, "To get idle client socket to BF <%s : %u>\n", bfip.c_str(), bfport);
     Socket *sk = client.GetClientSocket(bfip, bfport);
     if (!sk) {
         SLOG(4, "No idle client socket, make one\n");
