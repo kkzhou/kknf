@@ -66,6 +66,10 @@ public:
                     LEAVING;
                     return -1;
                 }
+            } else if (ret == 0) {
+                SLOG(4, "Peer closed\n");
+                LEAVING;
+                return -1;
             } else {
                 byte_num += ret;
                 SLOG(2, "Recved %d bytes\n", byte_num);
