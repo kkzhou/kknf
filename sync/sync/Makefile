@@ -12,8 +12,8 @@ bb2: test_bb2.o util.hpp socket.hpp processor.hpp server.hpp
 bf: test_bf.o util.hpp socket.hpp processor.hpp server.hpp
 	$(CC) $(CXXFLAGS)  -o bf test_bf.cc -lpthread
 
-c: test_client.o util.hpp socket.hpp client.hpp
-	$(CC) $(CXXFLAGS)  -o c test_client.cc -lpthread
+c: test_c.o util.hpp socket.hpp client.hpp
+	$(CC) $(CXXFLAGS)  -o c test_c.cc -lpthread
 
 ss: test_simple_server.o util.hpp socket.hpp processor.hpp server.hpp
 	$(CC) $(CXXFLAGS)  -o ss test_simple_server.cc -lpthread

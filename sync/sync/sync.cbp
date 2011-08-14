@@ -28,7 +28,7 @@
 		<Unit filename="test_bb1.cc" />
 		<Unit filename="test_bb2.cc" />
 		<Unit filename="test_bf.cc" />
-		<Unit filename="test_client.cc" />
+		<Unit filename="test_c.cc" />
 		<Unit filename="test_multi_pool_client.cc" />
 		<Unit filename="test_multi_pool_server.cc" />
 		<Unit filename="test_simple_client.cc" />
