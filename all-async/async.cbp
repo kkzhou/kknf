@@ -32,8 +32,9 @@
 		<Unit filename="socketinfo.hpp" />
 		<Unit filename="sync_client.hpp" />
 		<Unit filename="test_packet.hpp" />
-		<Unit filename="udp_bb1.cc" />
-		<Unit filename="udp_c_for_bb1.cc" />
+		<Unit filename="udp_b.cc" />
+		<Unit filename="udp_c.cc" />
+		<Unit filename="util.hpp" />
 		<Extensions>
 			<code_completion />
 			<debugger />

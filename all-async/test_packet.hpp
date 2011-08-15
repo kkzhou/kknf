@@ -15,47 +15,49 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#pragma pack(1)
-class TestPacketBase {
-public:
-    enum PacketType {
-        T_REQ_TO_BF = 1,
-        T_RSP_FROM_BF,
-        T_REQ_TO_BB1,
-        T_RSP_FROM_BB1,
-        T_REQ_TO_BB2,
-        T_RSP_FROM_BB2
-    };
-public:
-    int len_;
-    PacketType type_;
-    int seq_;
-};
+#ifndef __TEST_PACKET_HPP__
+#define __TEST_PACKET_HPP__
 
-class ReqToBF : public TestPacketBase {
+#pragma pack(1)
+
+class ReqToBF {
 public:
+    int l_;
+    int seq_;
     int a_;
     int b_;
 };
-class RspFromBF : public TestPacketBase {
+class RspFromBF {
 public:
+    int l_;
+    int seq_;
+    int a_;
     int sum_;
-    int error_;
 };
-class ReqToBB1 : public TestPacketBase {
+class ReqToBB1 {
 public:
+    int l_;
+    int seq_;
     int a_;
 };
-class RspFromBB1 : public TestPacketBase {
+class RspFromBB1 {
 public:
+    int l_;
+    int seq_;
     int another_a_;
 };
-class ReqToBB2 : public TestPacketBase {
+class ReqToBB2 {
 public:
+    int l_;
+    int seq_;
     int b_;
 };
-class RspFromBB2 : public TestPacketBase {
+class RspFromBB2 {
 public:
+    int l_;
+    int seq_;
     int another_b_;
 };
 #pragma pack(0)
+
+#endif
