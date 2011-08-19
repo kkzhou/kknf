@@ -47,8 +47,9 @@ class TCPSocketInfo;
 typedef boost::shared_ptr<TCPAcceptorInfo> TCPAcceptorInfoPtr;
 typedef boost::shared_ptr<TCPSocketInfo> TCPSocketInfoPtr;
 
-typedef boost::function<int(TCPSocketInfo)> TCPSocketCallback;
-typedef boost::function<int(UDPSocketInfo)> UDPSocketCallback;
+typedef boost::function<int(TCPSocketInfoPtr)> TCPSocketCallback;
+typedef boost::function<int(UDPSocketInfoPtr)> UDPSocketCallback;
+typedef boost::function<int(TCPAcceptorInfoPtr)> TCPAcceptorCallback;
 
 // Simple information about a TCP socket
 class TCPSocketInfo {
@@ -80,8 +81,7 @@ public:
     PTime& create_time() { return create_time_; };
     PTime& access_time() { return access_time_; };
     TCPSocketCallback cb() { return cb_; };
-    void set_cb(TCPSocketCallback cb) { cb_ = cb; };
-
+    void set_cb(TCPSocketCallback cb) {cb_ = cb; };
 
     void Touch() {
         access_time_ = boost::posix_time::microsec_clock::local_time();
@@ -106,7 +106,6 @@ private:
     bool is_client_;
     bool is_connected_;
     TCPSocketCallback cb_;
-
 };
 
 // Information about a TCP acceptor
@@ -126,6 +125,9 @@ public:
         return sk_info_;
     };
 
+    void set_cb(TCPAcceptorCallback cb) { cb_ = cb; };
+    TCPAcceptorCallback cb() { return cb_; };
+
     // Resest means begin to accept the next socket
     // which will be stored in sk_info_
     void Reset() {
@@ -134,14 +136,14 @@ public:
 private:
     TCPAcceptor acceptor_;
     TCPSocketInfo sk_info_; // contains the new socket returned by accept()
+    TCPAcceptorCallback cb_;
 };
 
 // Simple information about a UDP socket
 class UDPSocketInfo {
 public:
     UDPSocketInfo(boost::asio::io_service &io_serv)
-        : max_length_of_send_buf_list_(100),
-        udp_sk_(io_serv),
+        : udp_sk_(io_serv),
         in_use_(false) {
 
     };
@@ -149,62 +151,16 @@ public:
     // setters/getters
     UDPEndpoint& local_endpoint() { return local_endpoint_; };
     void set_local_endpoint(UDPEndpoint local_endpoint) { local_endpoint_ = local_endpoint;};
-    UDPEndpoint& remote_endpoint() { return remote_endpoint_; };
-    void set_remote_endpoint(UDPEndpoint remote_endpoint) { remote_endpoint_ = remote_endpoint;};
     void set_in_use(bool in_use) { in_use_ = in_use;};
     bool in_use() {return in_use_;};
     UDPSocket& udp_sk() { return udp_sk_; };
-    std::vector<char>& recv_buf() { return recv_buf_; };
-    void set_max_length_of_send_buf_list(size_t max) {max_length_of_send_buf_list_ = max;};
-
-    void SetRecvBuf(size_t byte_num) {
-        std::vector<char> tmp(byte_num);
-        recv_buf_.swap(tmp);
-    };
-
-    void SetRecvBuf(std::vector<char> &new_buf) {
-        recv_buf_.swap(new_buf);
-    };
-
-    int AddSendBuf(UDPEndpoint to_endpoint, std::vector<char> &to_send) {
-
-        std::pair<UDPEndpoint, std::vector<char> > new_item;
-        if (send_buf_list_.size() == max_length_of_send_buf_list_) {
-            return -1;
-        }
-
-        new_item.first = to_endpoint;
-        send_buf_list_.push_back(new_item);
-        send_buf_list_.back().second.swap(to_send);
-        return 0;
-    };
-
-    std::pair<UDPEndpoint, std::vector<char> >&
-        GetSendBufListFront() {
-
-        return send_buf_list_.front();
-    };
-
-    void DeleteSendBufListFront() {
-
-        return send_buf_list_.pop_front();
-    };
-
-    size_t GetSendBufListLength() {
-        return send_buf_list_.size();
-    };
-
     UDPSocketCallback cb() { return cb_; };
-    void set_cb(UDPSocketCallback cb) { cb_ = cb; };
+    void set_cb(UDPSocketCallback cb) {cb_ = cb; };
 
 private:
-    size_t max_length_of_send_buf_list_;
     UDPEndpoint local_endpoint_;
-    UDPEndpoint remote_endpoint_;
     UDPSocket udp_sk_;
     bool in_use_;
-    std::vector<char> recv_buf_;
-    std::list<std::pair<UDPEndpoint, std::vector<char> > > send_buf_list_;
     UDPSocketCallback cb_;
 };
 
