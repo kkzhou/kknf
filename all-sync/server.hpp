@@ -36,47 +36,18 @@
 #include <string>
 #include <cassert>
 
+#include "socketio.hpp"
 #include "util.hpp"
 #include "socket.hpp"
+#include "socketaddr.hpp"
 
 namespace NF {
 
-// IP：Port二元对，用作key来索引一个socket
-class SocketAddr {
-public:
-    std::string ip_;
-    uint16_t port_;
-public:
-    bool operator< (const SocketAddr &o) const {
-        if (ip_ < o.ip_) {
-            return true;
-        } else if (ip_ > o.ip_) {
-            return false;
-        } else {
-            if (port_ < o.port_) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-    };
-};
-
-
-// 用于存储一个数据包
-class Packet {
-public:
-    SocketAddr from_;
-    SocketAddr to_;
-    std::vector<char> data_;    // 充当了智能指针的角色
-    struct timeval arrive_time_;
-};
-
-class Server {
+class Server: public SocketIO
+{
 public:
     // constructor/destructor
-    Server(uint32_t epoll_size, uint32_t max_server_socket_num,
-           uint32_t max_client_socket_num, int timer_interval) {
+    Server(uint32_t epoll_size, uint32_t max_server_socket_num, int timer_interval) {
 
         ENTERING;
 
@@ -87,16 +58,11 @@ public:
         // 每个监听套接口能支持的最大连接数
         max_server_socket_num_ = max_server_socket_num;
         // 客户套接口（即我发起的连接），往同一个ip:port的最大数目
-        max_client_socket_num_ = max_client_socket_num;
         // 定时器的触发时间
         timer_interval_ = timer_interval;
 
         epoll_fd_ = -1;
 
-        // 客户套接口空闲列表的锁（其实是一个以ip:port为key的map，map的每个元素是列表）
-        client_socket_idle_list_mutex_ = new pthread_mutex_t;
-        pthread_mutex_init(client_socket_idle_list_mutex_, 0);
-        // 服务套接口重用列表（即worker线程归还套接口到该列表）的锁
         server_socket_reuse_list_mutex_ = new pthread_mutex_t;
         pthread_mutex_init(server_socket_reuse_list_mutex_, 0);
         // UDP接收到的数据包列表的锁
@@ -177,45 +143,6 @@ public:
         return 0;
     };
 
-    // 添加一个UDP套接口，收发都用它
-    int InitUDPSocket(std::string &ip, uint16_t port) {
-
-        ENTERING;
-        SLOG(2, "Init a UDP socket with local address <%s : %u>\n", ip.c_str(), port);
-        int fd = socket(PF_INET, SOCK_DGRAM, 0);
-        if (fd < 0) {
-            SLOG(2, "socket() error %s\n", strerror(errno));
-            LEAVING;
-            return -1;
-        }
-
-        // Bind address
-        struct sockaddr_in listen_addr;
-        listen_addr.sin_family = AF_INET;
-        listen_addr.sin_port = htons(port);
-        if (inet_aton(ip.c_str(), &listen_addr.sin_addr) == 0) {
-            SLOG(2, "inet_aton() error\n");
-            LEAVING;
-            return -1;
-        }
-        socklen_t addr_len = sizeof(struct sockaddr_in);
-        if (bind(fd, (struct sockaddr*)&listen_addr, addr_len) == -1) {
-            perror("bind() error:");
-            LEAVING;
-            return -1;
-        }
-
-        udp_socket_ = new Socket(fd);
-        udp_socket_->set_my_ipstr(ip);
-        udp_socket_->set_my_ip(listen_addr.sin_addr);
-        udp_socket_->set_my_port(port);
-        udp_socket_->SetReuse();
-        udp_socket_->set_id(0xFFFFFFFF);
-        udp_socket_->set_type(3);
-        LEAVING;
-        return 0;
-    };
-
     int AddListenSocket(std::string &ip, uint16_t port) {
 
         ENTERING;
@@ -277,143 +204,6 @@ public:
         return index;
     };
 
-    // 阻塞的创建一个连接
-    Socket* MakeConnection(std::string &ip, uint16_t port) {
-
-        ENTERING;
-        SLOG(2, "Make connection to <%s : %u>\n", ip.c_str(), port);
-        int fd = -1;
-        // prepare socket
-        if ((fd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
-            SLOG(2, "socket() error %s\n", strerror(errno));
-            LEAVING;
-            return 0;
-        }
-        SLOG(2, "socket() made a fd = %d\n", fd);
-        struct sockaddr_in server_addr;
-        server_addr.sin_family = AF_INET;
-        server_addr.sin_port = htons(port);
-        if (inet_aton(ip.c_str(), &server_addr.sin_addr) == 0) {
-            SLOG(2, "inet_aton() error\n");
-            LEAVING;
-            return 0;
-        }
-        socklen_t addr_len = sizeof(struct sockaddr_in);
-
-        // connect
-        if (connect(fd, (struct sockaddr*)&server_addr, addr_len) == -1) {
-            SLOG(2, "connect() error %s\n", strerror(errno));
-            LEAVING;
-            return 0;
-        }
-
-        // Get my_ip of this socket
-        struct sockaddr_in myaddr;
-        socklen_t myaddr_len;
-        if (getsockname(fd, (struct sockaddr*)&myaddr, &myaddr_len) == -1) {
-            SLOG(2, "getsockname() error %s\n", strerror(errno));
-            LEAVING;
-            return 0;
-        }
-
-        std::string tmpip;
-        tmpip.append(inet_ntoa(myaddr.sin_addr));
-        Socket *ret_sk = new Socket(fd);
-        ret_sk->set_my_ipstr(tmpip);
-        ret_sk->set_my_ip(myaddr.sin_addr);
-        ret_sk->set_my_port(ntohs(myaddr.sin_port));
-        ret_sk->set_peer_ip(server_addr.sin_addr);
-        ret_sk->set_peer_ipstr(ip);
-        ret_sk->set_peer_port(port);
-        ret_sk->set_id(0xFFFFFFFF);
-        ret_sk->set_type(5);
-        SLOG(2, "Made a socket <%s : %u> -> <%s : %u>\n",
-             ret_sk->peer_ipstr().c_str(),
-             ret_sk->peer_port(),
-             ret_sk->my_ipstr().c_str(),
-             ret_sk->my_port());
-        LEAVING;
-        return ret_sk;
-    };
-
-
-    // worker线程要发送数据给后端服务器的时候，通过这个函数找一个空闲的
-    // 连接，如果没有则返回-1，worker线程用MakeConnection函数建立一个新的连接
-    Socket* GetClientSocket(std::string &ip, uint16_t port) {
-
-        ENTERING;
-        Socket *ret_sk = 0;
-        SocketAddr addr;
-        addr.ip_ = ip;
-        addr.port_ = port;
-
-        SLOG(2, "To find a client socket to <%s : %u>\n", ip.c_str(), port);
-
-        std::map<SocketAddr, std::list<Socket*> >::iterator it;
-        pthread_mutex_lock(client_socket_idle_list_mutex_);
-        it = client_socket_idle_list_.find(addr);
-
-        if (it != client_socket_idle_list_.end()) {
-
-            assert(it->second.size() != 0);
-            ret_sk = it->second.front();
-            it->second.pop_front();
-            SLOG(2, "Found a socket <%s : %u> -> <%s : %u>\n",
-                 ret_sk->peer_ipstr().c_str(),
-                 ret_sk->peer_port(),
-                 ret_sk->my_ipstr().c_str(),
-                 ret_sk->my_port());
-
-            if (it->second.size() == 0) {
-                SLOG(2, "This is the last idle socket to <%s : %u>\n", ip.c_str(), port);
-                client_socket_idle_list_.erase(it);
-            }
-        } else {
-            SLOG(2, "Not found\n");
-        }
-
-        pthread_mutex_unlock(client_socket_idle_list_mutex_);
-
-        LEAVING;
-        return ret_sk;
-    };
-
-    // worker把新建立的连向后端服务器的连接放到列表里
-    // 或者是把用过的连接交回到列表里
-    int InsertClientSocket(Socket *sk) {
-
-        ENTERING;
-        SocketAddr addr;
-        addr.ip_ = sk->peer_ipstr();
-        addr.port_ = sk->peer_port();
-        SLOG(2, "Insert a client socket <%s : %u> -> <%s : %u>\n",
-                 sk->peer_ipstr().c_str(),
-                 sk->peer_port(),
-                 sk->my_ipstr().c_str(),
-                 sk->my_port());
-
-        pthread_mutex_lock(client_socket_idle_list_mutex_);
-        std::map<SocketAddr, std::list<Socket*> >::iterator it;
-
-        it = client_socket_idle_list_.find(addr);
-
-        if (it != client_socket_idle_list_.end()) {
-
-            assert(it->second.size() > 0);
-            SLOG(2, "Already exist %zd socket to <%s : %u>\n", it->second.size(), addr.ip_.c_str(), addr.port_);
-            it->second.push_back(sk);
-
-        } else {
-            SLOG(2, "No socket to <%s : %u> exists\n", addr.ip_.c_str(), addr.port_);
-            std::list<Socket*> new_list;
-            new_list.push_back(sk);
-            client_socket_idle_list_.insert(std::pair<SocketAddr, std::list<Socket*> >(addr, new_list));
-        }
-        pthread_mutex_unlock(client_socket_idle_list_mutex_);
-        LEAVING;
-        return 0;
-    };
-
     // 插入一个server套接口
     // 该函数主线程会调用
     int InsertServerReadySocket(std::map<uint32_t, std::list<Socket*> > &sk_map) {
@@ -458,9 +248,9 @@ public:
     Socket* GetServerReadySocket(uint32_t index) {
 
         ENTERING;
-        SLOG(2, "To get a server ready socket in index = %zd\n", index);
+        SLOG(2, "To get a server ready socket in index = %u\n", index);
         if (index >= server_socket_ready_list_.size()) {
-            SLOG(2, "index invalid: index = %zd but server_socket_ready_list_'s size = %zd\n",
+            SLOG(2, "index invalid: index = %u but server_socket_ready_list_'s size = %zd\n",
                  index, server_socket_ready_list_.size());
             LEAVING;
             return 0;
@@ -522,6 +312,46 @@ public:
         return;
     };
 
+	
+	//listened UDP socket
+    int InitUDPSocket(std::string &ip, uint16_t port) {
+
+        ENTERING;
+        SLOG(2, "Init a UDP socket with local address <%s : %u>\n", ip.c_str(), port);
+        int fd = socket(PF_INET, SOCK_DGRAM, 0);
+        if (fd < 0) {
+            SLOG(2, "socket() error %s\n", strerror(errno));
+            LEAVING;
+            return -1;
+        }
+
+        // Bind address
+        struct sockaddr_in listen_addr;
+        listen_addr.sin_family = AF_INET;
+        listen_addr.sin_port = htons(port);
+        if (inet_aton(ip.c_str(), &listen_addr.sin_addr) == 0) {
+            SLOG(2, "inet_aton() error\n");
+            LEAVING;
+            return -1;
+        }
+        socklen_t addr_len = sizeof(struct sockaddr_in);
+        if (bind(fd, (struct sockaddr*)&listen_addr, addr_len) == -1) {
+            perror("bind() error:");
+            LEAVING;
+            return -1;
+        }
+
+        udp_socket_ = new Socket(fd);
+        udp_socket_->set_my_ipstr(ip);
+        udp_socket_->set_my_ip(listen_addr.sin_addr);
+        udp_socket_->set_my_port(port);
+        udp_socket_->SetReuse();
+        udp_socket_->set_id(0xFFFFFFFF);
+        udp_socket_->set_type(3);
+        LEAVING;
+        return 0;
+    };
+
     // 插入接收到的UDP数据，并通知worker
     int InsertUDPRecvPacket(std::list<Packet*> &pkt_list) {
 
@@ -555,33 +385,14 @@ public:
     int UDPSend(std::string &to_ip, uint16_t to_port, char *buf_to_send, int buf_len) {
 
         ENTERING;
-        struct sockaddr_in to_addr;
-        socklen_t addr_len;
-        
-        SLOG(2, "To UDP sendto() <%s : %u>\n", to_ip.c_str(), to_port);
-
-        memset(&to_addr, sizeof(struct sockaddr_in), 0);
-        to_addr.sin_family = AF_INET;
-        to_addr.sin_port = htons(to_port);
-        if (inet_aton(to_ip.c_str(), &to_addr.sin_addr) == 0) {
-            SLOG(2, "inet_aton() error\n");
-            LEAVING;
-            return -1;
-        }
-        addr_len = sizeof(struct sockaddr_in);
+		int ret = 0;
 
         pthread_mutex_lock(udp_socket_mutex_);
-        // udp_socket_ is BLOCKING fd
-        int ret = sendto(udp_socket_->sk(), buf_to_send, buf_len, 0,
-                         (struct sockaddr*)(&to_addr), addr_len);
+		ret = SocketIO::UDPSend(udp_socket_->sk(), to_ip, to_port, buf_to_send, buf_len);
         pthread_mutex_unlock(udp_socket_mutex_);
-        if (ret < 0) {
-            SLOG(2, "sendto() error: %s\n", strerror(errno));
-            LEAVING;
-            return -1;
-        }
-        LEAVING;
-        return 0;
+
+		LEAVING;
+        return ret;
     };
 
 
@@ -801,11 +612,23 @@ private:
                          new_sk->my_ipstr().c_str(),
                          new_sk->my_port());
 
-                    uint32_t index = new_sk->id();
+					struct epoll_event new_ev;
+					memset(&new_ev, sizeof(struct epoll_event), 0);
+					new_ev.events = EPOLLIN | EPOLLRDHUP;
+					new_ev.data.ptr = new_sk;
 
+					SLOG(2, "To add server socket into epoll, fd=%d\n", new_sk->sk());
+					if(epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, new_sk->sk(), &new_ev))
+					{
+						perror("add server socket error");
+						new_sk->Close();
+						delete new_sk;
+					}
+					
                     // sk_map是用来装返回数据的！
                     // 如果index不存在，map会自动创建新元素，即一个空list
-                    server_sk_map[index].push_back(new_sk);
+					//uint32_t index = new_sk->id();
+                    //server_sk_map[index].push_back(new_sk);
                 } // while
                 LEAVING;
                 return 0;
@@ -939,7 +762,6 @@ private:
     // 从客户端过来的连接数的最大值
     uint32_t max_server_socket_num_;
     // 向后端某个服务器发起的连接的最大数目
-    uint32_t max_client_socket_num_;
 
 private:
     // 存放侦听套接口
@@ -965,9 +787,6 @@ private:
     std::map<uint32_t, std::list<Socket*> > server_socket_reuse_list_;
     pthread_mutex_t *server_socket_reuse_list_mutex_;
 
-    // 连接后端服务器的套接口，对同一个ip：port可能有多个套接口
-    std::map<SocketAddr, std::list<Socket*> > client_socket_idle_list_;
-    pthread_mutex_t *client_socket_idle_list_mutex_;
 
 private:
     int epoll_fd_;

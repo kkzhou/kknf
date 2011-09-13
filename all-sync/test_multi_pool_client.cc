@@ -59,9 +59,10 @@ public:
         int ret = 0;
 
         // 收长度域，4字节
+		char *mark = reinterpret_cast<char*>(&len_field);
         while (byte_num < 4) {
             SLOG(2, "Begin to recv len field\n");
-            ret = recv(sk->sk(), &len_field, 4 - byte_num, 0);
+            ret = recv(sk->sk(), mark, 4 - byte_num, 0);
             if (ret < 0) {
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
                     SLOG(4, "recv() len field error: %s\n", strerror(errno));
@@ -74,6 +75,7 @@ public:
                 return -1;
             } else {
                 byte_num += ret;
+				mark += ret;
                 SLOG(2, "Recved %d bytes\n", byte_num);
                 continue;
             }
@@ -88,11 +90,12 @@ public:
         }
 
         // 收数据域
-        byte_num = 4;
+        byte_num = 0;
         buf_to_fill.resize(len);
+		mark = &buf_to_fill[0];
         SLOG(2, "Begin to recv %d bytes date field\n", len);
         while (byte_num < len) {
-            ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
+            ret = recv(sk->sk(), mark, len - byte_num, 0);
             if (ret < 0) {
                 SLOG(2, "Recv returns %d, error: %s\n", ret, strerror(errno));
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
@@ -106,6 +109,7 @@ public:
                 return -2;
             } else {
                 byte_num += ret;
+				mark += ret;
                 SLOG(2, "%d bytes have been recved\n", byte_num);
                 continue;
             }
@@ -147,6 +151,8 @@ private:
 
 class TestSimpleClient3 : public Client {
 public:
+	virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) 
+	{return 0;}
 private:
 };
 
@@ -185,7 +191,12 @@ int main (int argc, char **argv) {
         }
 
         SLOG(4, "To send ReqFormat1 seq = %d num = %d\n", ntohl(req1.seq_), ntohl(req1.num_));
-        int ret = client1->TCPSend(sk, reinterpret_cast<char*>(&req1), sizeof(ReqFormat1));
+		int len_to_send = sizeof(ReqFormat1);
+		len_to_send = htonl(len_to_send);
+		char buf_to_send[1024*1024];
+		memcpy(buf_to_send, reinterpret_cast<char*>(&len_to_send), 4);
+		memcpy(buf_to_send+4, reinterpret_cast<char*>(&req1), sizeof(ReqFormat1));
+        int ret = client1->TCPSend(sk, buf_to_send, 4+sizeof(ReqFormat1));
         if (ret < 0) {
             SLOG(4, "Send data error\n");
             return -2;

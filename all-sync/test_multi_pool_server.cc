@@ -46,16 +46,20 @@ public:
 };
 #pragma pack(0)
 
-// 一个Processor对应一个线程
-class TestSimpleProcessor1 : public Processor {
-
+class TestSimpleServer : public Server {
 public:
-    TestSimpleProcessor1(Server *srv, uint32_t pool_index)
-        : Processor(srv, pool_index) {
+    TestSimpleServer(uint32_t epoll_size, uint32_t max_server_socket_num,
+           int timer_interval)
+           :Server(epoll_size, max_server_socket_num, timer_interval) {
     };
-    //接收数据，需要根据业务定义的Packetize策略来处理
-    // 本测试程序中是LV格式
-    virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
+    virtual int TimerHandler() {
+
+        ENTERING;
+        SLOG(4, "Timer triggered\n");
+        LEAVING;
+        return Server::TimerHandler();
+    };
+	virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
 
         ENTERING;
         int len_field = 0;
@@ -63,9 +67,10 @@ public:
         int ret = 0;
 
         // 收长度域，4字节
+        char *mark = reinterpret_cast<char*>(&len_field);
         while (byte_num < 4) {
             SLOG(2, "Begin to recv len field\n");
-            ret = recv(sk->sk(), &len_field, 4 - byte_num, 0);
+            ret = recv(sk->sk(), mark, 4 - byte_num, 0);
             if (ret < 0) {
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
                     SLOG(4, "recv() len field error: %s\n", strerror(errno));
@@ -78,6 +83,7 @@ public:
                 return -1;
             } else {
                 byte_num += ret;
+				mark += ret;
                 SLOG(2, "Recved %d bytes\n", byte_num);
                 continue;
             }
@@ -92,11 +98,12 @@ public:
         }
 
         // 收数据域
-        byte_num = 4;
+        byte_num = 0;
         buf_to_fill.resize(len);
+		mark = &buf_to_fill[0]; 
         SLOG(2, "Begin to recv %d bytes date field\n", len);
         while (byte_num < len) {
-            ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
+            ret = recv(sk->sk(), mark, len - byte_num, 0);
             if (ret < 0) {
                 SLOG(2, "Recv returns %d, error: %s\n", ret, strerror(errno));
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
@@ -110,6 +117,7 @@ public:
                 return -2;
             } else {
                 byte_num += ret;
+				mark += ret;
                 SLOG(2, "%d bytes have been recved\n", byte_num);
                 continue;
             }
@@ -118,64 +126,7 @@ public:
         LEAVING;
         return 0;
     };
-
-    // 处理逻辑
-    virtual int Process() {
-
-        ENTERING;
-        while (true) {
-            // 第一步
-            // 阻塞获取有数据到来的套接口
-            Socket *sk = srv()->GetServerReadySocket(pool_index());
-            if (!sk) {
-                continue;
-            }
-            // 第二步
-            // 阻塞接收数据
-            std::vector<char> buf;
-            int ret = TCPRecv(sk, buf);
-            if (ret < 0) {
-                // 错误，不可恢复
-                sk->Close();
-                delete sk;
-                continue;
-            }
-            // 第三步
-            // 处理逻辑
-            ReqFormat1 *req = reinterpret_cast<ReqFormat1*>(&buf[0]);
-            req->l_ = ntohl(req->l_);
-            req->num_ = ntohl(req->num_);
-            req->seq_ = ntohl(req->seq_);
-            cout << "Recv ReqFormat1 seq = " << req->seq_ << " num = " << req->num_ << endl;
-
-            RspFormat rsp;
-            rsp.num2_ = htonl(req->num_ + 1);
-            rsp.l_ = htonl(sizeof(RspFormat));
-            rsp.seq_ = htonl(req->seq_);
-            cout << "Send RspFormat seq = " << rsp.seq_ << " num2_ = " << rsp.num2_ << endl;
-            // 第四步
-            // 返回结果
-            ret = TCPSend(sk, reinterpret_cast<char*>(&rsp), sizeof(RspFormat));
-            if (ret < 0) {
-                cout << "Send error" << endl;
-            }
-
-            srv()->InsertServerReuseSocket(pool_index(), sk);
-        } // while
-        LEAVING;
-        return 0;
-    };
-};
-
-class TestSimpleProcessor2 : public Processor {
-
-public:
-    TestSimpleProcessor2(Server *srv, uint32_t pool_index)
-        : Processor(srv, pool_index) {
-    };
-    //接收数据，需要根据业务定义的Packetize策略来处理
-    // 本测试程序中是line格式。简单起见，不判断是否收到整行，假设都是整行，而且只提取第一行。
-    virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
+	virtual int TCPRecv_Line(Socket *sk, std::vector<char> &buf_to_fill) {
 
         ENTERING;
         int ret = 0;
@@ -196,6 +147,14 @@ public:
         return 0;
     };
 
+};
+// 一个Processor对应一个线程
+class TestSimpleProcessor1 : public Processor {
+
+public:
+    TestSimpleProcessor1(Server *srv, Client *client, uint32_t pool_index)
+        : Processor(srv, client, pool_index) {
+    };
     // 处理逻辑
     virtual int Process() {
 
@@ -203,7 +162,66 @@ public:
         while (true) {
             // 第一步
             // 阻塞获取有数据到来的套接口
-            SLOG(4, "To get a ready server socket in pool %zd\n", pool_index());
+            Socket *sk = srv()->GetServerReadySocket(pool_index());
+            if (!sk) {
+                continue;
+            }
+            // 第二步
+            // 阻塞接收数据
+            std::vector<char> buf;
+            int ret = srv()->TCPRecv(sk, buf);
+            if (ret < 0) {
+                // 错误，不可恢复
+                sk->Close();
+                delete sk;
+                continue;
+            }
+            // 第三步
+            // 处理逻辑
+            ReqFormat1 *req = reinterpret_cast<ReqFormat1*>(&buf[0]);
+            req->l_ = ntohl(req->l_);
+            req->num_ = ntohl(req->num_);
+            req->seq_ = ntohl(req->seq_);
+            cout << "Recv ReqFormat1 seq = " << req->seq_ << " num = " << req->num_ << endl;
+
+            RspFormat rsp;
+            rsp.num2_ = htonl(req->num_ + 1);
+            rsp.l_ = htonl(sizeof(RspFormat));
+            rsp.seq_ = htonl(req->seq_);
+            cout << "Send RspFormat seq = " << ntohl(rsp.seq_) << " num2_ = " << ntohl(rsp.num2_) << endl;
+            // 第四步
+            // 返回结果
+			int len_to_send = sizeof(RspFormat);
+			len_to_send = htonl(len_to_send);
+			char buf_to_send[1024*1024];
+			memcpy(buf_to_send, reinterpret_cast<char*>(&len_to_send), 4);
+			memcpy(buf_to_send+4, reinterpret_cast<char*>(&rsp), sizeof(RspFormat));
+            ret = srv()->TCPSend(sk, buf_to_send, 4+sizeof(RspFormat));
+            if (ret < 0) {
+                cout << "Send error" << endl;
+            }
+
+            srv()->InsertServerReuseSocket(pool_index(), sk);
+        } // while
+        LEAVING;
+        return 0;
+    };
+};
+
+class TestSimpleProcessor2 : public Processor {
+
+public:
+    TestSimpleProcessor2(Server *srv, Client* client, uint32_t pool_index)
+        : Processor(srv, client, pool_index) {
+    };
+    // 处理逻辑
+    virtual int Process() {
+
+        ENTERING;
+        while (true) {
+            // 第一步
+            // 阻塞获取有数据到来的套接口
+            SLOG(4, "To get a ready server socket in pool %u\n", pool_index());
             Socket *sk = srv()->GetServerReadySocket(pool_index());
             if (!sk) {
                 SLOG(4, "Get ready server socket error(cann't be here)\n");
@@ -212,7 +230,7 @@ public:
             // 第二步
             // 阻塞接收数据
             std::vector<char> buf;
-            int ret = TCPRecv(sk, buf);
+            int ret = reinterpret_cast<TestSimpleServer*>(srv())->TCPRecv_Line(sk, buf);
             if (ret < 0) {
                 // 错误，不可恢复
                 SLOG(4, "TCPRecv() error\n");
@@ -233,6 +251,7 @@ public:
             uint32_t i = 0;
             string cmdline;
 
+			SLOG(4, "buf_size: %u\n", buf.size());
             for (i = 0; i < buf.size(); i++) {
                 if (req->cmd_line_[i] == '\n') {
                     req->cmd_line_[i] = '\0';
@@ -254,7 +273,7 @@ public:
             SLOG(4, "cmdline = %s\n", cmdline.c_str());
             string rspline = "You sent: " + cmdline + "\n";
             SLOG(4, "Rsp is = %s\n", rspline.c_str());
-            ret = TCPSend(sk, const_cast<char*>(rspline.data()), rspline.size());
+            ret = srv()->TCPSend(sk, const_cast<char*>(rspline.data()), rspline.size());
             if (ret < 0) {
                 SLOG(4, "TCPSend() error\n");
             }
@@ -268,16 +287,12 @@ public:
 };
 
 
+
 class TestSimpleProcessor3 : public Processor {
 
 public:
-    virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
-        assert(false);
-        return 0;
-    };
-
-    TestSimpleProcessor3(Server *srv, uint32_t pool_index)
-        : Processor(srv, pool_index) {
+    TestSimpleProcessor3(Server *srv, Client *client, uint32_t pool_index)
+        : Processor(srv, client, pool_index) {
     };
     // 是UDP数据
     // 处理逻辑
@@ -321,24 +336,10 @@ public:
     };
 };
 
-class TestSimpleServer : public Server {
-public:
-    TestSimpleServer(uint32_t epoll_size, uint32_t max_server_socket_num,
-           uint32_t max_client_socket_num, int timer_interval)
-           :Server(epoll_size, max_server_socket_num, max_client_socket_num, timer_interval) {
-    };
-    virtual int TimerHandler() {
-
-        ENTERING;
-        SLOG(4, "Timer triggered\n");
-        LEAVING;
-        return Server::TimerHandler();
-    };
-};
 
 int main(int argc, char **argv) {
 
-    Server *srv = new TestSimpleServer(1024, 1024, 100, 10000);
+    Server *srv = new TestSimpleServer(1024, 1024, 10000);
     string myip[3];
     uint16_t myport[3];
 
@@ -370,13 +371,13 @@ int main(int argc, char **argv) {
             switch (j) {
             case 0:
                 // format 1
-                worker_processor[j][i] = new TestSimpleProcessor1(srv, j);
+                worker_processor[j][i] = new TestSimpleProcessor1(srv, NULL, j);
                 break;
             case 1:
-                worker_processor[j][i] = new TestSimpleProcessor2(srv, j);
+                worker_processor[j][i] = new TestSimpleProcessor2(srv, NULL, j);
                 break;
             case 2:
-                worker_processor[j][i] = new TestSimpleProcessor3(srv, j);
+                worker_processor[j][i] = new TestSimpleProcessor3(srv, NULL, j);
                 break;
             default:
                 SLOG(4,"Not supported format\n");

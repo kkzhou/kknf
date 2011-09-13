@@ -37,79 +37,14 @@ public:
 };
 #pragma pack(0)
 
+
 // 一个Processor对应一个线程
 class TestBB2Processor : public Processor {
 
 public:
-    TestBB2Processor(Server *srv, uint32_t pool_index)
-        : Processor(srv, pool_index) {
+    TestBB2Processor(Server *srv, Client *client, uint32_t pool_index)
+        : Processor(srv, client, pool_index) {
     };
-    //接收数据，需要根据业务定义的Packetize策略来处理
-    // 本测试程序中是LV格式
-    virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
-
-        ENTERING;
-        int len_field = 0;
-        int byte_num = 0;
-        int ret = 0;
-
-        // 收长度域，4字节
-        while (byte_num < 4) {
-            SLOG(4, "Begin to recv len field\n");
-            ret = recv(sk->sk(), &len_field, 4 - byte_num, 0);
-            if (ret < 0) {
-                if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
-                    SLOG(4, "recv() len field error: %s\n", strerror(errno));
-                    LEAVING;
-                    return -1;
-                }
-            } else if (ret == 0) {
-                SLOG(4, "Peer closed\n");
-                LEAVING;
-                return -1;
-            } else {
-                byte_num += ret;
-                SLOG(4, "Recved %d bytes\n", byte_num);
-                continue;
-            }
-        } // while
-
-        int len = ntohl(len_field);
-        SLOG(4, "The len is %d bytes\n", len);
-        if ( len <= 0 || len > max_tcp_pkt_size()) {
-            SLOG(4, "len field error: %d\n", len);
-            LEAVING;
-            return -2;
-        }
-
-        // 收数据域
-        byte_num = 4;
-        buf_to_fill.resize(len);
-        SLOG(4, "Begin to recv %d bytes date field\n", len);
-        while (byte_num < len) {
-            ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
-            if (ret < 0) {
-                SLOG(4, "Recv returns %d, error: %s\n", ret, strerror(errno));
-                if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
-                    SLOG(4, "recv() data field error: %s\n", strerror(errno));
-                    LEAVING;
-                    return -2;
-                }
-            } else if (ret == 0) {
-                SLOG(4, "Closed by peer\n");
-                LEAVING;
-                return -2;
-            } else {
-                byte_num += ret;
-                SLOG(4, "%d bytes have been recved\n", byte_num);
-                continue;
-            }
-        } // while
-        SLOG(4, "%d bytes recved\n", byte_num);
-        LEAVING;
-        return 0;
-    };
-
     // 处理逻辑
     virtual int Process() {
 
@@ -127,7 +62,7 @@ public:
             // 阻塞接收数据
             std::vector<char> buf;
             SLOG(4, "To recv ReqBB2 from BF\n");
-            int ret = TCPRecv(sk, buf);
+            int ret = srv()->TCPRecv(sk, buf);
             if (ret < 0) {
                 // 错误，不可恢复
                 SLOG(4, "TCPRecv() error\n");
@@ -152,11 +87,19 @@ public:
             SLOG(4, "To send RspBB2: seq = %d b2 = %d\n", rsp.seq_, rsp.b2_);
             // 第四步
             // 返回结果
-            ret = TCPSend(sk, reinterpret_cast<char*>(&rsp), sizeof(RspBB2));
+			char buf_to_send[1024*1024];
+			int len_to_send = sizeof(RspBB2);
+			len_to_send = htonl(len_to_send);
+			memcpy(buf_to_send, reinterpret_cast<char*>(&len_to_send), 4);
+			memcpy(buf_to_send+4, reinterpret_cast<char*>(&rsp), sizeof(RspBB2));
+            ret = srv()->TCPSend(sk, buf_to_send, 4+sizeof(RspBB2));
             if (ret < 0) {
                 SLOG(4, "TCPSend() error\n");
+				sk->Close();
+				continue;
             }
 
+			srv()->InsertServerReuseSocket(pool_index(), sk);
         } // while
 
         LEAVING;
@@ -167,8 +110,8 @@ public:
 class TestBB2Server : public Server {
 public:
     TestBB2Server(uint32_t epoll_size, uint32_t max_server_socket_num,
-           uint32_t max_client_socket_num, int timer_interval)
-           :Server(epoll_size, max_server_socket_num, max_client_socket_num, timer_interval) {
+           int timer_interval)
+           :Server(epoll_size, max_server_socket_num, timer_interval) {
     };
     virtual int TimerHandler() {
 
@@ -177,11 +120,80 @@ public:
         LEAVING;
         return Server::TimerHandler();
     };
+    virtual int TCPRecv(Socket *sk, std::vector<char> &buf_to_fill) {
+
+        ENTERING;
+        int len_field = 0;
+        int byte_num = 0;
+        int ret = 0;
+
+        // 收长度域，4字节
+        char *mark = reinterpret_cast<char*>(&len_field);
+        while (byte_num < 4) {
+            SLOG(4, "Begin to recv len field\n");
+            ret = recv(sk->sk(), mark, 4 - byte_num, 0);
+            if (ret < 0) {
+                if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                    SLOG(4, "recv() len field error: %s\n", strerror(errno));
+                    LEAVING;
+                    return -1;
+                }
+            } else if (ret == 0) {
+                SLOG(4, "Peer closed\n");
+                LEAVING;
+                return -1;
+            } else {
+                byte_num += ret;
+				mark += ret;
+                SLOG(4, "Recved %d bytes\n", byte_num);
+                continue;
+            }
+        } // while
+
+        int len = ntohl(len_field);
+        SLOG(4, "The len is %d bytes\n", len);
+        if ( len <= 0 || len > max_tcp_pkt_size()) {
+            SLOG(4, "len field error: %d\n", len);
+            LEAVING;
+            return -2;
+        }
+
+        // 收数据域
+        byte_num = 0;
+        buf_to_fill.resize(len);
+		mark = &buf_to_fill[0];
+        SLOG(4, "Begin to recv %d bytes date field\n", len);
+        while (byte_num < len) {
+            ret = recv(sk->sk(), mark, len - byte_num, 0);
+            if (ret < 0) {
+                SLOG(4, "Recv returns %d, error: %s\n", ret, strerror(errno));
+                if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
+                    SLOG(4, "recv() data field error: %s\n", strerror(errno));
+                    LEAVING;
+                    return -2;
+                }
+            } else if (ret == 0) {
+                SLOG(4, "Closed by peer\n");
+                LEAVING;
+                return -2;
+            } else {
+                byte_num += ret;
+				mark += ret;
+                SLOG(4, "%d bytes have been recved\n", byte_num);
+                continue;
+            }
+        } // while
+        SLOG(4, "%d bytes recved\n", byte_num);
+        LEAVING;
+        return 0;
+    };
+
+
 };
 
 int main(int argc, char **argv) {
 
-    Server *srv = new TestBB2Server(1024, 1024, 100, 10000);
+    Server *srv = new TestBB2Server(1024, 1024, 10000);
     string myip = "127.0.0.1";
     uint16_t myport = 30022;
     srv->AddListenSocket(myip, myport);
@@ -197,9 +209,9 @@ int main(int argc, char **argv) {
     pthread_t worker_pid[4];
     Processor *worker_processor[4];
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 1; i++) {
 
-        worker_processor[i] = new TestBB2Processor(srv, 0);
+        worker_processor[i] = new TestBB2Processor(srv, NULL, 0);
 
         if (pthread_create(&worker_pid[i], 0, worker_processor[i]->ProcessorThreadProc, worker_processor[i]) < 0) {
             SLOG(4, "Create worker thread No.%d pid = %lu\n", i, worker_pid[i]);

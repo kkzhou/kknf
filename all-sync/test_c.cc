@@ -49,9 +49,10 @@ public:
         int ret = 0;
 
         // 收长度域，4字节
+        char *mark = reinterpret_cast<char*>(&len_field);
         while (byte_num < 4) {
             SLOG(4, "Begin to recv len field\n");
-            ret = recv(sk->sk(), &len_field, 4 - byte_num, 0);
+            ret = recv(sk->sk(), mark, 4 - byte_num, 0);
             if (ret < 0) {
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
                     SLOG(4, "recv() len field error: %s\n", strerror(errno));
@@ -64,6 +65,7 @@ public:
                 return -1;
             } else {
                 byte_num += ret;
+				mark += ret;
                 SLOG(4, "Recved %d bytes\n", byte_num);
                 continue;
             }
@@ -78,11 +80,12 @@ public:
         }
 
         // 收数据域
-        byte_num = 4;
+        byte_num = 0;
         buf_to_fill.resize(len);
+		mark = &buf_to_fill[0];
         SLOG(4, "Begin to recv %d bytes date field\n", len);
         while (byte_num < len) {
-            ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
+            ret = recv(sk->sk(), mark, len - byte_num, 0);
             if (ret < 0) {
                 SLOG(4, "Recv returns %d, error: %s\n", ret, strerror(errno));
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
@@ -96,6 +99,7 @@ public:
                 return -2;
             } else {
                 byte_num += ret;
+				mark += ret;
                 SLOG(4, "%d bytes have been recved\n", byte_num);
                 continue;
             }
@@ -104,7 +108,6 @@ public:
         LEAVING;
         return 0;
     };
-private:
 };
 
 int main (int argc, char **argv) {
@@ -130,7 +133,13 @@ int main (int argc, char **argv) {
     }
 
     SLOG(4, "To send ReqBF: seq = %d a = %d b = %d\n", req.seq_, req.a_, req.b_);
-    int ret = client.TCPSend(sk, reinterpret_cast<char*>(&req), sizeof(ReqBF));
+	char buf_to_send[1024*1024];
+	int len_to_send = sizeof(ReqBF);
+	len_to_send = htonl(len_to_send);
+	memcpy(buf_to_send, reinterpret_cast<char*>(&len_to_send), 4);
+	memcpy(buf_to_send+4, reinterpret_cast<char*>(&req), sizeof(ReqBF));
+    int ret = client.TCPSend(sk, buf_to_send, 4+sizeof(ReqBF));
+
     if (ret < 0) {
         SLOG(4, "TCPSend() error\n");
         return -2;
@@ -146,6 +155,6 @@ int main (int argc, char **argv) {
     }
 
     rsp = reinterpret_cast<RspBF*>(&buf[0]);
-    SLOG(4, "Recved RspBF: seq = %d sum = %d\n", rsp->seq_, rsp->sum_);
+    SLOG(4, "Recved RspBF: seq = %d sum = %d\n", ntohl(rsp->seq_), ntohl(rsp->sum_));
     return 0;
 };

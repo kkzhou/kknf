@@ -51,9 +51,10 @@ public:
         int ret = 0;
 
         // 收长度域，4字节
+        char *mark = reinterpret_cast<char*>(&len_field);
         while (byte_num < 4) {
             SLOG(2, "Begin to recv len field\n");
-            ret = recv(sk->sk(), &len_field, 4 - byte_num, 0);
+            ret = recv(sk->sk(), mark, 4 - byte_num, 0);
             if (ret < 0) {
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
                     SLOG(4, "recv() len field error: %s\n", strerror(errno));
@@ -66,6 +67,7 @@ public:
                 return -1;
             } else {
                 byte_num += ret;
+				mark += ret;
                 SLOG(2, "Recved %d bytes\n", byte_num);
                 continue;
             }
@@ -80,11 +82,12 @@ public:
         }
 
         // 收数据域
-        byte_num = 4;
+        byte_num = 0;
         buf_to_fill.resize(len);
+		mark = &buf_to_fill[0];
         SLOG(4, "Begin to recv %d bytes date field\n", len);
         while (byte_num < len) {
-            ret = recv(sk->sk(), &buf_to_fill[0], len - byte_num, 0);
+            ret = recv(sk->sk(), mark, len - byte_num, 0);
             if (ret < 0) {
                 SLOG(4, "Recv returns %d, error: %s\n", ret, strerror(errno));
                 if (errno != EINTR || errno != EAGAIN || errno != EWOULDBLOCK) {
@@ -98,6 +101,7 @@ public:
                 return -2;
             } else {
                 byte_num += ret;
+				mark += ret;
                 SLOG(4, "%d bytes have been recved\n", byte_num);
                 continue;
             }
@@ -111,7 +115,7 @@ private:
 
 void* ClientThreadProc(void *arg) {
 
-    Client *client1 = reinterpret_cast<Client*>(arg);
+    Client *client1 = reinterpret_cast<TestSimpleClient*>(arg);
 
     static int seq = 0;
 
@@ -124,7 +128,8 @@ void* ClientThreadProc(void *arg) {
         srvport[i] = 20031 + i;
     }
 
-    while (true) {
+    //while (true) {
+    for(int i = 0; i < 100; ++i) {
         usleep(1000);
 
         Req req1;
@@ -142,8 +147,14 @@ void* ClientThreadProc(void *arg) {
                 continue;
             }
         }
+		char buf_to_send[1024*1024];
+		int len_to_send = sizeof(Req);
+		len_to_send = htonl(len_to_send);
+		memcpy(buf_to_send, reinterpret_cast<char*>(&len_to_send), 4);
+		memcpy(buf_to_send+4, reinterpret_cast<char*>(&req1), sizeof(Req));
 
-        int ret = client1->TCPSend(sk, reinterpret_cast<char*>(&req1), sizeof(Req));
+        int ret = client1->TCPSend(sk, buf_to_send, 4+sizeof(Req));
+        //int ret = client1->TCPSend(sk, reinterpret_cast<char*>(&req1), sizeof(Req));
         if (ret < 0) {
             SLOG(4, "TCPSend() error, to delete this socket\n");
             sk->Close();
@@ -175,7 +186,7 @@ int main (int argc, char **argv) {
     Client *client = new TestSimpleClient;
 
     pthread_t worker_pid[100];
-    int num = 100;
+    int num = 3;
 
     for (int i = 0; i < num; i++) {
 
