@@ -1,0 +1,68 @@
+import "MessageFormat.proto";
+
+package MessageForTest;
+
+message UserProfile {
+    required int64 user_id = 1;
+    required string user_name = 2;
+    required string user_desc = 3;
+    required int32 gender = 4;
+}
+
+// 客户端发给BF的报文，最好独立写在一个proto文件里
+message CToBFReq{
+    required string query_string = 4;
+}
+
+message CToBFRsp{
+    enum ErrorCode {
+        OK = 0;
+        NO_SUCH_USER = 1;
+        ERROR = 2;
+    }
+    required ErrorCode error = 4;
+    repeated UserProfile user_profile = 5;
+}
+
+// BF发给BB_1的报文，用于根据用户名的关键字得到用户ID列表，最好独立写在一个proto文件里
+message BFToBB1Req{
+    repeated string user_name_keyword = 4;
+}
+
+
+message BFToBB1Rsp{
+    enum ErrorCode {
+        OK = 0;
+        NO_SUCH_USER = 1;
+        ERROR = 2;
+    }
+    required ErrorCode error = 4;
+    repeated int64 user_id = 5;
+}
+
+// BF发给BB_2的报文，用于根据用户ID列表，得到用户的详细信息(这里是UserDesc)，最好独立写在一个proto文件里
+message BFToBB2Req{
+    repeated int64 user_id = 4;
+}
+
+message BFToBB2Rsp{
+    enum ErrorCode {
+        OK = 0;
+        NO_SUCH_USER = 1;
+        ERROR = 2;
+    }
+    required ErrorCode error = 4;
+    repeated UserProfile user_profile = 5;
+}
+
+extend AANF_Message.MessageFormat {
+    // 客户端和BF之间的报文
+    optional CToBFReq c_to_bf_req = 201;
+    optional CToBFRsp c_to_bf_rsp = 202;
+    // BF和BB1之间的报文
+    optional BFToBB1Req bf_to_bb1_req = 203;
+    optional BFToBB1Rsp bf_to_bb1_rsp = 204;
+    // BF和BB2之间的报文
+    optional BFToBB2Req bf_to_bb2_req = 205;
+    optional BFToBB2Rsp bf_to_bb2_rsp = 206;
+}
