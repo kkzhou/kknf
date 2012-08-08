@@ -1,13 +1,13 @@
 #include <assert.h>
 #include "debug.h"
+#include "slist.h"
 
-
-inline struct slist_node* slist_init() 
+struct slist_node* slist_init() 
 {
-  struct slist_head *h = (struct slist_node*)malloc(sizeof (struct slist_node));
-  h->len = 0;
-  h->guard.next = h->guard.prev = 0;
-  h->guard.data = 0;
+  struct slist_node *h = (struct slist_node*)malloc(sizeof (struct slist_node));
+  h->prev = h->next = 0;
+  h->data = 0;
+
   return h;
 }
 
@@ -58,7 +58,7 @@ void slist_erase(struct slist_node const *const head, struct slist_node *node)
   assert(node);
   assert(cmp);
   assert(node->prev);
-  assert(head->next == 0);
+  assert(head->next != 0);
 
   node->prev->next = node->next;
   if (node->next) {
