@@ -16,17 +16,18 @@ struct slist_node {
   void *data
 };
 
-struct slist_node* slist_init();
+typedef void (*list_node_data_destructor)(void*);
 
-void slist_insert(struct slist_node const *const head, struct slist_node *new_node, slist_node_compare cmp);
+struct slist_node* slist_build_node(void *data);
 
-struct slist_node* slist_remove(struct slist_node const *const head, void const *const value, 
-                                slist_node_compare cmp);
+struct slist_node* slist_insert(struct slist_node *head, struct slist_node *new_node, slist_node_compare cmp);
 
-void slist_erase(struct slist_node const *const head, struct slist_node *node);
+struct slist_node* slist_insert_after(struct slist_node *node, struct slist_node *new_node, slist_node_compare cmp);
 
-struct slist_node* slist_first(struct slist_node const *const head);
+struct slist_node* slist_remove(struct slist_node *head, void *value, slist_node_compare cmp);
 
-void* slist_pop(struct slist_node const *const head);
+struct slit_node* slist_delete(struct slist_node *head, struct slist_node *node);
+
+void list_destroy(struct list_node *head, list_node_data_destructor destructor);
 
 #endif
