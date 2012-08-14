@@ -1,21 +1,34 @@
 #ifndef __SOCKET_INFO_H__
 #define  __SOCKET_INFO_H__
+
+
 enum socket_state {
-  S_IN_CONNECT = 1,
+  S_NOT_INIT = 1,
+  S_INIT,
+
+  S_IN_CONNECT,
   S_CONNECTED,
+
   S_IN_SEND,
   S_IN_RECEIVE,
-  S_IN_PROCESS,
-  S_IDLE
+
+  S_IDLE,
+  /* can used by OR with S_IN_RECV or S_IN_SEND*/
+  S_IN_PROCESS = 0x800000
 };
 
-struct socketinfo {
+enum socket_type {
+  T_TCP_LISTEN = 1,
+  T_TCP_SERVER,
+  T_TCP_CLIENT
+};
+
+struct socket_info {
   int socket;
-  char *recv_buf;
-  uint32_t recv_buf_len;
-  uint32_t recv_buf_pos;
-  uint32_t send_buf_len;
-  uint32_t send_buf_pos;
+  struct buffer *send_buf;
+  struct buffer *recv_buf;
+  enum socket_state state;
+  enum socket_type type;
 };
 
 #endif

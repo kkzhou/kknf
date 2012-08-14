@@ -1,65 +1,79 @@
 #include "buffer.h"
+
+#define FRAG_SIZE_BASE 1024
+#define FRAG_NUM_MAX 10
+#define FRAG_INCR_FACTOR 2
+
 struct buffer* buffer_init()
 {
   struct buffer *ret = (struct buffer*)malloc(sizezof (struct buffer));
-  ret->head = ret->tail = 0;
-  ret->list_length = ret->buffer_inuse_size = ret->buffer_total_size = 0;
+  ret->frag_vector = (struct fragment*)malloc(FRAG_NUM_MAX * sizeof (void*));
+  memset(ret->frag_vector, FRAG_NUM_MAX * sizeof (void*), 0);
+  ret->vector_length = 0;
+  ret->inuse_size = ret->total_size = 0;
   ret->cur_item = ret->cur_pos = 0;
   ret->end_item = ret->end_pos = 0;
   return ret;
 }
 
-void buffer_append(struct buffer const* buffer, struct fragment *frag)
+int buffer_enlarge(struct buffer const* buffer, uint32_t size)
 {
-  assert(frag);
 
-  struct list_node *new_node = (struct list_node*)malloc(sizeof (struct list_node));
-  new_node->next = new_node->prev = 0;
-  new_node->data = new_frag;
-  if (buffer->tail){
-    list_insert_after(buffer->tail, new_node, 0);
-  } else {
-    assert(!buffer->head);
-    buffer->head = buffer->tail = new_node;
+  if (buffer->vector_length == FRAG_NUM_MAX) {
+    return -1;
   }
 
-  buffer->end_item = buffer->tail;
+  uint32_t delta = (buffer->vector_length + FRAG_INCR_FACTOR) * FRAG_SIZE_BASE;
+  if (delta < size) {
+    delta = size;
+  }
+
+  struct framgment *frag = (struct fragment*)malloc(sizeof (struct fragment) + delta);
+  frag->size = delta;
+  frag->end = 0;
+
+  buffer->vector_length++;
+  buffer->frag_vector[end_item] = frag;
+
+  buffer->end_item++;
   buffer->end_pos = frag->end;
-  buffer->list_length++;
-  buffer->buffer_inuse_size += buffer->end_pos;
-  buffer->buffer_total_size += buffer->size;
+  buffer->total_size += frag->size;
+  return 0;
 }
 
 void buffer_destroy(struct buffer *buffer)
 {
   assert(buffer);
-  list_destroy(buffer->head);
+  for (uint32_t i = 0; i < FRAG_NUM_MAX; i++) {
+    free(buffer->frag_vector[i]);
+  }
+  free(buffer->frag_vector);
   free(buffer);
 }
 
 int buffer_forward_cur(struct buffer const *buffer, uint32_t offset)
 {
   assert(buffer);
-  assert(buffer->head);
+  assert(buffer->frag_vector);
 
-  uint32_t len = 0;
-  struct slist_node *cur_item = buffer->cur_item;
-  uint32_t cur_pos = buffer->cur_pos;
-  uint32_t cur_size;
+  uint32_t len, cur_item, cur_pos, cur_end;
+  len = 0;
+  cur_item = buffer->cur_item;
 
   while (len < offset) {
-    if (!cur_item)
+    if (cur_item == FRAG_NUM_MAX)
       break;
-
-    if (offset - len < cur_size - cur_pos) {
+    cur_pos = buffer->cur_pos;
+    cur_end = buffer->frag_vector[cur_item]->end;
+    if (offset - len < cur_end - cur_pos) {
       /* the current node meets the demand */
       cur_pos += offset - len;
       len += offset -len;
       break;
-    } 
-    len += cur_size - cur_pos;
-    cur_item = cur_item->next;
-    cur_pos = cur_item->end;
+    }
+    len += cur_end - cur_pos;
+    cur_item++;
+    cur_pos = 0;
   }
 
   if (len == offset) {
@@ -68,4 +82,29 @@ int buffer_forward_cur(struct buffer const *buffer, uint32_t offset)
     return len;
   }
   return 0;
+}
+
+void* buffer_alloc(struct buffer *buffer, unint32_t size)
+{
+  assert(buffer);
+  assert(buffer->frag_vector);
+  struct fragment *frag = buffer->frag_vector[buffer->end_item];
+  if (frag->size - frag->end < size) {
+    /* enlarge */
+    if (buffer_enlarge(buffer, size) != 0) {
+      return 0;
+    }
+  }
+
+  frag = buffer->frag_vector[buffer->end_item];
+  frag->end += size;
+  buffer->end_pos = frag->end;
+  
+  return frag->data;
+}
+
+struct iovec* buffer_get_used(struct buffer *buffer)
+{
+  assert(buffer);
+  
 }
