@@ -1,6 +1,8 @@
 #ifndef __SOCKET_INFO_H__
 #define  __SOCKET_INFO_H__
 
+typedef int (*handle_body_packet)(void*, uint32_t);
+typedef int (*handle_message)(void*, uint32_t);
 
 enum socket_state {
   S_NOT_INIT = 1,
@@ -13,22 +15,36 @@ enum socket_state {
   S_IN_RECEIVE,
 
   S_IDLE,
-  /* can used by OR with S_IN_RECV or S_IN_SEND*/
+  /* can used by OR */
   S_IN_PROCESS = 0x800000
 };
 
 enum socket_type {
   T_TCP_LISTEN = 1,
-  T_TCP_SERVER,
-  T_TCP_CLIENT
+  T_TCP_SERVER_LV,
+  T_TCP_CLIENT_LV,
+  T_TCP_SERVER_HTTP,
+  T_TCP_CLIENT_HTTP
 };
 
 struct socket_info {
   int socket;
-  struct buffer *send_buf;
-  struct buffer *recv_buf;
+
+  char *send_buf;
+  uint32_t send_buf_len;
+  uint32_t send_buf_sent;
+
+  uint32_t packet_len;/* the length of the packet we are reading, 0 indicates not knowning yet*/
+  char *recv_buf;
+  uint32_t recv_buf_len;
+  uint32_t recv_buf_len_max;
+  uint32_t recv_buf_used;
+
   enum socket_state state;
   enum socket_type type;
+
+  handle_body_packet handler1;
+  handle_message handler2;
 };
 
 #endif
