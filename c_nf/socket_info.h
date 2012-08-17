@@ -1,8 +1,9 @@
 #ifndef __SOCKET_INFO_H__
 #define  __SOCKET_INFO_H__
 
-typedef int (*handle_body_packet)(void*, uint32_t);
-typedef int (*handle_message)(void*, uint32_t);
+typedef int (*trunk_handler)(void*, uint32_t);
+typedef int (*message_handler)(void*, uint32_t);
+typedef int (*after_send_handler)(void*, uint32_t);
 
 enum socket_state {
   S_NOT_INIT = 1,
@@ -37,14 +38,18 @@ struct socket_info {
   uint32_t packet_len;/* the length of the packet we are reading, 0 indicates not knowning yet*/
   char *recv_buf;
   uint32_t recv_buf_len;
-  uint32_t recv_buf_len_max;
   uint32_t recv_buf_used;
+
+  uint32_t recv_buf_len_min;
+  uint32_t recv_buf_len_max;
+
 
   enum socket_state state;
   enum socket_type type;
 
-  handle_body_packet handler1;
-  handle_message handler2;
+  trunk_handler handler1;
+  message_handler handler2;
+  after_send_handler handler3;
 };
 
 #endif

@@ -1,17 +1,25 @@
 #include "socket_info.h"
 
 #define RECV_BUF_MIN (16*1024)
+#define RECV_BUF_MAX (4*1024*1024)
 
 struct socket_info* create_socket_info(int socket, enum socket_type type, 
-                                       enum socket_state state, uint32_t max_packet)
+                                       enum socket_state state,
+                                       uint32_t packet_min, uint32_t packet_max)
 {
+
+  assert(socket > 0);
+  assert(packet_min < packet_max);
+
   struct socket_info *info = (struct socket_info*)malloc(sizeof (struct socket_info));
   info->socket = socket;
   info->state = state;
   info->type = type;
   info->send_buf = info->recv_buf = 0;
-  info->recv_buf_len = RECV_BUF_MIN;
-  info->recv_buf_len = max_pakcet > RECV_BUF_MIN ? max_packet : RECV_BUF_MIN;
+  info->recv_buf_len = info->recv_buf_len_min = packet_min;
+  info->recv_buf_len_min = packet_max;
+  info->recv_buf = (char*)malloc(info->recv_buf_len);
+
   return info;
 }
 
@@ -93,14 +101,16 @@ int process_recv_lv_format(struct socket_info *info)
 
   if (info->packet_len == 0) {
     /* packet length hasn't been read yet*/
-    if (info->recv_buf_used >= 4) {
+    if (info->recv_buf_used >= sizeof (uint32_t)) {
       info->packet_len = ntohl(*((uint32_t*)info->recv_buf));
-      if (info->packet_len == 0 || info->packet_len > info->recv_buf_len_max) {
+      if (info->packet_len > info->recv_buf_len_max) {
         return -1;
       } else if (info->packet_len > info->recv_buf_len) {
         /* realloc a larger buffer */
         char *old = info->recv_buf;
-        info->recv_buf = (char*)malloc(info->recv_buf_len_max);
+        info->recv_buf_len = info->recv_buf_len_max;
+        info->recv_buf = (char*)malloc(info->recv_buf_len);
+        memcpy(info->recv_buf, old, info->recv_buf_used);
       } else {
       }
     }
@@ -197,24 +207,30 @@ int process_socket(struct socket_info *info)
 {
   assert(info);
   
-  int ret = 0;
-  if (info->type == T_TCP_LISTEN) {
-    ret = process_accept(info);
-    if (ret == 0) {
-      /* complete */
-    } else if (ret == 1) {
-      /* continue */
-    } else if (ret == -1) {
-      /* data corrupt */
-    } else if (ret == -2) {
-      /* error */
-    } else if (ret == -3) {
-      /* */
-    } else {
-    }
+  int process_code, handle_code;
+  if (info->type == T_TCP_SERVER_LV) {
+    process_code = process_accept(info);
+
   } else if (info->type == T_TCP_SERVER_LV) {
     if (info->state == S_IN_RECV || info->state & S_IN_PROCESS) {
-      process_recv_lv_format(info);
+      process_code = process_recv_lv_format(info);
+      if (ret == 0) {
+        /* complete */
+        handle_code = info->handle2(info->recv_buf, info->recv_buf_used);
+        if (handle_code == 0) {
+        } else if (handle_code == 1) {
+        } else {
+        }
+      } else if (ret == 1) {
+        /* continue */
+      } else if (ret == -1) {
+        /* data corrupt */
+      } else if (ret == -2) {
+        /* error */
+      } else if (ret == -3) {
+        /* */
+      } else {
+      }
     }
   }
 }
