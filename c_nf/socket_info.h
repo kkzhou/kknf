@@ -1,57 +1,34 @@
 #ifndef __SOCKET_INFO_H__
 #define  __SOCKET_INFO_H__
 
-typedef int (*data_handler)(void*, uint32_t);
-
-
-enum socket_state {
-  S_NOT_INIT = 1,
-  S_INIT,
-
-  S_IN_CONNECT,
-  S_CONNECTED,
-
-  S_IN_SEND,
-  S_IN_RECEIVE,
-
-  S_IDLE,
-  /* can used by OR */
-  S_IN_PROCESS = 0x800000
-};
+typedef int (*data_handler)(int, void*, uint32_t);
 
 enum socket_type {
   T_TCP_LISTEN = 1,
   T_TCP_SERVER_LV,
   T_TCP_CLIENT_LV,
   T_TCP_SERVER_HTTP,
-  T_TCP_CLIENT_HTTP
+  T_TCP_CLIENT_HTTP,
+  T_UDP
 };
 
-struct socket_info {
-  int socket;
+void* get_io_service();
 
-  char *send_buf;
-  uint32_t send_buf_len;
-  uint32_t send_buf_sent;
+int tcp_send_to(void *io_service, char *ipstr, uint32_t host_port, data_handler after_send_handler = 0);
 
-  uint23_t packet_len;
+int tcp_listen_at(void *io_service, char *ipstr, uint32_t host_port, int backlog,
+                  data_handler message_handler = 0,
+                  data_handler trunk_handler = 0,
+                  data_handler is_trunk_callback = 0,
+                  data_handler is_message_callback = 0,
+                  data_handler error_handler = 0,
+                  data_handler after_send_handler = 0);
 
-  char *recv_buf;
-  uint32_t recv_buf_len;
-  uint32_t recv_buf_used;
+int udp_send_to(void *io_service, char *ipstr, uint32_t host_port, data_handler after_send_handler = 0);
 
-  uint32_t recv_buf_len_min;
-  uint32_t recv_buf_len_max;
-
-
-  enum socket_state state;
-  enum socket_type type;
-
-  data_handler trunk_handler;
-  data_handler message_handler;
-  data_handler after_send_handler;
-  data_handler is_trunk_callback;
-  data_handler is_message_callback;
-};
+int udp_listen_at(void *io_service, char *ipstr, uint32_t host_port,
+                  data_handler message_handler = 0,
+                  data_handler error_handler = 0,
+                  data_handler after_send_handler = 0);
 
 #endif
