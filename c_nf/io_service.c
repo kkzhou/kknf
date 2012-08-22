@@ -106,3 +106,13 @@ static int destroy_idle_server_socket_info(struct io_service *io)
   }
   return ret;
 }
+
+
+int tcp_send_to(void *io_service, char *ipstr, uint32_t host_port, data_handler after_send_handler = 0)
+{
+  assert(io_serviice);
+  assert(ipastr);
+
+  struct io_service *io = (struct io_service*)io_service;
+  
+}

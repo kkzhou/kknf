@@ -12,15 +12,18 @@ struct io_service {
    * when use 10.*.*.*, we should change the 'hash' method
    */
   struct socket_info *client_map[65535];
-
+  struct timer *timer_list_head;
   uint64_t idle_timeout;
 };
 
 
 void* get_io_service();
+int run();
 
-int tcp_send_to(void *io_service, char *ipstr, uint32_t host_port, data_handler after_send_handler = 0);
-int sync_tcp_send_and_recv(void *io_service, char *ipstr, uint32_t host_port, data_handler after_send_handler = 0);
+int tcp_get_client(void *io_service, char *ipstr, uint32_t host_port, data_handler after_send_handler = 0);
+int tcp_send_to(void *io_service, int socket);
+int sync_tcp_send_and_recv(void *io_service, int socket);
+
 int tcp_listen_at(void *io_service, char *ipstr, uint32_t host_port, int backlog,
                   data_handler message_handler = 0,
                   data_handler trunk_handler = 0,

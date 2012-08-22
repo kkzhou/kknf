@@ -3,6 +3,15 @@
 
 typedef int (*data_handler)(int, void*, uint32_t);
 
+struct send_buf_for_udp {
+  struct sockaddr_in to_addr;
+  char *send_buf;
+  uint32_t send_buf_len;
+  struct send_buf_for_udp *next;
+  struct send_buf_for_udp *prev;
+
+};
+
 struct socket_info {
   int socket;
   uint32_t net_ip;
@@ -34,6 +43,8 @@ struct socket_info {
 
   uint64_t atime_sec;
   uint64_t atime_usec;
+
+  struct send_buf_for_udp *udp_send_buf;
 
   struct socket_info *prev;
   struct socket_info *next;

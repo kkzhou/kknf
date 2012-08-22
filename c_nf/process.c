@@ -128,10 +128,6 @@ int process_tcp_send(struct socket_info *info)
   return ret;
 }
 
-int process_udp_send(struct socket_info *info)
-{
-}
-
 int process_recv_http_format(struct socket_info *info)
 {
 }
