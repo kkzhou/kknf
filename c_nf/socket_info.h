@@ -3,12 +3,13 @@
 
 typedef int (*data_handler)(int, void*, uint32_t);
 
-struct send_buf_for_udp {
+struct send_buf {
   struct sockaddr_in to_addr;
-  char *send_buf;
-  uint32_t send_buf_len;
-  struct send_buf_for_udp *next;
-  struct send_buf_for_udp *prev;
+  char *buf;
+  uint32_t buf_len;
+  uint32_t buf_sent;
+  struct send_buf *next;
+  struct send_buf *prev;
 
 };
 
@@ -16,10 +17,6 @@ struct socket_info {
   int socket;
   uint32_t net_ip;
   uint16_t net_port;
-
-  char *send_buf;
-  uint32_t send_buf_len;
-  uint32_t send_buf_sent;
 
   uint23_t packet_len;
 
@@ -58,7 +55,8 @@ enum socket_state {
   S_CONNECTED,
   S_IN_SEND,
   S_IN_RECEIVE,
-  S_IN_PROCESS = 0x800000               /* it's a bit flag */
+  S_IN_PROCESS,
+  S_IN_RECVEIVE_AND_PROCESS
 };
 
 enum socket_type {
