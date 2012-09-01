@@ -42,7 +42,7 @@ struct socket_info* create_socket_info(int socket, enum socket_type type,
                                        data_handler is_trunk_callback = 0,
                                        data_handler is_message_callback = 0,
                                        data_handler error_handler = 0,
-                                       data_handler after_send_handler = 0);
+                                       data_handler after_send_handler = 0)
 {
 
   assert(socket > 0);

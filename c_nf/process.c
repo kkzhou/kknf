@@ -136,6 +136,31 @@ int process_recv_udp(struct socket_info *info)
 {
 }
 
+int process_accept(struct socket_info *info)
+{
+  assert(info->state == S_IN_ACCEPT);
+  
+  struct sockaddr_in new_addr;
+  socklen_t new_addr_len;
+  memset(&new_addr, sizeof (struct sockaddr_in), 0);
+
+  int new_socket = accept(into->socket, (struct sockaddr*)&new_addr, &new_addr_len);
+
+  if (new_socket == -1) {
+    if (errno == EINTR) {
+    } else if (errno == EWOULDBLOCK) {
+    } else if (errno == EMFILE) {
+    } else if (errno == ENFILE) {
+    } else if (errno == ENOMEM) {
+    } else {
+      return -2;
+    }
+  }
+
+  struct socket_info *new_info = create_socket_info(new_socket, T_
+
+}
+
 int process_socket_event(struct socket_info *info)
 {
   assert(info);

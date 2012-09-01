@@ -53,6 +53,7 @@ enum socket_state {
   S_INIT,
   S_IN_CONNECT,
   S_CONNECTED,
+  S_IN_ACCEPT,
   S_IN_SEND,
   S_IN_RECEIVE,
   S_IN_PROCESS,
@@ -69,9 +70,30 @@ enum socket_type {
   T_TCP_SERVER_OTHER,
   T_TCP_CLIENT_OTHER
 };
+struct socket_info* create_socket_info(int socket, enum socket_type type, 
+                                       enum socket_state state,
+                                       uint32_t packet_min, uint32_t packet_max,
+                                       data_handler message_handler = 0,
+                                       data_handler trunk_handler = 0,
+                                       data_handler is_trunk_callback = 0,
+                                       data_handler is_message_callback = 0,
+                                       data_handler error_handler = 0,
+                                       data_handler after_send_handler = 0);
 
+int create_udp_socket(char *ip_str, uint16_t host_port);
+int create_tcp_client_socket(char *ip_str, uint32_t host_port);
+int create_tcp_listen_socket(char *ip_str, uint32_t host_port, int backlog);
 int set_nonblock(int socket);
 int change_socket_state(struct socket_info *info, enum socket_state state);
 int set_reuse(int socket);
 int destroy_socket_info(struct socket_info *info);
+void reset_socket_info(struct socket_info *info, int socket = -1);
+data_handler set_handler(struct socket_info *info, data_handler h,
+                         int which/*1:trunk_handler,
+                                    2:is_trunk_callback,
+                                    3:message_handler,
+                                    4:is_message_callback,
+                                    5:after_send_handler,
+                                    6:error_handler*/);
+
 #endif
