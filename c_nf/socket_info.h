@@ -41,7 +41,8 @@ struct socket_info {
   uint64_t atime_sec;
   uint64_t atime_usec;
 
-  struct send_buf_for_udp *udp_send_buf;
+  struct send_buf *send_buf;
+  uint32_t send_buf_num;
 
   struct socket_info *prev;
   struct socket_info *next;

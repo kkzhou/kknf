@@ -20,7 +20,7 @@ uint64_t ip_port_hash(void *key, uint32_t key_len, uint64_t key_space)
   return ret % key_space;
 }
 
-void* get_hash_table(uint64_t key_space, hash_func f = 0)
+void* hash_get_hash_table(uint64_t key_space, hash_func f = 0)
 {
   struct hash_table *t = (struct hash_table*)malloc(sizeof (struct hash_table));
   t->key_space = key_space;
@@ -37,7 +37,7 @@ void* get_hash_table(uint64_t key_space, hash_func f = 0)
   return t;
 }
 
-void* get_item(void *t, void *key, uint32_t key_len) 
+void* hash_get(void *t, void *key, uint32_t key_len) 
 {
   assert(t);
   assert(key);
@@ -61,7 +61,7 @@ void* get_item(void *t, void *key, uint32_t key_len)
   return cur->value;
 }
 
-int put_item(void *t, void *key, uint32_t key_len, void *value, uint32_t value_len)
+int hash_put(void *t, void *key, uint32_t key_len, void *value, uint32_t value_len)
 {
   assert(t);
   assert(key);
@@ -92,7 +92,7 @@ int put_item(void *t, void *key, uint32_t key_len, void *value, uint32_t value_l
   return (table->key_sapce >= table->key_used) ? -1 : 0;
 }
 
-void* delete_item(void *t, void *key, uint32_t key_len)
+void* hash_delete(void *t, void *key, uint32_t key_len)
 {
   assert(t);
   assert(key);
