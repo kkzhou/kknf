@@ -14,6 +14,8 @@ struct hash_table {
   struct hash_item **items;
 };
 
+/* An example of hash function which maps ip and port(6 bytes) to a 'key_space'
+ * large hash space*/
 uint64_t ip_port_hash(void *key, uint32_t key_len, uint64_t key_space)
 {
   uint64_t ret = *((uint64_t*)key);

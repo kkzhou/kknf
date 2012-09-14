@@ -190,7 +190,9 @@ int process_accept(struct socket_info *info)
 }
 /*
   return value:
-  0:
+  -1: continue epoll
+  >0: new socket created by accept()
+
  */
 int process_socket_event(struct socket_info *info)
 {
@@ -204,7 +206,7 @@ int process_socket_event(struct socket_info *info)
     process_code = process_accept(info);
     if (process_code >= 0) {
       /* complete */
-      struct socket_info *new_info = (struct socket_info*)malloc(sizeof (struct socket_infoXC
+      return process_code;
     } else {
       /* error */
       handle_code = info->error_handler(info->socket, 0 1); /* recreate a listen socket */
@@ -260,6 +262,7 @@ int process_socket_event(struct socket_info *info)
    
   } else {
   }
+  return -1;
 }
 
 int process_connect(struct socket_info *info)
