@@ -16,8 +16,9 @@ public:
 	buffer = malloc(buffer_len_);
 	start_ = end_ = 0;
 
-	if (fd >= 0) {
-	    
+	remote_log_ = false;
+	if (socket >= 0) {
+	    remote_log_ = true;
 	}
 	pthread_mutex_init(&mutex_, 0, 0);
 	pthread_cond_init(&cond_, 0, 0);
@@ -25,16 +26,39 @@ public:
 
 private:
     friend void WriteLogThreadProc(void *arg) {
+
 	Logger *logger = reinterpreter_cast<Logger*>(arg);
 	assert(logger->log_file_fd_ >= 0)
 	assert(logger->log_socket_ >= 0);
+
 	while (true) {
 	    pthread_mutex_lock(&mutex_);
 	    while (start_ == end_) {
 		pthread_cond_wait(*&cond_, &mutex_);
 	    }
 
-	    int ret = write
+	    if (end_ < start_) {
+		// rewind
+		struct iovec iov[2];
+		iov[0].iov_base = buffer_ + start_;
+		iov[0].iov_len = buffer_len_ - start_;
+		iov[1].iov_base = buffer_;
+		iov[1].iov_len = end_;
+
+		ret = writev(log_file_fd_, iov, 2);
+		if (ret < 0) {
+		    if (errno != EAGAIN) {
+		    }
+		} else if (ret == 0) {
+		} else {
+		    if (buffer_len_ - start_ > ret) {
+			start_ += ret;
+		    } else {
+			start_ = ret - (bufferlen_ - start_);
+		    }
+		}
+	    }
+	    int ret = write(buffer_ + 
 	}
 	
     };
@@ -46,6 +70,8 @@ private:
     
     int log_file_fd_;
     int log_socket_;
+
+    bool remote_log_;
 
     bool use_thread_;
     pthread_mutex_t mutex_;
