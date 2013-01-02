@@ -8,16 +8,8 @@
 
 nanmespace ZXBNF {
 
-    enum SocketType {
-	T_INVALID = 1,
-	T_UDP,
-	T_TCP,	
-	T_LISTENER
-    };
-
     class Address {
     public:
-
 	static Address* MakeAddress(char *ipstr, unsigned short port) {
 
 	    struct sockaddr_in addr;
@@ -35,15 +27,20 @@ nanmespace ZXBNF {
 	    addr_len = sizeof(struct sockaddr);
 	    Address *new_address = new Address(addr, addr_len);
 	    return new_address;
-	};
 
+	};
 	Address(struct sockaddr_in addr, socklen_t addr_len) {
 	    addr_ = addr;
 	    addr_len_ = addr_len;
 	};
+	Address& operator=(Address &addr) {
+	    addr_ = addr;
+	    addr_len_ = addr_len;
+	    return *this;
+	};
 
-	struct sockaddr_in &addr() const { return addr_; };
-	socklen_t &addr_len() const { return addr_len_; };
+	inline struct sockaddr_in &addr() const { return addr_; };
+	inline socklen_t &addr_len() const { return addr_len_; };
 
     private:
 	struct sockaddr_in addr_;
@@ -52,79 +49,9 @@ nanmespace ZXBNF {
 
     class Socket {
     public:
-	Socket(SocketType t, int socket = -1) : 
-	    socket_(socket), 
-	    type_(t), 
-	    connected_(false) {
-	    if (socket_ <= 0) {
-		if (type_ == T_UDP) {
-		    socket_ = socket(AF_INET, SOCK_DATAGRAM, 0);
-		} else {
-		    socket_ = socket(AF_INET, SOCK_STREAM, 0);
-		}
-	    }
-	};
-
-	int AsyncConnectTo(Address const &toaddr) {
-
-	    assert(type_ == T_TCP);
-	    if (socket_ < 0) {
-		return -1;
-	    }
-	
-	    int ret = connect(socket_, &toaddr.addr(), toaddr.addr_len());
-	    if ( ret == -1) {
-		if (errno != EAGAIN || errno != EINPROCESS || errno != EINTR) {
-		    return -2;
-		}
-		return -3;
-	    } 
-	    connected_ = true;
-	    return 0;
-		    	    
-	};
-
-	int AsyncLinstenOn(Address const &onaddr) {
-
-	    assert(type_ == T_LISTENER);
-	    if (socket_ <= 0) {
-		return -1;
-	    }
-
-	    int ret = bind(socket_, &onaddr.addr(), onaddr.addr_len());
-	    if ( ret == -1) {
-		return -2;
-	    }
-	    ret = listen(socket_, 1024)
-	    if ( ret == -1) {
-		return -3;
-	    }
-	    return 0;
-	};
-
-	int AsyncAccept(Socket **new_socket) {
-
-	    assert(type_ == T_LISTENER);
-	    if (socket_ <= 0) {
-		return -1;
-	    }
-	    
-	    *new_socket = 0;
-	    socklen_t addr_len;
-	    struct sockaddr_in addr;
-
-	    int ret = accept(socket_, (struct sockaddr*)&addr, &addr_len);
-	    if (ret < 0) {
-		if (errno != EAGAIN) {
-		    return -2;
-		}
-		return -3;
-	    }
-	    *new_socket = new Socket(T_TCP, ret);
-	    (*new_socket)->connected() = true;
-	}; 
-       	
-	bool SetNonBlock() {
+	int Create() = 0;
+	inline int socket() const { return socket_; };	
+	inline bool SetNonBlock() {
 
 	    int flags = fcntl(fd, F_GETFL, 0);
 	    if (flags == -1) {
@@ -140,9 +67,16 @@ nanmespace ZXBNF {
 	    }
 	    return true;
 	};
+    protected:
+	Socket() : socket_(-1) {};
+	~Socket() { close(socket_);};
+    protected:
+	int socket_;
+    };
 
-	int AsyncSend(std::list<char*> data_list, 
-			       std::list<unsigned int> size_list) {
+    class AsyncTCPDataSocket : public Socket {
+    public:
+	int AsyncSend(std::list<char*> &data_list, std::list<int> &size_list) {
 
 	    if (socket_ < 0) {
 		return -1;
@@ -164,25 +98,10 @@ nanmespace ZXBNF {
 	    }
 	    delete[] iov;
 	    return ret;
+
 	};
+	int AsyncReceive(std::list<char*> &data_list, std::list<int> &size_list) {
 
-	int AsyncSendTo(Address const &toaddr, char *data, unsigned int size) {
-	    
-	    assert(type_ == T_UDP);
-	    if (socket_ <= 0 ) {
-		return -1;
-	    }
-
-	    int ret = sendto(socket_, data, size, 0, (struct sockaddr*)&toaddr.addr(), 
-			     toaddr.addr_len());
-	    if (ret < 0) {
-		return -2;
-	    }
-	    return 0;
-	};
-
-	int AsyncReceive(std::list<char*> data_list, std::list<unsigned int> size_list) {
-	    
 	    if (socket_ < 0) {
 		return -1;
 	    }
@@ -203,53 +122,133 @@ nanmespace ZXBNF {
 	    }
 	    delete[] iov;
 	    return ret;
+
+	};
+	int Create() {
+	    socket_ = socket(PF_INET, SOCK_STREAM, 0);
+	    return socket_;
 	};
 
-	int AsyncReceiveFrom(char *data, unsigned int size, Address &from_addr)
+    protected:
+	AsyncTCPDataSocket() {};
+	~AsyncTCPDataSocket() {};	
+    };
 
-	    assert(type_ == T_UDP);
-	    if (socket_ <= 0 ) {
+    class AsyncTCPListenSocket : public Socket {
+    public:
+	int Create() {
+	    socket_ = socket(PF_INET, SOCK_STREAM, 0);
+	    return socket_;
+	};
+	AsyncTCPListenSocket() {};
+	~AsyncTCPListenSocket() {};
+	int AsyncListenOn(Address const &onaddr) {
+	    if (socket_ <= 0) {
 		return -1;
 	    }
 
-	    int ret = recvfrom(socket_, data, size, 0, (struct sockaddr*)&from_addr.addr(), 
-			     from_addr.addr_len());
-	    if (ret < 0) {
+	    int ret = bind(socket_, &onaddr.addr(), onaddr.addr_len());
+	    if ( ret == -1) {
 		return -2;
+	    }
+	    ret = listen(socket_, 1024)
+	    if ( ret == -1) {
+		return -3;
 	    }
 	    return 0;
 
 	};
 
-	Address* AsyncReceiveFrom(char *data, unsigned int size)
+	int AsyncAccept(AsyncTCPServerSocket **new_socket) {
 
-	    assert(type_ == T_UDP);
-	    if (socket_ <= 0 ) {
-		return 0;
+	    assert(new_socket);
+	    *new_socket = 0;
+	    if (socket_ < 0) {
+		return -2;
 	    }
-	    struct sockaddr_in from_addr;
-	    socklen_t from_addr_len;
-	    int ret = recvfrom(socket_, data, size, 0, (struct sockaddr*)&from_addr, 
-			     from_addr_len);
+
+	    socklen_t addr_len;
+	    struct sockaddr_in addr;
+
+	    int ret = accept(socket_, (struct sockaddr*)&addr, &addr_len);
 	    if (ret < 0) {
-		return 0;
+		if (errno != EAGAIN) {
+		    return -2;
+		}
+		return -3;
 	    }
-	    Address *new_address = Address::MakeAddress(T_UDP, from_addr, from_addr_len);
-	    return new_address;
+	    *new_socket = new AsyncTCPServerSocket(ret);
 	};
 
-	bool &connected() { return connected_; };
-	int socket() const { return socket_; };
-
     private:
-	
-	Socket& operator=(Socket&) {};
-	Socket(Socket&) {};
+	// forbid
+	AsyncTCPListenSocket& operator=(AsyncTCPListenSocket&) {};
+	AsyncTCPListenSocket(AsyncTCPListenSocket&) {};
 
-	int socket_;
-	SocketType type_;
-	bool connected_;
     };
 
+    class AsyncUDPSocket : public Socket {
+    public:
+	AsyncUDPSocket(){};
+	~AsyncUDPSocket(){};
+	int Create() {
+	    socket_ = socket(PF_INET, SOCK_DATAGRAM, 0);
+	    return socket_;
+	};
+	int AsyncLinstenOn(Address &onaddr) {
+	    if (socket_ < 0) {
+		return -2;
+	    }
+	    int ret = bind(socket_, (struct sockaddr*)&onaddr.addr(), onaddr.addr_len());
+	    if (ret < 0) {
+		return -3;
+	    }
+	    return 0;
+	};
+
+	int AsyncReceiveFrom(char *data, int size, Address **fromaddr) {
+
+	    assert(fromaddr);
+	    int ret = 0;
+	    if (*fromaddr) {
+		ret = recvfrom(socket_, data, size, 0, (*fromaddr)->addr(), 
+			       (*fromaddr)->addr_len());
+		if (ret < 0) {
+		    if (errno != EAGAIN || errno != EINTR) {
+			return -2;
+		    }
+		}
+		return 0;
+	    } else {
+		struct sockaddr_in addr;
+		socklen_t addr_len;
+		ret = recvfrom(socket_, data, size, 0, (struct sockaddr*)addr, &addr_len);
+		if (ret < 0) {
+		    if (errno != EAGAIN || errno != EINTR) {
+			return -2;
+		    }
+		}
+		return 0;
+	    }
+	    return 0;
+	};
+	int AsyncSendTo(Address &toaddr);
+    };
+
+    class AsyncTCPServerSocket : public AsyncTCPDataSocket {
+    public:
+	AsyncTCPServerSocket(int socket);
+	~AsyncTCPServerSocket();
+    private:
+	AsyncTCPServerSocket() {};
+    private:
+	int socket_;
+    };
+
+    class AsyncTCPClientSocket : public Socket {
+    public:
+	AsyncTCPClientSocket();
+	~AsyncTCPClientSocket();
+    };
 };
 #endif
