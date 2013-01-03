@@ -2,10 +2,11 @@
 #ifndef __CONNECTION_H__
 
 #include "buffer.hpp"
+#include "socket.hpp"
+
 #include <list>
 
 namespace ZXBNF {
-
 
     class Connection {
 
@@ -14,7 +15,6 @@ namespace ZXBNF {
 	    T_TCP_CLIENT,
 	    T_UDP
 	};
-
 	
     public:
 	static Connection* MekeTCPConnection(Socket *socket) {

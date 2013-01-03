@@ -49,8 +49,13 @@ nanmespace ZXBNF {
 
     class Socket {
     public:
-	int Create() = 0;
 	inline int socket() const { return socket_; };	
+	inline bool &error() const { return error_; };
+	void Close() { 
+	    assert(socket_ >= 0);
+	    close(socket_);
+	};
+    protected:
 	inline bool SetNonBlock() {
 
 	    int flags = fcntl(fd, F_GETFL, 0);
@@ -67,15 +72,22 @@ nanmespace ZXBNF {
 	    }
 	    return true;
 	};
-    protected:
-	Socket() : socket_(-1) {};
-	~Socket() { close(socket_);};
+
+	Socket() : socket_(-1), error_(false) {};
+	~Socket() { Close(); };
     protected:
 	int socket_;
+	bool error_;
     };
 
     class AsyncTCPDataSocket : public Socket {
     public:
+	int Create() {
+	    socket_ = socket(PF_INET, SOCK_STREAM, 0);
+	    SetNonblock();
+	    return socket_;
+	};
+
 	int AsyncSend(std::list<char*> &data_list, std::list<int> &size_list) {
 
 	    if (socket_ < 0) {
@@ -100,6 +112,7 @@ nanmespace ZXBNF {
 	    return ret;
 
 	};
+
 	int AsyncReceive(std::list<char*> &data_list, std::list<int> &size_list) {
 
 	    if (socket_ < 0) {
@@ -124,10 +137,6 @@ nanmespace ZXBNF {
 	    return ret;
 
 	};
-	int Create() {
-	    socket_ = socket(PF_INET, SOCK_STREAM, 0);
-	    return socket_;
-	};
 
     protected:
 	AsyncTCPDataSocket() {};
@@ -138,6 +147,7 @@ nanmespace ZXBNF {
     public:
 	int Create() {
 	    socket_ = socket(PF_INET, SOCK_STREAM, 0);
+	    SetNonblock();
 	    return socket_;
 	};
 	AsyncTCPListenSocket() {};
@@ -184,26 +194,47 @@ nanmespace ZXBNF {
 	// forbid
 	AsyncTCPListenSocket& operator=(AsyncTCPListenSocket&) {};
 	AsyncTCPListenSocket(AsyncTCPListenSocket&) {};
-
     };
 
-    class AsyncUDPSocket : public Socket {
+
+    class AsyncTCPServerSocket : public AsyncTCPDataSocket {
     public:
-	AsyncUDPSocket(){};
-	~AsyncUDPSocket(){};
-	int Create() {
-	    socket_ = socket(PF_INET, SOCK_DATAGRAM, 0);
-	    return socket_;
-	};
-	int AsyncLinstenOn(Address &onaddr) {
+	AsyncTCPServerSocket(int socket) : socket_(socket);
+	~AsyncTCPServerSocket();
+    private:
+	AsyncTCPServerSocket() {};
+    private:
+	int socket_;
+    };
+
+    class AsyncTCPClientSocket : public AsyncTCPDataSocket {
+    public:
+	AsyncTCPClientSocket() {};
+	~AsyncTCPClientSocket() {};
+	int AsyncConnectTo(Address &toaddr) {
 	    if (socket_ < 0) {
 		return -2;
 	    }
-	    int ret = bind(socket_, (struct sockaddr*)&onaddr.addr(), onaddr.addr_len());
+
+	    int ret = connect(socket_, (struct sockaddr*)&toaddr.addr(), toaddr.addr_len());
 	    if (ret < 0) {
-		return -3;
+		if (errno != EAGAIN) {
+		    return -3;
+		}
+		return 1;
 	    }
 	    return 0;
+	};
+    };
+
+    class AsyncUDPDataSocket : public Socket {
+    public:
+	AsyncUDPDataSocket(){};
+	~AsyncUDPDataSocket(){};
+	int Create() {
+	    socket_ = socket(PF_INET, SOCK_DATAGRAM, 0);
+	    SetNonblock();
+	    return socket_;
 	};
 
 	int AsyncReceiveFrom(char *data, int size, Address **fromaddr) {
@@ -232,23 +263,36 @@ nanmespace ZXBNF {
 	    }
 	    return 0;
 	};
-	int AsyncSendTo(Address &toaddr);
-    };
+	int AsyncSendTo(char *data, int size, Address &toaddr) {
 
-    class AsyncTCPServerSocket : public AsyncTCPDataSocket {
-    public:
-	AsyncTCPServerSocket(int socket);
-	~AsyncTCPServerSocket();
-    private:
-	AsyncTCPServerSocket() {};
-    private:
-	int socket_;
-    };
+	    assert(type_ == T_UDP);
+	    if (socket_ <= 0 ) {
+		return -1;
+	    }
 
-    class AsyncTCPClientSocket : public Socket {
+	    int ret = sendto(socket_, data, size, 0, (struct sockaddr*)&toaddr.addr(), 
+			     toaddr.addr_len());
+	    if (ret < 0) {
+		return -2;
+	    }
+	    return 0;
+	};
+    };
+    class AsyncUDPServerSocket : public AsyncUDPDataSocket {
     public:
-	AsyncTCPClientSocket();
-	~AsyncTCPClientSocket();
+	int AsyncBindOn(Address &onaddr) {
+	    if (socket_ < 0) {
+		return -2;
+	    }
+	    int ret = bind(socket_, (struct sockaddr*)&onaddr.addr(), onaddr.addr_len());
+	    if (ret < 0) {
+		return -3;
+	    }
+	    return 0;
+	};
+
+    };
+    class AsyncUDPClientSocket : public AsyncUDPDataSocket {
     };
 };
 #endif

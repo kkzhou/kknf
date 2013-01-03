@@ -9,19 +9,20 @@ namespace ZXBNF {
 
     class Buffer {
     public:
-	Buffer(char *start, usigned int length) {
+	Buffer(char *start,  int length) {
 	    start_ = start;
 	    length_ = length;
-	    next_ = 0;
+	    used_ = 0;
 	};
 	inline char* &start() { return start_; };
-	inline unsigned int &length() { return length_; };
-	inline Buffer* &next() { return next_; };
+	inline int &length() { return length_; };
+	inline int &used() { return used_; };
+
     private:
 	char *start_;
-	unsigned int length_;
-	Buffer *next_;
-
+	int used_;
+	int length_;
+	
 	// forbid
 	Buffer(Buffer&) {};
 	Buffer& operator=(Buffer&) {};
@@ -31,10 +32,10 @@ namespace ZXBNF {
     // blocks in these pools are in the same size
     class MemPool {
     public:
-	MemPool(unsigned int large_block_size = 2*1024*1024, 
-		unsigned int large_block_num = 100,
-		unsigned int small_block_size = 4*1024, 
-		unsigned int small_block_num = 1000) 
+	MemPool(int large_block_size = 2*1024*1024, 
+		int large_block_num = 100,
+		int small_block_size = 4*1024, 
+		int small_block_num = 1000) 
 	    :idle_large_blocks_(0),
 	     idle_small_blocks_(0) {
 
@@ -47,10 +48,10 @@ namespace ZXBNF {
 		small_pool_ = malloc(small_block_size_ * small_block_num_);
 
 	
-		for ( unsigned int i = 0; i < large_block_num_; i++) {
+		for (int i = 0; i < large_block_num_; i++) {
 		    idle_large_blocks_.push_back(large_pool_ + i * large_block_size_);
 		}
-		for ( unsigned int i = 0; i < large_block_num_; i++) {
+		for (int i = 0; i < large_block_num_; i++) {
 		    idle_large_blocks_.push_back(large_pool_ + i * large_block_size_);
 		}
 	};
@@ -100,21 +101,24 @@ namespace ZXBNF {
 	inline void Status() {
 	
 	};
+	
+	inline int small_block_size() { return small_block_num_; };
+	inline int large_block_size() { return large_block_size_; };
 
     private:
 	// large blocks
 	char *large_pool_;
 
 	std::deque<char*> idle_large_blocks_;
-	unsigned int large_block_size_;
-	unsigned int large_block_num_;
+	int large_block_size_;
+	int large_block_num_;
 
 	// small blocks
 	char *small_pool_;
 
 	std::deque<char*> idle_small_blocks_;
-	unsigned int small_block_size_;
-	unsigned int small_block_num_;
+	int small_block_size_;
+	int small_block_num_;
     
 	// forbid
 	MemPool(MemPool &) {};
