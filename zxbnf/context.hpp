@@ -4,47 +4,48 @@
 #include "socket.hpp"
 
 namespace ZXBNF {
+
+    class TCPConnection {
+    public:
+	TCPConnection() : 
+	    socket_(0),
+	    recv_buffer_num_(0), 
+	    cur_buffer_to_fill_(0),
+	    message_size_(-1) {
+	};
+    public:
+	inline int &socket() { return socket_; };
+	inline std::list<Buffer*> &recv_buffer_list() { return recv_buffer_list_; };
+	inline std::list<Buffer*> &send_buffer_list() { return send_buffer_list_; };
+	inline std::vector<Buffer*> &ongoing_recv_buffer() { return ongoing_recv_buffer_; };
+	inline int &cur_buffer_to_fill() { return cur_buffer_to_fill_; };
+	inline int &received_byte_num() { return  recveived_byte_num_; };
+	inline int &message_size() {return message_size_; };
+    private:
+	int socket_;
+	std::list<Buffer*> recv_buffer_list_;
+	std::list<Buffer*> send_buffer_list_;
+
+	std::list<Buffer*> cur_recv_buffer_;
+	int cur_recv_message_left_;
+	int cur_recv_message_size_;
+    };
+
     class TCPContext {
     public:
-	class TCPConnection {
-	public:
-	    TCPConnection() : 
-		from_socket_(0),
-		recv_buffer_num_(0), 
-		cur_buffer_to_fill_(0),
-		message_size_(-1) {
-	    };
-	public:
-	    inline AsyncTCPServerSocket* &from_socket() { return from_socket_; };
-	    inline std::list<Buffer*> &recv_buffer_list() { return recv_buffer_list_; };
-	    inline std::list<Buffer*> &send_buffer_list() { return send_buffer_list_; };
-	    inline std::vector<Buffer*> &ongoing_recv_buffer() { return ongoing_recv_buffer_; };
-	    inline int &cur_buffer_to_fill() { return cur_buffer_to_fill_; };
-	    inline int &received_byte_num() { return  recveived_byte_num_; };
-	    inline int &message_size() {return message_size_; };
-	private:
-	    AsyncTCPServerSocket *from_socket_;
-	    std::list<Buffer*> recv_buffer_list_;
-	    std::list<Buffer*> send_buffer_list_;
-	    std::vector<Buffer*> ongoing_recv_buffer_;
-	    int cur_buffer_to_fill_;
-	    int recveived_byte_num_;
-	    int message_size_;
-	};
 	TCPContext(MemPool *pool) : mempool_(pool) {};
     public:
-	int DataArrivedCallback(AsyncTCPServerSocket *from_socket) {
+	int DataArrivedCallback(int socket) {
 	    assert(false);
 	};
-	int MessageArrivedCallback(AsyncTCPServerSocket *from_socke, 
-				   std::list<Buffer*> &data) {
+	int MessageArrivedCallback(int socket, std::list<Buffer*> &data) {
 	    assert(false);
 	};
-	int ErrorArrivedCallback(AsyncTCPServerSocket *from_socket) {
-	    all_connection_[from_socket->socket()] = -1;
-	    from_socket->Close();
-	    from_socket->error()  = true; // NOT remove from 'socket_in_use_'
-	    socket_to_close_.push_back(from_socket);
+	int ErrorArrivedCallback(int socket) {
+	    Socket *sk = all_connection_[from_socket->socket()] = 0;
+	    sk->Close();
+	    sk->error()  = true; // NOT remove from 'socket_in_use_'
+	    socket_to_close_.push_back(sk);
 	};
 
 	std::vector<TCPConnection*> const &all_connection() { 
