@@ -5,30 +5,132 @@
 
 namespace ZXBNF {
 
+    class TCPMessage {
+    public:
+	TCPMessage():
+	    head_(0),
+	    tail_(0),
+	    message_size_(0),
+	    cur_(0),
+	    in_recv_(true){};
+
+	TCPMessage(bool in_recv):
+	    head_(0),
+	    tail_(0),
+	    message_size_(0),
+	    cur_(0),
+	    in_recv_(in_recv){};
+
+	inline int &message_size() { return message_size_; };
+	inline int SeekForward(int num) {
+	    assert(cur_);
+	    // check length
+	    int left = 0;
+	    Buffer *iter = cur_;
+	    left = num;
+	    while (cur_ && left > 0) {
+		if (cur_->tail() - cur_->head() <= left) {
+		    left -= cur_->tail() - cur_->head();
+		    cur_->head() = cur_->tail();
+		    cur_ = cur_->next();
+		} else {
+		    cur_->head() += left;
+		    left = 0;		    
+		}
+	    }
+	    return num - left;
+	};
+	inline int FillForward(int num) {
+	    
+	    assert(cur_);
+	    // check length
+	    int left = 0;
+	    Buffer *iter = cur_;
+	    while (iter) {
+		left += iter->length() - iter->tail();
+	    }
+	    if (left < num) {
+		return -1;
+	    }
+	    left = num;
+	    while (left > 0) {
+		if (cur_->length() - cur_->tail() <= left) {
+		    left -= cur_->length() - cur_->tail();
+		    cur_->tail() = cur_->length();
+		    cur_ = cur_->next();
+		} else {
+		    cur_->tail() += left;
+		    left = 0;		    
+		}
+	    }
+	    return 0;
+	};
+	inline Buffer *head() { return head_; };
+	inline Buffer* &cur() { return cur_; }
+
+	inline Buffer* AppendBuffer(Buffer *buffer) {
+
+	    assert(buffer);
+	    assert(buffer->prev() == 0);
+	    assert(buffer->next() == 0);
+
+	    if (head_ == 0) {
+		buffer->next() = 0;
+		buffer->prev() = 0;
+		head_ = tail_ = buffer;
+		cur_ = head_;
+	    } else {
+		assert(tail_);
+		tail_->next() = buffer;
+		buffer->prev() = tail_;
+		tail_ = tail_->next();
+	    }
+	    return head_;
+		
+	};
+    private:
+	Buffer *head_;	// Maybe not 'one' buffer but a list
+	Buffer *tail_;
+	int message_size_;
+	Buffer *cur_;
+	bool in_recv_;
+    };
+    class TCPMessageForRecveive : public TCPMesage {
+    };
+    class TCPMessageForSend : public TCPMesage {
+    public:
+	TCPMesageForSend() : TCPMessage(false) {};
+    };
+
     class TCPConnection {
     public:
-	TCPConnection() : 
+	TCPConnection() :
 	    socket_(0),
-	    recv_buffer_num_(0), 
-	    cur_buffer_to_fill_(0),
 	    message_size_(-1) {
 	};
     public:
 	inline int &socket() { return socket_; };
-	inline std::list<Buffer*> &recv_buffer_list() { return recv_buffer_list_; };
-	inline std::list<Buffer*> &send_buffer_list() { return send_buffer_list_; };
-	inline std::vector<Buffer*> &ongoing_recv_buffer() { return ongoing_recv_buffer_; };
-	inline int &cur_buffer_to_fill() { return cur_buffer_to_fill_; };
-	inline int &received_byte_num() { return  recveived_byte_num_; };
-	inline int &message_size() {return message_size_; };
+	inline int ShrinkSendMsgList(int num) {
+	    std::list<TCPMessageForSend*>::iterator iter = send_msg_list_.begin();
+	    std::list<TCPMessageForSend*>::iterator end_iter = send_msg_list_.end();
+	    int left = num;
+	    while (iter != end_iter) {
+		int reduced = (*iter)->SeekForward(left);
+		assert(reduced > 0);
+		if (reduced == left) {
+		    
+		}
+	    }
+	};
+	inline int GetIOVectorToFill(struct iov **iovec) {
+	    
+	};
     private:
 	int socket_;
-	std::list<Buffer*> recv_buffer_list_;
-	std::list<Buffer*> send_buffer_list_;
-
-	std::list<Buffer*> cur_recv_buffer_;
-	int cur_recv_message_left_;
-	int cur_recv_message_size_;
+	std::list<TCPMessageForReceive*> recv_msg_list_;
+	std::list<TCPMessageForSend*> send_msg_list_;
+	TCPMessageForSend *send_msg_;
+	TCPMessageForReceive *recv_msg_;
     };
 
     class TCPContext {

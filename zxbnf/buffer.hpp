@@ -12,17 +12,24 @@ namespace ZXBNF {
 	Buffer(char *start,  int length) {
 	    start_ = start;
 	    length_ = length;
-	    used_ = 0;
+	    head_ = 0;
+	    tail_ = 0;
 	};
 	inline char* &start() { return start_; };
-	inline int &length() { return length_; };
-	inline int &used() { return used_; };
+	inline int length() { return length_; };
+	inline int &head() { return head_; };
+	inline int &tail() { return tail_;};
+	inline Buffer* &next() { return next_; };
+	inline Buffer* &prev() } return prev_; };
 
     private:
 	char *start_;
-	int used_;
+	int head_;
+	int tail_;
 	int length_;
-	
+	Buffer *next_;
+	Buffer *prev_;
+    private:
 	// forbid
 	Buffer(Buffer&) {};
 	Buffer& operator=(Buffer&) {};
