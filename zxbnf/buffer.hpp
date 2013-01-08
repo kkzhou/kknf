@@ -103,6 +103,7 @@ namespace ZXBNF {
 	    } else {
 		assert(false);
 	    }
+	    delete buf;
 	};
 
 	inline void Status() {
