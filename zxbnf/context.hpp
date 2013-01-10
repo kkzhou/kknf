@@ -2,150 +2,9 @@
 #define __CONTEXT_H__
 
 #include "socket.hpp"
+#include "message.hpp"
 
 namespace ZXBNF {
-
-    class TCPMessage {
-    protected:
-	TCPMessage():
-	    head_(0),
-	    tail_(0),
-	    message_size_(-1),
-	    message_left_(-1),
-	    cur_(0) {};
-    public:
-	inline int message_size() { return message_size_; };
-	inline int message_left() { return message_left_; };
-	inline Buffer *head() { return head_; };
-	inline Buffer* &cur() { return cur_; }
-
-    protected:
-	inline Buffer* Reset()  {
-	    Buffer *ret = head_;
-	    head_ = cur_ = tail_ = 0;
-	    message_size_ = message_left_ = -1;
-	    return ret;
-	};
-	inline int SetMessageSize(int size) { assert(false); };
-	inline int Forward(int num) { assert(false); };
-
-
-	inline Buffer* AppendBuffer(Buffer *buffer) {
-
-	    assert(buffer);
-	    assert(buffer->prev() == 0);
-	    assert(buffer->next() == 0);
-
-	    if (head_ == 0) {
-		buffer->next() = 0;
-		buffer->prev() = 0;
-		head_ = tail_ = buffer;
-		cur_ = head_;
-	    } else {
-		assert(tail_);
-		tail_->next() = buffer;
-		buffer->prev() = tail_;
-		tail_ = tail_->next();
-	    }
-	    return head_;
-		
-	};
-    private:
-	Buffer *head_;	// Maybe not 'one' buffer but a list
-	Buffer *tail_;
-	int message_size_;
-	int message_left_;
-	Buffer *cur_;
-    };
-
-    class TCPMessageForRecveive : public TCPMesage {
-    public:
-	TCPMessageForReceive() {};
-	inline int Forward(int num) {
-	    
-	    assert(cur());
-	    // check length
-	    int left = 0;
-	    Buffer *iter = cur();
-	    while (iter) {
-		left += iter->length() - iter->tail();
-	    }
-	    if (left < num) {
-		return -1;
-	    }
-	    left = num;
-	    while (left > 0) {
-		if (cur()->length() - cur()->tail() <= left) {
-		    left -= cur()->length() - cur()->tail();
-		    cur()->tail() = cur()->length();
-		    cur() = cur()->next();
-		} else {
-		    cur()->tail() += left;
-		    left = 0;		    
-		}
-	    }
-	    message_left_ -= num;
-	    return 0;
-	};
-	inline int SetMessageSize(int size) {
-	    assert(message_size_ == -1);
-	    assert(size > 0);
-	    message_size_ = size;
-	    message_left_ = size;
-	    Buffer *it = head_;
-	    while (it && (*it)->tail() != (*it)->length()) {
-		message_left_ -= (*it)->length() - (*it)->tail();
-		it++;
-	    }
-	    return message_left_;
-	};
-    private:
-	TCPMessageForReceive(TCPMessageForReceive&){};
-	TCPMessageForReceive& operator=(TCPMessageForReceive&){};
-    };
-
-    class TCPMessageForSend : public TCPMessage {
-    public:
-	TCPMesageForSend(){};
-	inline bool AllSent() { return cur() == 0; };
-	inline int Forward(int num) {
-	    assert(cur());
-	    // check length
-	    int left = 0;
-	    Buffer *iter = cur();
-	    left = num;
-	    while (cur() && left > 0) {
-		if (cur()->tail() - cur()->head() <= left) {
-		    left -= cur()->tail() - cur()->head();
-		    cur()->head() = cur()->tail();
-		    cur() = cur()->next();
-		} else {
-		    cur()->head() += left;
-		    left = 0;		    
-		}
-	    }
-	    return num - left;
-	};
-
-	inline int SetMessageSize(int size) {
-	    assert(message_size_ == -1);
-	    assert(size > 0);
-	    message_size_ = size;
-	    message_left_ = size;
-	    Buffer *it = head_;
-	    while (it && (*it)->head() != (*it)->tail()) {
-		message_left_ -= (*it)->tail() - (*it)->head();
-		it++;
-	    }
-	    return message_left_;
-	};
-
-    private:
-	// forbid
-	TCPMessageForSend(TCPMessageForSend&) {};
-	TCPMessageForSend& operator=(TCPMessageForSend&) {};
-
-    };
 
     class TCPConnection {
     public:
@@ -156,7 +15,6 @@ namespace ZXBNF {
 
     public:
 	inline int &socket() { return socket_; };
-
 	inline int ShrinkSendMsgList(int num) {
 
 	    std::list<TCPMessageForSend*>::iterator iter = send_msg_list_.begin();
@@ -213,8 +71,8 @@ namespace ZXBNF {
 	};
     private:
 	int socket_;
-	std::list<TCPMessageForReceive*> recv_msg_list_;
-	std::list<TCPMessageForSend*> send_msg_list_;
+	std::list<TCPMessage*> recv_msg_list_;
+	std::list<TCPMessageToSend*> send_msg_list_;
 	MemPool *pool_;
     };
 
