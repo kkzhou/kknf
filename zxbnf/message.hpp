@@ -2,12 +2,13 @@
 #define __MESSAGE_H__
 
 #include "buffer.hpp"
+#include "address.hpp"
 
 namespace ZXBNF {
 
-    class TCPMessage {
+    class Message {
     public:
-	TCPMessage(Buffer *buffer_list):
+	Message(Buffer *buffer_list):
 	    head_(0),
 	    message_size_(-1) {
 	    for (Buffer *it = buffer_list; it; it = it->next()) {
@@ -18,9 +19,10 @@ namespace ZXBNF {
 		message_size_ += it->tail();
 	    }
 	};
+	virtual ~TCPMessage() {};
 
 	inline int message_size() { return message_size_; };
-	inline Buffer* head() { return head_; };
+	inline Buffer* BufferList() { return head_; };
 	inline Buffer* Destroy()  {
 	    Buffer *ret = head_;
 	    head_ = cur_ = 0;
@@ -30,19 +32,37 @@ namespace ZXBNF {
     private:
 	Buffer *head_;	// Maybe not 'one' buffer but a list
 	int message_size_;
+	
     private:
 	// forbid
-	TCPMessage(TCPMessage&){};
-	TCPMessage& operator=(TCPMessage&){};
+	Message(Message&){};
+	Message& operator=(Message&){};
     };
 
-    class TCPMessageToSend : public TCPMessage {
+    class UDPMessage : public Message {
+    public:
+	UDPMessage(Buffer *buffer_list, Address &from, Address &to) :
+	    Message(buffer_list),
+	    from_addr_(from),
+	    to_addr_(to) {};
+
+    private:
+	Address from_addr_;
+	Address to_addr_;
+    private:
+	UDPMessage(UDPMessage&){};
+	UDPMessage& operator=(UDPMessage&){};
+    };
+
+    class TCPMessageToSend : public Message {
     public:
 	TCPMessageToSend(Buffer *buffer_list):
 	    TCPMessage(buffer_list),
 	    cur_(0){
 
 	};
+	~TCPMessageToSend(){};
+
 	inline bool AllSent() { return cur() == 0; };
 	inline int SeekForward(int num) {
 	    assert(cur());
@@ -66,7 +86,7 @@ namespace ZXBNF {
 	Buffer *cur_;
     private:
 	// forbid
-	TCPMessageToSend(TCPMessageForSend&) {};
+	TCPMessageToSend(TCPMessageToSend&) {};
 	TCPMessageToSend& operator=(TCPMessageToSend&) {};
     };
 };

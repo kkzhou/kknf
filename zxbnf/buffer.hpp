@@ -1,6 +1,6 @@
 
-#ifndef __BUFFER_H__
-#define __BUFFER_H__
+#ifndef __BUFFER_HPP__
+#define __BUFFER_HPP__
 
 #include <deque>
 #include <iostream>
@@ -15,7 +15,8 @@ namespace ZXBNF {
 	    head_ = 0;
 	    tail_ = 0;
 	};
-	inline char* &start() { return start_; };
+
+	inline char* start() { return start_; };
 	inline int length() { return length_; };
 	inline int &head() { return head_; };
 	inline int &tail() { return tail_;};

@@ -17,8 +17,8 @@ namespace ZXBNF {
 	inline int &socket() { return socket_; };
 	inline int ShrinkSendMsgList(int num) {
 
-	    std::list<TCPMessageForSend*>::iterator iter = send_msg_list_.begin();
-	    std::list<TCPMessageForSend*>::iterator end_iter = send_msg_list_.end();
+	    std::list<TCPMessageToSend*>::iterator iter = send_msg_list_.begin();
+	    std::list<TCPMessageToSend*>::iterator end_iter = send_msg_list_.end();
 	    int left = num;
 	    while (iter != end_iter) {
 		int reduced = (*iter)->SeekForward(left);
@@ -41,15 +41,17 @@ namespace ZXBNF {
 	    } // while
 	    return left;
 	};
-	inline TCPMessage* PopReceiveMessage() {
-	    TCPMessage *ret = recv_msg_list_.front();
-	    recv_msg_list_.pop_front();
+
+	inline int PushMessageToSend(Buffer *data) {
+	    TCPMessageToSend *newmsg = new TCPMessageToSend(data);
+	    send_msg_list_.push_back(newmsg);
+	    return 0;
 	};
-	inline int PushMessageToSend( ) {
-	};
-	inline int GetIOVectorToFill(struct iov *iovec, int iov_num) {
-	    std::list<TCPMessageForSend*>::iterator iter = send_msg_list_.begin();
-	    std::list<TCPMessageForSend*>::iterator end_iter = send_msg_list_.end();
+
+	inline int GetIOVectorToSend(struct iov *iovec, int iov_num) {
+
+	    std::list<TCPMessageToSend*>::iterator iter = send_msg_list_.begin();
+	    std::list<TCPMessageToSend*>::iterator end_iter = send_msg_list_.end();
 
 	    int i = 0;
 	    while (iter != end_iter) {
@@ -71,7 +73,7 @@ namespace ZXBNF {
 	};
     private:
 	int socket_;
-	std::list<TCPMessage*> recv_msg_list_;
+	
 	std::list<TCPMessageToSend*> send_msg_list_;
 	MemPool *pool_;
     };
