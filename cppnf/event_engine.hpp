@@ -23,23 +23,30 @@
 #define EVENT_ERROR 0x00000004U
 
 namespace ZXBNF {
+    typedef int (*event_callback)(void*);
 
     class Event {
     public:
-	Event(int id, int fd, void *arg, unsigned int events) 
-	    : id_(id), fd_(fd), arg_(arg), events_(events){ };
+	Event(int fd, unsigned int events) 
+	    : fd_(fd), 
+	      events_(events) {};
+
 	~Event() {};
 
-	inline int id() { return id_; };
 	inline int fd() { return fd_; };
-	intline unsigned int events() { return events_; };
-
+	inline unsigned int events() { return events_; };
+	int Handler() {
+	    return EventCallback();
+	};
+	// return value:
+	// -1: error
+	// 0: ok, and delete the event
+	// 1:  ok
+	virtual int EventCallback() = 0;
     private:
-	int id_;
 	int fd_;
 	unsigned int events_;
-	void *arg_;
-
+	
     private:
 	Event() {};
 	Event(Event&){};
@@ -48,10 +55,10 @@ namespace ZXBNF {
 
     struct TimerCompare {
 	bool operator()(Timer *t1, Timer *t2) {
-	    if (t1->next_time().tv_sec > t2->next_time().tv_sec) {
+	    if (t1->fire_time().tv_sec > t2->fire_time().tv_sec) {
 		return true;
-	    } else if (t1->next_time().tv_sec == t2->next_time().tv_sec) {
-		if (t1->next_time().tv_usec > t2->next_time().tv_usec) {
+	    } else if (t1->fire_time().tv_sec == t2->fire_time().tv_sec) {
+		if (t1->fire_time().tv_usec > t2->fire_time().tv_usec) {
 		    return true;
 		}
 	    } else {
@@ -63,92 +70,83 @@ namespace ZXBNF {
 
     class Timer {
     public:
-	Timer(int usec, bool cycle, int(*handle)(void*), void *arg) 
-	    : usec_(usec), 
-	      cycle_(cycle),
-	      handle_(handle),
-	      arg_(arg) {
-
-	    gettimeofday(&next_time_, 0);
-	    unsigned long s = (next_time_.tv_usec + usec_) / 1000000;
-	    unsigned long u = (next_time_.tv_usec + usec_) % 1000000;
-
-	    next_time_.tv_sec += s;
-	    next_time_.tv_usec = u;
-	};
-
-	void SetTrigger(int usec = -1) { 
-
-	    assert(!cycle_);
-	    if (usec > 0) {
-		usec_ = usec; 		
-	    }
-
-
-	    gettimeofday(&next_time_, 0);
-	    unsigned long s = (next_time_.tv_usec + usec_) / 1000000;
-	    unsigned long u = (next_time_.tv_usec + usec_) % 1000000;
-
-	    next_time_.tv_sec += s;
-	    next_time_.tv_usec = u;
-
-	};
-
+	Timer() {};
+	virtual ~Timer(){};
 	inline int id() { return id_; };
-	inline struct timeval const &next_time() { return next_time_; };
-	int CallHandle() { return handle_(arg); };
-	~Timer(){};
+	inline struct timeval const &fire_time() { return fire_time_; };
+	void SetTimer(int msec) {
+
+	    assert(msec > 0);
+	    gettimeofday(&fire_time_, 0);
+	    
+	    unsigned long s = (fire_time_.tv_usec + msec) / 1000000;
+	    unsigned long u = (fire_time_.tv_usec + msec) % 1000000;
+
+	    fire_time_.tv_sec += s;
+	    fire_time_.tv_usec = u;
+
+	};
+
+	// return value:
+	// -2: error when handling, delete the timer
+	// -1: time is not up
+	// 0: contiue
+	// 1: not any more
+	int Handler() {
+	    struct timeval now;
+	    gettimeofday(&now, 0);
+	    if (next_time_.tv_sec > now.tv_sec) {
+		return -1;
+	    }
+	    if (next_time_.tv_sec == now.tv_sec) {
+		if (next_time_.tv_usec - now.tv_usec > 10000) {
+		    return -1;
+		}
+	    }
+	    int msec = TimerCallback();
+	    if (msec < 0) {
+		return -2;
+	    }
+	    if (msec == 0) {
+		return 1;
+	    }
+	    SetTimer(msec);
+	    return 0;
+	};
+
+	// return value:
+	// -1: error
+	// 0: ok
+	// >0: in how many milliseconds trigger next
+	virtual int TimerCallback() = 0;
+
     private:
 	int id_;
-	int usec_;
-	struct timeval next_time_;
-	bool cycle_;
-	int (*handle_)(void*);
-	void *arg_;
+	struct timeval fire_time_;
     };
 
     class EventEngine {
     public:
-	EventEngine() : event_list_(0) {};
+	EventEngine() : epoll_fd_(0), timer_queue_(100) {};
+
     public:
-	int Run(int msec) {
-	    
-	    int run_out = 0;
-	    while (run_out < msec) { // until 'msec' is run out
+	int Init();
+	int Run();
+	int AddEvent(Event *e);
+	void DeleteEvent(int fd);
 
-		// get timeout
-		int next_wake = 0;
-		struct timeval now;
-		gettimeofday(&now, 0);
-		Timer *first_timer = timer_queue_.front();
-		next_wake = (first_timer->next_time().tv_sec - now.tv_sec) * 1000;
-		next_wake += (first_timer->next_time().tv_usec - now.tv_usec) / 1000;
-		next_time = next_time <= msec - run_out ? next_time : msec - run_out;
-
-		// add events to epoll
-	    }
-	};
-
-	int AddEvent(Event *e) {
-	    ENTERING;
-	    std::map<int, Event*>::iterator it = events_.find(e->id());
-	    if (it != events_.end()) {
-		LEAVING2;
-		return -1;
-	    }
-	    events_.insert(make_pair<int, Event*>(e->id(), e));
-	    LEAVING;
-	    return 0;
-	};
-	void DeleteEvent(int id) {
-	    events_.erase(id);
-	};
-	void AddTimer(Timer &timer) {
+	inline void AddTimer(Timer *timer) {
 	    timer_queue_.push(timer);
+	};
+	inline Timer* DeleteTimer(int id) {
+	    Timer *ret = timer_queue_.front();
+	    timer_queue_.pop();
+	    return ret;
 	};
     private:
 	priority_queue<Timer*, std::vector<Timer*>, TimerCompare> timer_queue_;
-	std::map<int, Event*> events_;
+	int epoll_fd_;
+	static const int kMaxEpoll = 1024 * 1024;
     };
 };
 
