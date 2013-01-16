@@ -1,18 +1,18 @@
- /*
-    Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
+/*
+  Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
 #include "event_engine.hpp"
@@ -44,6 +44,8 @@ namespace ZXBNF {
 	    timer_queue_.pop();
 	    if (t->Handler() == 0) {
 		timer_queue_.push(t);
+	    } else {
+		delete t;
 	    }
 	    goto l_repeat;
 	}
@@ -57,8 +59,9 @@ namespace ZXBNF {
 	}
 	// process events
 	for (int i = 0; i < ev_num; i++) {
-	    assert(ev.data.ptr);
-	    Event *e = reinterpret_cast<Event*>(ev.data.ptr);
+	    assert(ev[i].data.ptr);
+	    Event *e = reinterpret_cast<Event*>(ev[i].data.ptr);
+	    e->set_epoll_events(ev[i].events);
 	    if (e->Handler() <= 0) {
 		DeleteEvent(e->fd());
 		delete e;
@@ -74,13 +77,13 @@ namespace ZXBNF {
 	
 	struct epoll_event ev;
 	memset(&ev, sizeof(e), 0);
-	ev.events = e->events();
+	ev.events = e->get_epoll_events();
 	ev.data.ptr = e;
 	if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, e->fd(), &ev) < 0) {
 	    if (errno == EEXIST) {
 		return -1;
 	    } else {
-		return -2
+		return -2;
 	    }
 	}
 	return 0;
@@ -93,7 +96,7 @@ namespace ZXBNF {
 		return -1;
 	    } else {
 		return -2
-	    }
+		    }
 	}
 	return 0;
     };
@@ -105,5 +108,5 @@ namespace ZXBNF {
 	    return -1;
 	}
 	return epoll_fd_;
-    };
+    }
 };

@@ -18,36 +18,47 @@
 #ifndef __SERVER_HPP__
 #define __SERVER_HPP__
 
+#include "event_engine.hpp"
+
 namespace ZXBNF {
+
     class Server {
     public:
 	Server() 
-	    : idle_server_sockets_(kMaxListenSocketNum),
-	      idle_client_socket_(KMaxClientSocketNum),
-	      udp_server_socket_(-1),
-	      udp_client_socket_(-1) {
-	    
+	    :idle_client_socket_(kMaxBackendNum),
+	     idle_server_sockets_(kMaxListenSocketNum),
+	     udp_server_socket_(-1),
+	     udp_client_socket_(-1) {
 	};
 
 	~Server(){};
-
+    public:
+	static int EventCallback_For_TCPListenSocket(Event *e, void *arg);
+	static int EventCallback_For_TCPDataSocket(Event *e, void *arg);
+	static int EventCallback_For_UDPSocket(Event *e, void *arg);
+    public:
+	// static int TimerCallback_For_Sweep(Timer *t, void *arg);
     public:
 	int AddTCPLVListenSocket(int index, char *ipstr, unsigned short hport);
 	int AddTCPLVClientSocket(int index, char *ipstr, unsigned short hport);
+
+	int AddTCPHTTPListenSocket(int index, char *ipstr, unsigned short hport);
+	int AddTCPHTTPClientSocket(int index, char *ipstr, unsigned short hport);
 
 	int AddUDPServerSocket(char *ipstr, unsigned short hport);
 	int AddUDPClientSocket(char *ipstr, unsigned short hport);
 
     public:
-	int OnSocketError(int socket);
-	int OnSocketReadable(int socket);
-	int OnSocketWritable(int socket);
+	AsyncTCPDataSocket* GetIdleTCPClientSocket(int index);
+	void ReturnTCPClientSocket(int fd);
+	AsyncTCPSocket* GetTCPSocket(int fd);
+	void DestroyTCPSocket(int fd);
 	
     private:
 	std::vector<int> listen_sockets_;
-	std::vector<std::list<int> > idle_server_sockets_;
 
 	std::vector<std::list<int> > idle_client_sockets_;
+	std::vector<std::list<int> > idle_server_sockets_; // only used for sweeping, a little UGLY
 	int udp_client_socket_;
 	int udp_server_socket_;
 
@@ -58,7 +69,8 @@ namespace ZXBNF {
 
     private:
 	static const int kMaxListenSocketNum = 1000;
-	static const int kMaxClientSocketNum = 1000;
+	static const int kMaxBackendNum = 1000;
+	static const int kMaxServerSocketNumPerListener = 10000;
     };
 
 };

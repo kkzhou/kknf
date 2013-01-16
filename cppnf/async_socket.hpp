@@ -27,7 +27,7 @@ namespace ZXBNF {
     class AsyncSocket {
     protected:
 	// constroctors & destructors
-	AsyncSocket() :socket_(-1), error_(false){};
+	AsyncSocket() :Event(-1), error_(false){};
 	virtual ~AsncSocket() { close(socket_); };
     private:
 	// prohibits
@@ -40,9 +40,9 @@ namespace ZXBNF {
 	inline void set_socket(int socket) { socket_ = socket; };
 	inline bool error() { return error_; };
 	
-    protected:
-	int socket_;
+    private:
 	bool error_;
+	int socket_;
     };
 
     class AsyncTCPSocket : public AsyncSocket {
@@ -86,7 +86,7 @@ namespace ZXBNF {
 	AsyncTCPDataSocket(){};
 	~AsuncTCPDataSocket(){};
 	AsyncTCPDataSocket(int fd) { set_socket(fd); };
-    private:
+    public:
 	// event handler
 	int OnWritable();
 	int OnError();
