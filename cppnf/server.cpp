@@ -18,14 +18,55 @@
 #include "server.hpp"
 
 namespace ZXBNF {
-
-    int UDPEvent::EventCallback() {
-	
-    }
  
     int Server::AddTCPLVListenSocket(int index, char *ipstr, unsigned short hport) {
+
+	assert(index >= 0);
+	assert(ipstr);
+
+	Address addr;
+	if (addr.SetAddress(ipstr, hport) != 0) {
+	    return -1;
+	}
+
+	AsyncTCPLVListenSocket *newsk = new AsyncTCPLVListenSocket(addr);
+	if (newsk->Listen() < 0) {
+	    return -2;
+	}
+		
+	Event *e = new Event(newsk->socket(), EventCallback_For_TCPListenSocket, this);
+	event_engine_.AddEvent(e);
+	listen_sockets_[index] = newsk->socket();
+	if (newsk->socket() >= all_tcp_sockets_.size()) {
+	    return -3;
+	}
+	all_tcp_sockets_[newsk->socket()] = newsk;
+	return 0;
     }
+
     int Server::AddTCPLVClientSocket(int index, char *ipstr, unsigned short hport) {
+
+	assert(index >= 0);
+	assert(ipstr);
+
+	Address addr;
+	if (addr.SetAddress(ipstr, hport) != 0) {
+	    return -1;
+	}
+
+	AsyncTCPLVDataSocket *newsk = new AsyncTCPLVDataSocket();
+	if (newsk->socket() >= all_tcp_sockets_.size()) {
+	    return -2;
+	}
+	if (newsk->ConnectTo(addr) < 0) {
+	    return -3;
+	}
+		
+	Event *e = new Event(newsk->socket(), EventCallback_For_TCPClientSocketConnect, this);
+	event_engine_.AddEvent(e);
+
+	all_tcp_sockets_[newsk->socket()] = newsk;
+	return 0;
     }
 
     int Server::AddUDPServerSocket(char *ipstr, unsigned short hport) {

@@ -23,7 +23,8 @@ nanmespace ZXBNF {
 
     class Address {
     public:
-	static Address* MakeAddress(char *ipstr, unsigned short port) {
+	Address(){};
+	int SetAddress(char *ipstr, unsigned short port) {
 
 	    struct sockaddr_in addr;
 	    socklen_t addr_len;
@@ -35,17 +36,18 @@ nanmespace ZXBNF {
 	    addr.sin_port = htons(port);
 
 	    if (inet_aton(ipstr, &addr.sin_addr) != 1) {
-		return 0;
+		return -1;
 	    }
 	    addr_len = sizeof(struct sockaddr);
-	    Address *new_address = new Address(addr, addr_len);
-	    return new_address;
-
+	    addr.SetAddress(addr, addr_len);
+	    return 0;
 	};
-	Address(struct sockaddr_in addr, socklen_t addr_len) {
+
+	void SetAddress(struct sockaddr_in addr, socklen_t addr_len) {
 	    addr_ = addr;
 	    addr_len_ = addr_len;
 	};
+
 	Address& operator=(Address &addr) {
 	    addr_ = addr;
 	    addr_len_ = addr_len;

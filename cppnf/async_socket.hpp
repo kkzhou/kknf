@@ -27,8 +27,8 @@ namespace ZXBNF {
     class AsyncSocket {
     protected:
 	// constroctors & destructors
-	AsyncSocket() :Event(-1), error_(false){};
-	virtual ~AsncSocket() { close(socket_); };
+	AsyncSocket() :socket_(-1), error_(false){};
+	virtual ~AsyncSocket() { close(socket_); };
     private:
 	// prohibits
 	AsyncSocket(AsyncSocket&){};
@@ -49,6 +49,7 @@ namespace ZXBNF {
     protected:
 	// constructors & destructors
 	AsyncTCPSocket() {};
+	int BindOn(Address &addr);
     private:
 	// prohibits
 	AsyncTCPSocket(AsyncTCPSOcket&){};
@@ -58,8 +59,8 @@ namespace ZXBNF {
     class AsyncTCPListenSocket : public AsyncTCPSocket {
     protected:
 	AsyncTCPListenSocket() {};
-	AsyncTCPListenSocket(Address &addr);
-
+	~AsyncTCPListenSocket() {};
+	int Linsten();
 	int OnAcceptable();
 	virtual int OnNewSocket(AsyncTCPDataSocket** sk) = 0;
     private:
@@ -95,6 +96,7 @@ namespace ZXBNF {
 	// operations initiated by upper layer
 	int SendMessage(Buffer *msg, int msg_len);
 	int ConnectTo(Address &to, Addresss, &from);
+	int ConnectTo(Address &to);
 
 	// messagize
 	virtual int Messagize(Buffer **msg, int *msg_len) = 0;

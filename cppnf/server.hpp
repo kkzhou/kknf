@@ -25,8 +25,8 @@ namespace ZXBNF {
     class Server {
     public:
 	Server() 
-	    :idle_client_socket_(kMaxBackendNum),
-	     idle_server_sockets_(kMaxListenSocketNum),
+	    :idle_client_sockets_(kMaxBackendNum),
+	     all_tcp_sockets_(kMaxSocketNum),
 	     udp_server_socket_(-1),
 	     udp_client_socket_(-1) {
 	};
@@ -34,16 +34,14 @@ namespace ZXBNF {
 	~Server(){};
     public:
 	static int EventCallback_For_TCPListenSocket(Event *e, void *arg);
-	static int EventCallback_For_TCPDataSocket(Event *e, void *arg);
+	static int EventCallback_For_TCPServerSocket(Event *e, void *arg);
+	static int EventCallback_For_TCPClientSocketConnect(Event *e, void *arg);
 	static int EventCallback_For_UDPSocket(Event *e, void *arg);
     public:
 	// static int TimerCallback_For_Sweep(Timer *t, void *arg);
     public:
-	int AddTCPLVListenSocket(int index, char *ipstr, unsigned short hport);
-	int AddTCPLVClientSocket(int index, char *ipstr, unsigned short hport);
-
-	int AddTCPHTTPListenSocket(int index, char *ipstr, unsigned short hport);
-	int AddTCPHTTPClientSocket(int index, char *ipstr, unsigned short hport);
+	int AddTCPListenSocket(int index, char *ipstr, unsigned short hport);
+	int AddTCPClientSocket(int index, char *ipstr, unsigned short hport);
 
 	int AddUDPServerSocket(char *ipstr, unsigned short hport);
 	int AddUDPClientSocket(char *ipstr, unsigned short hport);
@@ -55,10 +53,10 @@ namespace ZXBNF {
 	void DestroyTCPSocket(int fd);
 	
     private:
-	std::vector<int> listen_sockets_;
+	int listen_socket_;
 
 	std::vector<std::list<int> > idle_client_sockets_;
-	std::vector<std::list<int> > idle_server_sockets_; // only used for sweeping, a little UGLY
+	std::list<int> idle_server_sockets_; // only used for sweeping, a little UGLY
 	int udp_client_socket_;
 	int udp_server_socket_;
 
@@ -68,9 +66,10 @@ namespace ZXBNF {
 	EventEngine *engine_;
 
     private:
-	static const int kMaxListenSocketNum = 1000;
-	static const int kMaxBackendNum = 1000;
-	static const int kMaxServerSocketNumPerListener = 10000;
+	static const int kMaxBackendNum = 100;
+	static const int kMaxClientSocketNumPerBackend = 100;
+	static const int kMaxServerSocketNum = 1000000;
+	static const int kMaxSocketNum = kMaxServerSocketNum + kMaxBackendNum * kMaxClientSocketNumPerBackend;
     };
 
 };
