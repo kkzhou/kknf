@@ -34,14 +34,17 @@ namespace ZXBNF {
 	~Server(){};
     public:
 	static int EventCallback_For_TCPListenSocket(Event *e, void *arg);
-	static int EventCallback_For_TCPServerSocket(Event *e, void *arg);
-	static int EventCallback_For_TCPClientSocketConnect(Event *e, void *arg);
+	static int EventCallback_For_TCPDataSocket(Event *e, void *arg);
 	static int EventCallback_For_UDPSocket(Event *e, void *arg);
+	static int EventCallback_For_TCPClientSocketConnect(Event *e, void *arg);
+
     public:
 	// static int TimerCallback_For_Sweep(Timer *t, void *arg);
     public:
-	int AddTCPListenSocket(int index, char *ipstr, unsigned short hport);
-	int AddTCPClientSocket(int index, char *ipstr, unsigned short hport);
+	virtual int AddTCPListenSocket(char *ipstr, unsigned short hport);
+	virtual int AddTCPClientSocket(int index, char *ipstr, unsigned short hport);
+	virtual int ProcessMessage(Buffer *buffer, int size);	
+	virtual int ProcessMessageUDP(Buffer *buffer, int size);
 
 	int AddUDPServerSocket(char *ipstr, unsigned short hport);
 	int AddUDPClientSocket(char *ipstr, unsigned short hport);

@@ -16,34 +16,31 @@
 */
 
 
-#ifndef __ASYNC_SOCKET_HPP__
-#define __ASYNC_SOCKET_HPP__
+#ifndef __ASYNC_UDP_SOCKET_HPP__
+#define __ASYNC_UDP_SOCKET_HPP__
 
-#include "buffer.hpp"
 
 namespace ZXBNF {
 
-    // basic socket
-    class AsyncSocket {
-    protected:
-	// constroctors & destructors
-	AsyncSocket() :socket_(-1), error_(false){};
-	virtual ~AsyncSocket() { close(socket_); };
-    private:
-	// prohibits
-	AsyncSocket(AsyncSocket&){};
-	AsyncSocket& operator=(AsyncSocket&){};
+    class UDPSocket : public AsyncSocket {
     public:
-	void Invalidate() { error_ = true; };
-	// getters & settters
-	inline int socket() { return socket_; };
-	inline void set_socket(int socket) { socket_ = socket; };
-	inline bool error() { return error_; };
+	struct UDPMessage {
+	    Buffer *data_;
+	    Address addr_;
+	};
+    public:
+	int BindOn(Address &addr);
+	int OnReadable();
+	int OnWritable();
+    public:
+	int SendMessage(Buffer *msg, int msg_len);
+	int Messagize(Buffer **msg, int *msg_len) = 0;
 	
     private:
-	bool error_;
-	int socket_;
+	UDPMessage *msg_in_recv_;
+	UDPMessage *send_msg_list_;
     };
+
 };
 
 #endif

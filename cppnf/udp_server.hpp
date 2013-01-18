@@ -15,35 +15,38 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
+#ifndef __UDP_SERVER_HPP__
+#define __UDP_SERVER_HPP__
 
-#ifndef __ASYNC_SOCKET_HPP__
-#define __ASYNC_SOCKET_HPP__
-
-#include "buffer.hpp"
+#include "event_engine.hpp"
 
 namespace ZXBNF {
 
-    // basic socket
-    class AsyncSocket {
-    protected:
-	// constroctors & destructors
-	AsyncSocket() :socket_(-1), error_(false){};
-	virtual ~AsyncSocket() { close(socket_); };
-    private:
-	// prohibits
-	AsyncSocket(AsyncSocket&){};
-	AsyncSocket& operator=(AsyncSocket&){};
+    class UDPServer {
     public:
-	void Invalidate() { error_ = true; };
-	// getters & settters
-	inline int socket() { return socket_; };
-	inline void set_socket(int socket) { socket_ = socket; };
-	inline bool error() { return error_; };
-	
+	UDPServer() 
+	     udp_server_socket_(-1),
+	     udp_client_socket_(-1) {
+	};
+
+	~UDPServer(){};
+    public:
+	static int EventCallback_For_UDPSocket(Event *e, void *arg);
+    public:
+	static int TimerCallback_For_Nothing(Timer *t, void *arg);
+    public:
+	virtual int ProcessMessage(Buffer *buffer, int size);	
+
+	int AddUDPServerSocket(char *ipstr, unsigned short hport);
+	int AddUDPClientSocket(char *ipstr, unsigned short hport);
+
     private:
-	bool error_;
-	int socket_;
+	int udp_client_socket_;
+	int udp_server_socket_;
+    private:
+	EventEngine *engine_;
     };
+
 };
 
 #endif
