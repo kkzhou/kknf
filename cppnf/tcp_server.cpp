@@ -18,12 +18,56 @@
 #include "tcp_server.hpp"
 
 namespace ZXBNF {
- 
+    
     int TCPServer::EventCallback_For_ListenSocket(Event *e, void *arg) {
+	
+	assert(e);
+	assert(arg);
+	TCPServer *srv = reinterpret_cast<TCPServer*>(arg);
+
+	assert(!e->is_writable());
+	assert(!e->is_closed());
+
+	if (e->is_error()) {
+	    srv->Restart(1000);	// restart in 1 sec
+	    return -1;
+	}
+	if (!e->is_readable()) {
+	    return 1;
+	}
+	int listen_fd = e->socket();
+	while (true) {
+	    struct sockaddr_in new_addr;
+	    socklen_t len = 0;
+	    int newfd = accept(listen_fd, (struct sockaddr*)&new_addr, &len);
+	    if (newfd < 0) {
+		if (errno == EAGAIN || errno == EINTR) {
+		    return 1;
+		} else {
+		    srv->Restart(1000);
+		    return -2;
+		}
+	    }
+	    AsyncTCPDataSocket *new_socket = MakeNewSocket(newfd);
+	    if (new_socket) {
+		srv->AddServerSocket(new_socket);
+		Event *e = new Event(new_socket->socket(), EventCallback_For_DataSocket, srv);
+		e->set_read_event();
+		srv->event_engine()->AddEvent(e);
+	    } else {
+		assert(false);
+	    }
+	} // while
+	return 1;
     };
     int TCPServer::EventCallback_For_DataSocket(Event *e, void *arg) {
     };
     int TCPServer::EventCallback_For_Connect(Event *e, void *arg) {
+	assert(e);
+	assert(arg);
+	assert(!e->is_readable());
+	
+	
     };
 
     int TCPServer::TimerCallback_For_Sweep(Timer *t, void *arg) {

@@ -66,6 +66,9 @@ namespace ZXBNF {
 		DeleteEvent(e->fd());
 		delete e;
 	    }
+	    // mod epoll
+	    ev[i].events = e->get_epoll_events();
+	    e->ModEvent(e);
 	}
 	goto l_repeat;
 

@@ -32,6 +32,7 @@ namespace ZXBNF {
 	int Init();
 	int Run();
 	int AddEvent(Event *e);
+	int ModEvent(Event *e);
 	void DeleteEvent(int fd);
 
 	inline void AddTimer(Timer *timer) {

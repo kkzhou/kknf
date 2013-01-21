@@ -1,3 +1,20 @@
+/*
+  Copyright (C) <2011>  <ZHOU Xiaobo(zhxb.ustc@gmail.com)>
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>
+*/
+
 #ifndef __TCP_SERVER_HPP__
 #define __TCP_SERVER_HPP__
 
@@ -15,7 +32,12 @@ namespace ZXBNF {
 	};
 
 	~TCPServer(){};
+	inline EventEngine* event_engin() { return event_engine_; };
     public:
+	// return value:
+	// <0: error and delete event
+	// 0: ok and delete event
+	// 1: ok and continue event
 	static int EventCallback_For_ListenSocket(Event *e, void *arg);
 	static int EventCallback_For_DataSocket(Event *e, void *arg);
 	static int EventCallback_For_Connect(Event *e, void *arg);
@@ -23,10 +45,20 @@ namespace ZXBNF {
     public:
 	static int TimerCallback_For_Sweep(Timer *t, void *arg);
 	static int TimerCallback_For_Nothing(Timer *t, void *arg);
+    private:
+	int AddServerSocket(AsyncTCPDataSocket *sk) {
+	    if (sk->socket() >= all_tcp_sockets_.size()) {
+		return -1;
+	    }
+	    server_sockets_.push_back(sk);
+	    all_tcp_sockets_[sk->socket()] = sk;
+	    return 0;	    
+	};
     public:
-	virtual int AddListenSocket(char *ipstr, unsigned short hport);
-	virtual int AddClientSocket(int backend_index, char *ipstr, unsigned short hport);
-	virtual int ProcessMessage(Buffer *buffer, int size);	
+	virtual int AddListenSocket(char *ipstr, unsigned short hport) = 0;
+	virtual int AddClientSocket(int backend_index, char *ipstr, unsigned short hport) = 0;
+	virtual int ProcessMessage(Buffer *buffer, int size) = 0;	
+	
     public:
 	void AttatchEngine(EventEngine *eg) { event_engine_ = eg; };
     public:

@@ -23,6 +23,10 @@ namespace ZXBNF {
 
     class Event {
     public:
+	// return value:
+	// <0: error and delete event
+	// 0: ok and delete event
+	// 1: ok and continue event
 	typedef int (*EventCallback)(Event*, void *);
 	Event(int fd, EventCallback cb, void *arg) 
 	    : fd_(fd), 
