@@ -52,7 +52,7 @@ namespace ZXBNF {
 	    if (new_socket) {
 		srv->AddServerSocket(new_socket);
 		Event *e = new Event(new_socket->socket(), EventCallback_For_DataSocket, srv);
-		e->set_read_event();
+		e->RestoreEvents();
 		srv->event_engine()->AddEvent(e);
 	    } else {
 		assert(false);
@@ -61,16 +61,59 @@ namespace ZXBNF {
 	return 1;
     };
     int TCPServer::EventCallback_For_DataSocket(Event *e, void *arg) {
+	assert(e);
+	assert(arg);
+
+	TCPServer *srv = reinterpret_cast<TCPServer*>(arg);
+	AsyncTCPDataSocket *sk = srv->GetSocket(e->fd());
+
+	assert(sk);
+	int ret = 0;
+	if (e->IsReadable()) {
+	    Buffer *msg = 0;
+	    int msg_len;
+	    ret = sk->OnReadable();
+	    if (ret > 0) {
+		// complete a message reading
+		if (sk->Messagize(&msg, &msg_len) < 0) {
+		    
+		}
+		if (srv->ProcessMessage(sk->socket(), msg, msg_len) < 0) {
+		}
+	    } else if (ret == 0) {
+	    } else {
+		srv->event_engine()->DeleteEvent(sk->socket());
+		srv->DestroySocket(sk->socket());
+	    }
+	}
+	if (e->IsWritable()) {
+	    ret = sk->OnWritable();
+	    if (ret < 0) {
+		// error
+		srv->event_engine()->DeleteEvent(sk->socket());
+		srv->DestroySocket(sk->socket());
+	    } else if (ret == 0) {
+
+	    } else {
+		srv->event_engine()->DeleteEvent(sk->socket());
+	    }
+	}
     };
     int TCPServer::EventCallback_For_Connect(Event *e, void *arg) {
 	assert(e);
 	assert(arg);
 	assert(!e->is_readable());
 	
-	
+	TCPServer *srv = reinterpret_cast<TCPServer*>(arg);
+	srv->AddClientSocket(e->fd());
+
+	srv->event_engine()->DeleteEvent(e->fd());
+	delete e;
+	return 0;
     };
 
     int TCPServer::TimerCallback_For_Sweep(Timer *t, void *arg) {
+	int next = 1000;	// 1 sec
 	
     };
     int TCPServer::TimerCallback_For_Nothing(Timer *t, void *arg) {

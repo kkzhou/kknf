@@ -34,6 +34,10 @@ namespace ZXBNF {
 	AsyncTCPDataSocket(int fd) { set_socket(fd); };
     public:
 	// event handler
+	// return value:
+	// 0: OK but not complete, so continue
+	// -1: error happens
+	// >0: OK and complete n bytes
 	int OnWritable();
 	int OnError();
 	int OnReadable();

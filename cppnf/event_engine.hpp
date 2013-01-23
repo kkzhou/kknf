@@ -18,10 +18,6 @@
 #ifndef __EVENT_ENGINE_HPP__
 #define __EVENT_ENGINE_HPP__
 
-#define EVENT_READ 0x00000001U
-#define EVENT_WRITE 0x00000002U
-#define EVENT_ERROR 0x00000004U
-
 namespace ZXBNF {
 
     class EventEngine {

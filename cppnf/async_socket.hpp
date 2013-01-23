@@ -29,10 +29,6 @@ namespace ZXBNF {
 	// constroctors & destructors
 	AsyncSocket() :socket_(-1), error_(false){};
 	virtual ~AsyncSocket() { close(socket_); };
-    private:
-	// prohibits
-	AsyncSocket(AsyncSocket&){};
-	AsyncSocket& operator=(AsyncSocket&){};
     public:
 	void Invalidate() { error_ = true; };
 	// getters & settters
@@ -43,6 +39,11 @@ namespace ZXBNF {
     private:
 	bool error_;
 	int socket_;
+    private:
+	// prohibits
+	AsyncSocket(AsyncSocket&){};
+	AsyncSocket& operator=(AsyncSocket&){};
+
     };
 };
 

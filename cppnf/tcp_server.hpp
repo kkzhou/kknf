@@ -45,6 +45,15 @@ namespace ZXBNF {
     public:
 	static int TimerCallback_For_Sweep(Timer *t, void *arg);
 	static int TimerCallback_For_Nothing(Timer *t, void *arg);
+    public:
+	int AddListener(char *ipstr, unsigned short hport);
+	int AddClient(int backend_index, char *ipstr, unsigned short hport);
+	void AttatchEngine(EventEngine *eg) { event_engine_ = eg; };
+
+    private:
+	virtual int ProcessMessage(int socket, Buffer *msg, int msg_len) = 0;
+	virtual int AddListenSocket(int socket) = 0;
+	virtual int AddClientSocket(int socket) = 0;	
     private:
 	int AddServerSocket(AsyncTCPDataSocket *sk) {
 	    if (sk->socket() >= all_tcp_sockets_.size()) {
@@ -54,14 +63,7 @@ namespace ZXBNF {
 	    all_tcp_sockets_[sk->socket()] = sk;
 	    return 0;	    
 	};
-    public:
-	virtual int AddListenSocket(char *ipstr, unsigned short hport) = 0;
-	virtual int AddClientSocket(int backend_index, char *ipstr, unsigned short hport) = 0;
-	virtual int ProcessMessage(Buffer *buffer, int size) = 0;	
-	
-    public:
-	void AttatchEngine(EventEngine *eg) { event_engine_ = eg; };
-    public:
+
 	AsyncTCPDataSocket* GetIdleClientSocket(int backend_index) {
 	    assert(backend_index < idle_client_sockets_.size());
 	    AsyncTCPDataSocket *ret = idle_client_sockets_[backend_index].front();

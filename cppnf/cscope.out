@@ -1,4 +1,4 @@
-cscope 16 e:\source\kknf\cppnf               0000024111
+cscope 16 e:\source\kknf\cppnf               0000024996
 	@address.hpp
 
 19 #iâdeà
@@ -588,26 +588,10 @@ sock‘_
 ); };
 
 32 
-	g´iv©e
-:
-
-34 
-AsyncSock‘
-(AsyncSocket&){};
-
-35 
-	gAsyncSock‘
-& 
-	gÝ”©Ü
-=(
-AsyncSock‘
-&){};
-
-36 
 	gpublic
 :
 
-37 
+33 
 Inv®id©e
 (è{ 
 ”rÜ_
@@ -615,7 +599,7 @@ Inv®id©e
 Œue
 ; };
 
-39 
+35 
 šlše
  
 sock‘
@@ -623,7 +607,7 @@ sock‘
 	gsock‘_
 ; };
 
-40 
+36 
 šlše
  
 £t_sock‘
@@ -633,7 +617,7 @@ sock‘
 	gsock‘_
  = socket; };
 
-41 
+37 
 šlše
  
 boÞ
@@ -643,19 +627,35 @@ boÞ
 	g”rÜ_
 ; };
 
-43 
+39 
 	g´iv©e
 :
 
-44 
+40 
 boÞ
  
 ”rÜ_
 ;
 
-45 
+41 
 	gsock‘_
 ;
+
+42 
+	g´iv©e
+:
+
+44 
+AsyncSock‘
+(AsyncSocket&){};
+
+45 
+	gAsyncSock‘
+& 
+	gÝ”©Ü
+=(
+AsyncSock‘
+&){};
 
 	@async_tcp_socket.hpp
 
@@ -795,23 +795,23 @@ fd
 	gpublic
 :
 
-37 
+41 
 OnWr™abË
 ();
 
-38 
+42 
 OnE¼Ü
 ();
 
-39 
+43 
 OnR—dabË
 ();
 
-40 
+44 
 	gpublic
 :
 
-42 
+46 
 S’dMes§ge
 (
 Bufãr
@@ -821,7 +821,7 @@ msg
 msg_Ën
 );
 
-43 
+47 
 CÚÃùTo
 (
 Add»ss
@@ -833,7 +833,7 @@ Add»sss
 äom
 );
 
-44 
+48 
 CÚÃùTo
 (
 Add»ss
@@ -841,7 +841,7 @@ Add»ss
 to
 );
 
-47 
+51 
 vœtu®
  
 Mes§gize
@@ -853,21 +853,21 @@ msg
 msg_Ën
 ) = 0;
 
-49 
+53 
 	g´iv©e
 :
 
-50 
+54 
 Bufãr
  *
 msg_š_»cv_
 ;
 
-51 
+55 
 	gmsg_size_
 ;
 
-53 
+57 
 Bufãr
  *
 	g£nd_bufãr_li¡_
@@ -1569,21 +1569,45 @@ __EVENT_HPP__
 	gZXBNF
  {
 
-24 þas 
+24 
+	#EVENT_READ
+ 0x00000001U
+
+	)
+
+25 
+	#EVENT_WRITE
+ 0x00000002U
+
+	)
+
+26 
+	#EVENT_ERROR
+ 0x00000004U
+
+	)
+
+27 
+	#EVENT_CLOSE
+ 0x00000008U
+
+	)
+
+30 þas 
 	cEv’t
  {
 
-25 
+31 
 	gpublic
 :
 
-30 (*
+36 (*
 Ev’tC®lback
 )(
 	tEv’t
 *, *);
 
-31 
+37 
 Ev’t
 (
 fd
@@ -1595,33 +1619,37 @@ cb
 ¬g
 )
 
-32 : 
+38 : 
 fd_
 (
 fd
 ),
 
-33 
+39 
 ev’ts_
 (0),
 
-34 
+40 
+ev’ts_backup_
+(0),
+
+41 
 cb_
 (
 cb
 ),
 
-35 
-cb_¬g
+42 
+cb_¬g_
 (
 ¬g
 ){};
 
-37 ~
+44 ~
 Ev’t
 () {};
 
-39 
+46 
 šlše
  &
 fd
@@ -1629,265 +1657,303 @@ fd
 	gfd_
 ; };
 
-40 
-šlše
- 
-£t_»ad_ev’t
-() {
-
-41 
-	gÞd
- = 
-ev’ts_
-;
-
-42 
-	gev’ts_
- |ð
-EVENT_READ
-;
-
-43  
-	gÞd
-;
-
-45 
-šlše
- 
-£t_»ad_ev’t
-() {
-
-46 
-	gÞd
- = 
-ev’ts_
-;
-
 47 
+šlše
+ 
+S‘R—dEv’t
+() {
+
+48 
+	gÞd
+ = 
+ev’ts_
+;
+
+49 
 	gev’ts_
  |ð
 EVENT_READ
 ;
 
-48  
+50  
 	gÞd
-;
-
-50 
-šlše
- 
-£t_”rÜ_ev’t
-() {
-
-51 
-	gÞd
- = 
-ev’ts_
 ;
 
 52 
+šlše
+ 
+S‘Wr™eEv’t
+() {
+
+53 
+	gÞd
+ = 
+ev’ts_
+;
+
+54 
+	gev’ts_
+ |ð
+EVENT_WRITE
+;
+
+55  
+	gÞd
+;
+
+57 
+šlše
+ 
+S‘E¼ÜEv’t
+() {
+
+58 
+	gÞd
+ = 
+ev’ts_
+;
+
+59 
 	gev’ts_
  |ð
 EVENT_ERROR
 ;
 
-53  
+60  
 	gÞd
 ;
 
-55 
+62 
 šlše
  
-£t_þo£_ev’t
+S‘Clo£Ev’t
 () {
 
-56 
+63 
 	gÞd
  = 
 ev’ts_
 ;
 
-57 
+64 
 	gev’ts_
  |ð
 EVENT_CLOSE
 ;
 
-58  
+65  
 	gÞd
 ;
 
-60 
+67 
 šlše
  
 boÞ
  
-is_»adabË
+IsR—dabË
 (è{  
 	gev’ts_
  & 
 	gEVENT_READ
 ; };
 
-61 
+68 
 šlše
  
 boÞ
  
-is_wr™abË
+IsWr™abË
 (è{  
 	gev’ts_
  & 
 	gEVENT_WRITE
 ; ;}
 
-62 
+69 
 šlše
  
 boÞ
  
-is_þo£d
+IsClo£d
 (è{  
 	gev’ts_
  & 
 	gEVENT_CLOSE
 ; };
 
-63 
+70 
 šlše
  
 boÞ
  
-is_”rÜ
+IsE¼Ü
 (è{  
 	gev’ts_
  & 
 	gEVENT_ERROR
 ; };
 
-65 
+72 
 šlše
  
-g‘_•Þl_ev’ts
+G‘EpÞlEv’ts
 () {
 
-66 
+73 
 	gev’ts
  = 0;
 
-68 ià(
+75 ià(
 is_»adabË
 ()) {
 
-69 
+76 
 	gev’ts
  |ð
 EPOLLIN
 ;
 
-71 ià(
+78 ià(
 is_wr™abË
 ()) {
 
-72 
+79 
 	gev’ts
  |ð
 EPOLLOUT
 ;
 
-74 ià(
+81 ià(
 is_þo£d
 ()) {
 
-75 
+82 
 	gev’ts
  |ð
 EPOLLHUP
 ;
 
-77 ià(
+84 ià(
 is_”rÜ
 ()) {
 
-78 
+85 
 	gev‘ns
  |ð
 EPOLLERR
 ;
 
-80  
+87  
 	gev’ts
 ;
 
-82 
+89 
 šlše
  
-£t_•Þl_ev’ts
+S‘EpÞlEv’ts
 (
 ev’ts
 ) {
 
-83 
+90 
 	gev’ts_
  = 0;
 
-84 ià(
+91 ià(
 	gev’ts
  & 
 	gEPOLLIN
 ) {
 
-85 
+92 
 £t_»ad_ev’t
 ();
 
-87 ià(
+94 ià(
 	gev’ts
  & 
 	gEPOLLOUT
 ) {
 
-88 
+95 
 £t_wr™e_ev’t
 ();
 
-90 ià(
+97 ià(
 	gev’ts
  & 
 	gEPOLLERR
 ) {
 
-91 
+98 
 £t_”rÜ_ev’t
 ();
 
-93 ià(
+100 ià(
 	gev’ts
  & 
 	gEPOLLHUP
 ) {
 
-94 
+101 
 £t_þo£_ev’t
 ();
 
-97 
+105 
+šlše
+ 
+BackupEv’ts
+() {
+
+106 
+	gev’ts_backup_
+ = 
+ev’ts_
+;
+
+109 
+šlše
+ 
+Re¡ÜeEv’ts
+() {
+
+110 
+	gev’ts_
+ = 
+ev’ts_backup_
+;
+
+112 
+šlše
+ 
+CË¬Ev’ts
+() {
+
+113 
+	gev’ts_
+ = 0;
+
+114 
+	gev’ts_backup_
+ = 0;
+
+116 
 HªdËr
 () {
 
-98 
+117 
 as£¹
 (
 cb_
 );
 
-99 
+118 
 as£¹
 (
 cb_¬g_
 );
 
-100  
+119  
 cb_
 (
 this
@@ -1895,41 +1961,45 @@ this
 cb_¬g_
 );
 
-103 
+122 
 	g´iv©e
 :
 
-104 
+123 
 fd_
 ;
 
-105 
+124 
 	gev’ts_
 ;
 
-106 
+125 
+	gev’ts_backup_
+;
+
+126 
 Ev’tC®lback
  
 	gcb_
 ;
 
-107 *
+127 *
 	gcb_¬g_
 ;
 
-109 
+129 
 	g´iv©e
 :
 
-110 
+130 
 Ev’t
 () {};
 
-111 
+131 
 Ev’t
 (Event&){};
 
-112 
+132 
 	gEv’t
 & 
 	gÝ”©Ü
@@ -2335,39 +2405,21 @@ __EVENT_ENGINE_HPP__
 
 	)
 
-21 
-	#EVENT_READ
- 0x00000001U
-
-	)
-
-22 
-	#EVENT_WRITE
- 0x00000002U
-
-	)
-
-23 
-	#EVENT_ERROR
- 0x00000004U
-
-	)
-
-25 
+21 
 Çme¥aû
  
 	gZXBNF
  {
 
-27 þas 
+23 þas 
 	cEv’tEngše
  {
 
-28 
+24 
 	gpublic
 :
 
-29 
+25 
 Ev’tEngše
 (è: 
 •Þl_fd_
@@ -2375,19 +2427,19 @@ Ev’tEngše
 tim”_queue_
 (100) {};
 
-31 
+27 
 	gpublic
 :
 
-32 
+28 
 In™
 ();
 
-33 
+29 
 Run
 ();
 
-34 
+30 
 AddEv’t
 (
 Ev’t
@@ -2395,7 +2447,7 @@ Ev’t
 e
 );
 
-35 
+31 
 ModEv’t
 (
 Ev’t
@@ -2403,13 +2455,13 @@ Ev’t
 e
 );
 
-36 
+32 
 D–‘eEv’t
 (
 fd
 );
 
-38 
+34 
 šlše
  
 AddTim”
@@ -2419,7 +2471,7 @@ Tim”
 tim”
 ) {
 
-39 
+35 
 	gtim”_queue_
 .
 push
@@ -2427,7 +2479,7 @@ push
 tim”
 );
 
-41 
+37 
 šlše
  
 Tim”
@@ -2437,7 +2489,7 @@ D–‘eTim”
 id
 ) {
 
-42 
+38 
 Tim”
  *
 	g»t
@@ -2447,21 +2499,21 @@ tim”_queue_
 äÚt
 ();
 
-43 
+39 
 	gtim”_queue_
 .
 pÝ
 ();
 
-44  
+40  
 	g»t
 ;
 
-46 
+42 
 	g´iv©e
 :
 
-47 
+43 
 ´iÜ™y_queue
 <
 Tim”
@@ -2475,11 +2527,11 @@ veùÜ
 	gtim”_queue_
 ;
 
-48 
+44 
 	g•Þl_fd_
 ;
 
-49 cÚ¡ 
+45 cÚ¡ 
 	gkMaxEpÞl
  = 1024 * 1024;
 
@@ -3392,7 +3444,7 @@ Ev’tC®lback_FÜ_D©aSock‘
 55 
 	ge
 ->
-£t_»ad_ev’t
+Re¡ÜeEv’ts
 ();
 
 56 
@@ -3423,7 +3475,97 @@ e
 ¬g
 ) {
 
-65 
+64 
+as£¹
+(
+e
+);
+
+65 
+as£¹
+(
+¬g
+);
+
+67 
+TCPS”v”
+ *
+	g¤v
+ = 
+»š‹½»t_ÿ¡
+<TCPS”v”*>(
+¬g
+);
+
+68 
+AsyncTCPD©aSock‘
+ *
+	gsk
+ = 
+¤v
+->
+G‘Sock‘
+(
+e
+->
+fd
+());
+
+70 
+as£¹
+(
+sk
+);
+
+71 
+	g»t
+ = 0;
+
+72 ià(
+	ge
+->
+IsR—dabË
+()) {
+
+73 
+Bufãr
+ *
+	gmsg
+ = 0;
+
+74 
+	gmsg_Ën
+;
+
+75 
+	g»t
+ = 
+sk
+->
+OnR—dabË
+();
+
+76 ià(
+	g»t
+ > 0) {
+
+78 
+	gsk
+->
+Mes§gize
+(&
+msg
+, &
+msg_Ën
+);
+
+81 ià(
+	gsk
+->
+OnWr™abË
+()) {
+
+84 
 	gTCPS”v”
 ::
 Ev’tC®lback_FÜ_CÚÃù
@@ -3435,19 +3577,19 @@ e
 ¬g
 ) {
 
-66 
+85 
 as£¹
 (
 e
 );
 
-67 
+86 
 as£¹
 (
 ¬g
 );
 
-68 
+87 
 as£¹
 (!
 e
@@ -3455,7 +3597,45 @@ e
 is_»adabË
 ());
 
-73 
+89 
+TCPS”v”
+ *
+	g¤v
+ = 
+»š‹½»t_ÿ¡
+<TCPS”v”*>(
+¬g
+);
+
+90 
+	g¤v
+->
+AddCl›ÁSock‘
+(
+e
+->
+fd
+());
+
+92 
+	g¤v
+->
+ev’t_’gše
+()->
+D–‘eEv’t
+(
+e
+->
+fd
+());
+
+93 
+d–‘e
+ 
+	ge
+;
+
+97 
 	gTCPS”v”
 ::
 Tim”C®lback_FÜ_Sw“p
@@ -3467,7 +3647,7 @@ t
 ¬g
 ) {
 
-76 
+100 
 	gTCPS”v”
 ::
 Tim”C®lback_FÜ_NÙhšg
@@ -3479,19 +3659,19 @@ t
 ¬g
 ) {
 
-77 
+101 
 	gENTERING
 ;
 
-78 
+102 
 	gÃxt
  = 5000;
 
-79 
+103 
 	gLEAVING
 ;
 
-80  
+104  
 	gÃxt
 ;
 
@@ -3624,70 +3804,42 @@ t
 );
 
 48 
-	g´iv©e
-:
-
-49 
-AddS”v”Sock‘
-(
-AsyncTCPD©aSock‘
- *
-sk
-) {
-
-50 ià(
-sk
-->
-sock‘
-(è>ð
-®l_tý_sock‘s_
-.
-size
-()) {
-
-53 
-	g£rv”_sock‘s_
-.
-push_back
-(
-sk
-);
-
-54 
-	g®l_tý_sock‘s_
-[
-sk
-->
-sock‘
-()] = sk;
-
-57 
 	gpublic
 :
 
-58 
-vœtu®
- 
-AddLi¡’Sock‘
+49 
+AddLi¡’”
 (*
 ¡r
 , 
 hpÜt
-) = 0;
+);
 
-59 
-vœtu®
- 
-AddCl›ÁSock‘
+50 
+AddCl›Á
 (
 back’d_šdex
 , *
 ¡r
 , 
 hpÜt
-) = 0;
+);
 
-60 
+51 
+A‰©chEngše
+(
+Ev’tEngše
+ *
+eg
+è{ 
+	gev’t_’gše_
+ =ƒg; };
+
+53 
+	g´iv©e
+:
+
+54 
 vœtu®
  
 ProûssMes§ge
@@ -3699,25 +3851,61 @@ bufãr
 size
 ) = 0;
 
-62 
-	gpublic
+55 
+vœtu®
+ 
+AddLi¡’Sock‘
+(
+sock‘
+) = 0;
+
+56 
+vœtu®
+ 
+AddCl›ÁSock‘
+(
+sock‘
+) = 0;
+
+57 
+	g´iv©e
 :
 
-63 
-A‰©chEngše
+58 
+AddS”v”Sock‘
 (
-Ev’tEngše
+AsyncTCPD©aSock‘
  *
-eg
-è{ 
-ev’t_’gše_
- =ƒg; };
+sk
+) {
 
-64 
-	gpublic
-:
+59 ià(
+sk
+->
+sock‘
+(è>ð
+®l_tý_sock‘s_
+.
+size
+()) {
 
-65 
+62 
+	g£rv”_sock‘s_
+.
+push_back
+(
+sk
+);
+
+63 
+	g®l_tý_sock‘s_
+[
+sk
+->
+sock‘
+()] = sk;
+
+67 
 AsyncTCPD©aSock‘
 * 
 G‘IdËCl›ÁSock‘
@@ -3725,7 +3913,7 @@ G‘IdËCl›ÁSock‘
 back’d_šdex
 ) {
 
-66 
+68 
 as£¹
 (
 back’d_šdex
@@ -3735,7 +3923,7 @@ idË_þ›Á_sock‘s_
 size
 ());
 
-67 
+69 
 AsyncTCPD©aSock‘
  *
 	g»t
@@ -3747,11 +3935,11 @@ back’d_šdex
 äÚt
 ();
 
-68 ià(
+70 ià(
 	g»t
 ) {
 
-69 
+71 
 	gidË_þ›Á_sock‘s_
 [
 back’d_šdex
@@ -3759,11 +3947,11 @@ back’d_šdex
 pÝ
 ();
 
-71  
+73  
 	g»t
 ;
 
-74 
+76 
 R‘uºCl›ÁSock‘
 (
 back’d_šdex
@@ -3771,7 +3959,7 @@ back’d_šdex
 fd
 ) {
 
-75 
+77 
 as£¹
 (
 back’d_šdex
@@ -3781,7 +3969,7 @@ idË_þ›Á_sock‘s_
 size
 ());
 
-76 
+78 
 	gidË_þ›Á_sock‘s_
 [
 back’d_šdex
@@ -3791,7 +3979,7 @@ push_back
 fd
 );
 
-78 
+80 
 AsyncTCPSock‘
 * 
 G‘Sock‘
@@ -3799,7 +3987,7 @@ G‘Sock‘
 fd
 ) {
 
-79 
+81 
 as£¹
 (
 fd
@@ -3809,19 +3997,19 @@ fd
 size
 ());
 
-80  
+82  
 	g®l_tý_sock‘s_
 [
 fd
 ];
 
-82 
+84 
 De¡roySock‘
 (
 fd
 ) {
 
-83 
+85 
 as£¹
 (
 fd
@@ -3831,7 +4019,7 @@ fd
 size
 ());
 
-84 
+86 
 as£¹
 (
 ®l_tý_sock‘s_
@@ -3839,7 +4027,7 @@ as£¹
 fd
 ]);
 
-85 
+87 
 d–‘e
  
 	g®l_tý_sock‘s_
@@ -3847,21 +4035,21 @@ d–‘e
 fd
 ];
 
-86 
+88 
 	g®l_tý_sock‘s_
 [
 fd
 ] = 0;
 
-89 
+91 
 	g´iv©e
 :
 
-90 
+92 
 li¡’_sock‘_
 ;
 
-92 
+94 
 	g¡d
 ::
 veùÜ
@@ -3873,7 +4061,7 @@ li¡
 idË_þ›Á_sock‘s_
 ;
 
-93 
+95 
 	g¡d
 ::
 li¡
@@ -3881,7 +4069,7 @@ li¡
 £rv”_sock‘s_
 ;
 
-94 
+96 
 	g¡d
 ::
 veùÜ
@@ -3891,33 +4079,33 @@ AsyncTCPSock‘
 ®l_tý_sock‘s_
 ;
 
-96 
+98 
 	g´iv©e
 :
 
-97 
+99 
 Ev’tEngše
  *
 ’gše_
 ;
 
-99 
+101 
 	g´iv©e
 :
 
-100 cÚ¡ 
+102 cÚ¡ 
 kMaxBack’dNum
  = 100;
 
-101 cÚ¡ 
+103 cÚ¡ 
 	gkMaxCl›ÁSock‘NumP”Back’d
  = 100;
 
-102 cÚ¡ 
+104 cÚ¡ 
 	gkMaxS”v”Sock‘Num
  = 1000000;
 
-103 cÚ¡ 
+105 cÚ¡ 
 	gkMaxSock‘Num
  = 
 kMaxS”v”Sock‘Num

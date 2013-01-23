@@ -21,6 +21,12 @@
 
 namespace ZXBNF {
 
+#define EVENT_READ 0x00000001U
+#define EVENT_WRITE 0x00000002U
+#define EVENT_ERROR 0x00000004U
+#define EVENT_CLOSE 0x00000008U
+
+
     class Event {
     public:
 	// return value:
@@ -31,38 +37,39 @@ namespace ZXBNF {
 	Event(int fd, EventCallback cb, void *arg) 
 	    : fd_(fd), 
 	      events_(0),
+	      events_backup_(0),
 	      cb_(cb),
-	      cb_arg(arg){};
+	      cb_arg_(arg){};
 
 	~Event() {};
 
 	inline int &fd() { return fd_; };
-	inline unsigned int set_read_event() { 
+	inline unsigned int SetReadEvent() { 
 	    unsigned int old = events_; 
 	    events_ |= EVENT_READ; 
 	    return old;
 	};
-	inline unsigned int set_read_event() { 
+	inline unsigned int SetWriteEvent() { 
 	    unsigned int old = events_; 
-	    events_ |= EVENT_READ; 
+	    events_ |= EVENT_WRITE; 
 	    return old;
 	};
-	inline unsigned int set_error_event() { 
+	inline unsigned int SetErrorEvent() { 
 	    unsigned int old = events_; 
 	    events_ |= EVENT_ERROR; 
 	    return old;
 	};
-	inline unsigned int set_close_event() { 
+	inline unsigned int SetCloseEvent() { 
 	    unsigned int old = events_; 
 	    events_ |= EVENT_CLOSE; 
 	    return old;
 	};
-	inline bool is_readable() { return events_ & EVENT_READ; };
-	inline bool is_writable() { return events_ & EVENT_WRITE; ;}
-	inline bool is_closed() { return events_ & EVENT_CLOSE; };
-	inline bool is_error() { return events_ & EVENT_ERROR; };
+	inline bool IsReadable() { return events_ & EVENT_READ; };
+	inline bool IsWritable() { return events_ & EVENT_WRITE; ;}
+	inline bool IsClosed() { return events_ & EVENT_CLOSE; };
+	inline bool IsError() { return events_ & EVENT_ERROR; };
 
-	inline unsigned int get_epoll_events() {
+	inline unsigned int GetEpollEvents() {
 	    unsigned int events = 0;
 
 	    if (is_readable()) {
@@ -79,7 +86,7 @@ namespace ZXBNF {
 	    }
 	    return events;
 	};
-	inline void set_epoll_events(unsigned int events) {
+	inline void SetEpollEvents(unsigned int events) {
 	    events_ = 0;
 	    if (events & EPOLLIN) {
 		set_read_event();
@@ -94,6 +101,18 @@ namespace ZXBNF {
 		set_close_event();
 	    }
 	};
+
+	inline void BackupEvents() {
+	    events_backup_ = events_;
+	};
+    
+	inline void RestoreEvents() {
+	    events_ = events_backup_;
+	};
+	inline void ClearEvents() {
+	    events_ = 0;
+	    events_backup_ = 0;
+	};
 	int Handler() {
 	    assert(cb_);
 	    assert(cb_arg_);
@@ -103,6 +122,7 @@ namespace ZXBNF {
     private:
 	int fd_;
 	unsigned int events_;
+	unsigned int events_backup_;
 	EventCallback cb_;
 	void *cb_arg_;
 	
