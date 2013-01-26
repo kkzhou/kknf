@@ -27,18 +27,18 @@ namespace ZXBNF {
     class AsyncSocket {
     protected:
 	// constroctors & destructors
-	AsyncSocket() :socket_(-1), error_(false){};
-	virtual ~AsyncSocket() { close(socket_); };
+	AsyncSocket() :fd_(-1), error_(false){};
+	virtual ~AsyncSocket() { close(fd_); };
     public:
 	void Invalidate() { error_ = true; };
 	// getters & settters
-	inline int socket() { return socket_; };
-	inline void set_socket(int socket) { socket_ = socket; };
+	inline int fd() { return fd_; };
+	inline void set_fd(int fd) { fd_ = fd; };
 	inline bool error() { return error_; };
 	
     private:
 	bool error_;
-	int socket_;
+	int fd_;
     private:
 	// prohibits
 	AsyncSocket(AsyncSocket&){};
