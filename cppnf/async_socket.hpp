@@ -35,10 +35,16 @@ namespace ZXBNF {
 	inline int fd() { return fd_; };
 	inline void set_fd(int fd) { fd_ = fd; };
 	inline bool error() { return error_; };
+	inline MemPool* mempool() { return mempool_; };
+	inline void set_mempool(MemPool *pool) { mempool_ = pool; };
+	inline void Nonblock() {
+	    
+	};
 	
     private:
 	bool error_;
 	int fd_;
+	MemPool *mempool_;
     private:
 	// prohibits
 	AsyncSocket(AsyncSocket&){};

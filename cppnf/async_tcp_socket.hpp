@@ -9,7 +9,18 @@ namespace ZXBNF {
     protected:
 	// constructors & destructors
 	AsyncTCPSocket() {};
-	int BindOn(Address &addr);
+	int BindOn(Address &addr) {
+	    int fd = socket(PF_INET, SOCK_STREAM, 0);
+	    if (fd  < 0) {
+		return -1;
+	    }
+	    set_fd(fd);
+	    Nonblock();
+	    if (bind(fd, (struct sockaddr*)&addr.addr(), addr.addr_len()) < 0) {
+		return -2;
+	    }
+	    return 0;
+	};
     private:
 	// prohibits
 	AsyncTCPSocket(AsyncTCPSOcket&){};
@@ -20,7 +31,12 @@ namespace ZXBNF {
     protected:
 	AsyncTCPListenSocket() {};
 	~AsyncTCPListenSocket() {};
-	int Linsten();
+	int Linsten() {
+	    if (listen(fd(), 1024) < 0) {
+		return -1;
+	    }
+	    return 0;
+	};
 	int OnAcceptable();
 	virtual AsyncTCPDataSocket* MakeNewSocket(int fd);
     private:
