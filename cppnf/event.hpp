@@ -113,7 +113,7 @@ namespace ZXBNF {
 	    events_ = 0;
 	    events_backup_ = 0;
 	};
-	int Handler() {
+	int DoHandle() {
 	    assert(cb_);
 	    assert(cb_arg_);
 	    return cb_(this, cb_arg_);
