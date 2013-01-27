@@ -37,8 +37,16 @@ namespace ZXBNF {
 	    }
 	    return 0;
 	};
-	int OnAcceptable();
-	virtual AsyncTCPDataSocket* MakeNewSocket(int fd);
+	int OnAcceptable(AsyncTCPDataSocket **newsk) {
+	    Addresss addr;
+	    int newfd = accept(fd(), (struct sockaddr*)&addr.addr(), &addr.addr_len());
+	    if (newfd < 0) {
+		return -1;
+	    }
+	    *newsk = MakeNewSocket(newfd);
+	    return 0;
+	};
+	virtual AsyncTCPDataSocket* MakeNewSocket(int fd) = 0;
     private:
     };
 
@@ -47,7 +55,7 @@ namespace ZXBNF {
     protected:
 	AsyncTCPDataSocket(){};
 	~AsuncTCPDataSocket(){};
-	AsyncTCPDataSocket(int fd) { set_socket(fd); };
+	AsyncTCPDataSocket(int fd) { set_fd(fd); };
     public:
 	// event handler
 	// return value:
@@ -59,7 +67,9 @@ namespace ZXBNF {
 	int OnReadable();
     public:
 	// operations initiated by upper layer
-	int SendMessage(Buffer *msg, int msg_len);
+	int SendMessage(Buffer *msg, int msg_len) {
+	    
+	};
 	int ConnectTo(Address &to, Addresss, &from);
 	int ConnectTo(Address &to);
 
