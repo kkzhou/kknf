@@ -25,24 +25,38 @@ namespace ZXBNF {
 
     // basic socket
     class AsyncSocket {
+    public:
+	enum State {
+	    S_OK = 1,
+	    S_TO_CLOSE,
+	    S_TO_CLOSE_AFTER_SEND_ALL_DATA
+	};
     protected:
 	// constroctors & destructors
-	AsyncSocket() :fd_(-1), error_(false){};
+	AsyncSocket() :state_(S_OK), fd_(-1), mempool_(0){};
 	virtual ~AsyncSocket() { close(fd_); };
     public:
-	void Invalidate() { error_ = true; };
 	// getters & settters
 	inline int fd() { return fd_; };
 	inline void set_fd(int fd) { fd_ = fd; };
-	inline bool error() { return error_; };
+	inline State state() { return state_; };
+	inline void set_state(State s) { state_ = s; };
 	inline MemPool* mempool() { return mempool_; };
 	inline void set_mempool(MemPool *pool) { mempool_ = pool; };
-	inline void Nonblock() {
-	    
+    public:
+	inline int Nonblock() {
+	    int flags; 
+	    if ((flags = fcntl(fd(), F_GETFL, 0)) < 0) { 
+		return -1;
+	    } 
+	    if (fcntl(fd(), F_SETFL, flags | O_NONBLOCK) < 0) { 
+		return -2;
+	    }
+	    return 0;
 	};
 	
     private:
-	bool error_;
+        State state_;
 	int fd_;
 	MemPool *mempool_;
     private:

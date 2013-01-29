@@ -11,12 +11,26 @@ namespace ZXBNF {
 	LVListenSocket() {};
 	~TCPLVListenSocket() {};
 
-	virtual AsyncTCPDataSocket* MakeNewSocket(int fd);
+	virtual AsyncTCPDataSocket* MakeNewSocket(int fd) {
+	    LVSocket *sk = new LVSocket;
+	    sk->set_fd(fd);
+	    return sk;
+	};
     };
 
     class LVSocket : public AsyncTCPDataSocket {
     public:
-	virtual int Messagize(Buffer **msg, int *msg_len);
+	virtual int MessageSize() {
+
+	    if (!msg_in_recv_) {
+		return 0;
+	    }
+	    if (msg_in_recv_->tail() - msg_in_recv_->head() >= 4) {
+		msg_size_ = htonl(*(int*)(msg_in_recv_->start() + msg_in_recv_->head()));
+		return msg_size_;
+	    }
+	    return 0;
+	};
     };
 };
 
