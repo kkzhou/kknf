@@ -23,29 +23,19 @@
 
 namespace ZXBNF {
 
-    class Buffer {
-    public:
-	Buffer(char *start,  int length) {
-	    start_ = start;
-	    length_ = length;
-	    head_ = 0;
-	    tail_ = 0;
+    struct Buffer {
+	char *start;
+	int head;
+	int tail;
+	int length;
+
+	Buffer(char *s,  int l) {
+	    start = s;
+	    length = l;
+	    head = 0;
+	    tail = 0;
 	};
 
-	inline char* start() { return start_; };
-	inline int length() { return length_; };
-	inline int &head() { return head_; };
-	inline int &tail() { return tail_;};
-	inline Buffer* &next() { return next_; };
-	inline Buffer* &prev() } return prev_; };
-
-    private:
-	char *start_;
-	int head_;
-	int tail_;
-	int length_;
-	Buffer *next_;
-	Buffer *prev_;
     private:
 	// forbid
 	Buffer(Buffer&) {};

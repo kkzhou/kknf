@@ -34,14 +34,12 @@ namespace ZXBNF {
 	    return epoll_fd_;
 
 	};
-	int Run() {
+	int RunOnce() {
 
 	    struct epoll_event ev[kMaxEpoll];
 	    int ev_num = 0;
 	    int error = 0;
 	    
-	l_repeat:
-
 	    // get timeout
 	    int next_wake = 0;
 	    struct timeval now;
@@ -60,15 +58,14 @@ namespace ZXBNF {
 		} else {
 		    delete t;
 		}
-		goto l_repeat;
+		return 1;
 	    }
 
 	    if (ret < 0) {
 		if (errno == EAGAIN || errno == EINTR) {
 		    continue;
 		}
-		error = -1;
-		goto l_exit;
+		return -1;
 	    }
 	    // process events
 	    for (int i = 0; i < ev_num; i++) {
@@ -83,11 +80,20 @@ namespace ZXBNF {
 		ev[i].events = e->get_epoll_events();
 		e->ModEvent(e);
 	    }
-	    goto l_repeat;
 
-	l_exit:
-	    return error;
+	    return 0;
 	};
+
+	int Run() {
+
+	    while (true) {
+		int ret = RunOnce();
+		if (ret < 0) {
+		    return -1;
+		}
+	    } // while
+	};
+
 	int AddEvent(Event *e) {
 	
 	    struct epoll_event ev;

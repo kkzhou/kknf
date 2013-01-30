@@ -48,7 +48,7 @@ namespace ZXBNF {
 		return -1;
 	    }
 	    Address addr;
-	    int num = readfrom(fd(), buf->start(), buf->length(), 0, 
+	    int num = readfrom(fd(), buf->start, buf->length, 0, 
 			       (struct sockaddr*)&addr.addr(), &addr.addrlen());
 	    if (num > 0) {
 		buf->tail() += num;
@@ -75,9 +75,9 @@ namespace ZXBNF {
 	    }
 	    send_msg_list_.pop();
 	    Buffer *buf = msg->data_;
-	    assert(buf->head() == 0);
+	    assert(buf->head == 0);
 	    
-	    int num = sendto(fd(), buf->start(), buf->tail(), 0, 
+	    int num = sendto(fd(), buf->start, buf->tail, 0, 
 			       (struct sockaddr*)&msg->addr_.addr(), msg->addr_.addrlen());
 	    if (num > 0) {
 		delete msg;

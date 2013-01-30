@@ -55,7 +55,8 @@ namespace ZXBNF {
 		return 1;
 	    }
 	    int listen_fd = e->socket();
-	    while (true) {
+	    int count = 100;
+	    while (count--) {
 		struct sockaddr_in new_addr;
 		socklen_t len = 0;
 		int newfd = accept(listen_fd, (struct sockaddr*)&new_addr, &len);
@@ -77,6 +78,7 @@ namespace ZXBNF {
 		    assert(false);
 		}
 	    } // while
+	    srv->event_engine()->DeleteEvent(listen_fd);
 	    return 1;
 
 	};
