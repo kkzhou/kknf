@@ -110,7 +110,6 @@ namespace ZXBNF {
 	    return 0;
 
 	};
-	int ModEvent(Event *e);
 	int DeleteEvent(int fd) {
 	    if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, 0) < 0) {
 		if (errno == ENOENT) {
@@ -120,7 +119,7 @@ namespace ZXBNF {
 		}
 	    }
 	    return 0;
-
+	    // cant delete the event.data.ptr
 	};
 
 	inline void AddTimer(Timer *timer) {

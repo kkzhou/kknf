@@ -80,8 +80,8 @@ namespace ZXBNF {
 	    } // while
 	    srv->event_engine()->DeleteEvent(listen_fd);
 	    return 1;
-
 	};
+
 	static int EventCallback_For_DataSocket(Event *e, void *arg) {
 	    assert(e);
 	    assert(arg);
@@ -155,11 +155,14 @@ namespace ZXBNF {
 	int AddListener(char *ipstr, unsigned short hport);
 	int AddClient(int backend_index, char *ipstr, unsigned short hport);
 	void AttatchEngine(EventEngine *eg) { event_engine_ = eg; };
-
+	static int RunInThread(Server *srv) {
+	    
+	};
     private:
 	virtual int ProcessMessage(int socket, Buffer *msg, int msg_len) = 0;
 	virtual int AddListenSocket(int socket) = 0;
 	virtual int AddClientSocket(int socket) = 0;	
+
     private:
 	int AddServerSocket(AsyncTCPDataSocket *sk) {
 	    if (sk->socket() >= all_tcp_sockets_.size()) {
@@ -194,11 +197,12 @@ namespace ZXBNF {
 	    all_tcp_sockets_[fd] = 0;
 	};
 	
+	
     private:
-	int listen_socket_;
-
-	std::vector<std::list<int> > idle_client_sockets_;
-	std::list<int> server_sockets_; // only used for sweeping, a little UGLY
+	int listen_fd_;
+	
+	std::vector<std::list<int> > idle_client_fd_;
+	std::list<int> server_fd_; // only used for sweeping, a little UGLY
 	std::vector<AsyncTCPSocket*> all_tcp_sockets_; // indexed by 'fd'
 
     private:
