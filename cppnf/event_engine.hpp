@@ -84,7 +84,7 @@ namespace ZXBNF {
 	    return 0;
 	};
 
-	int Run() {
+	int RunForever() {
 
 	    while (true) {
 		int ret = RunOnce();
