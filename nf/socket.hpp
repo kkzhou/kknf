@@ -20,7 +20,12 @@ namespace NF {
 	};
     };
 
-    class TCPSocket {
+    class TCPSocket : public EventListener {
+    public:
+	struct TCPMessage {
+	    char *data;
+	    int size;	    
+	};
     public:
 	TCPSocket(int fd);
 	TCPSocket();
@@ -34,40 +39,53 @@ namespace NF {
 	int OnError();
     private:
 	friend class Messagizor;
-	int fd_;
-	char *recv_buf_;
-	int recv_buf_size_;
-	int recv_buf_cur_;
-	std::list<char*> send_buf_list_;
-	int send_buf_cur_;
+	TCPMessage *receive_msg_;
+	int received_;
+	std::list<TCPMessage*> send_msg_list_;
+	int sent_;
     };
 
-    class TCPListener {
+    class TCPListener : public EventListener {
     public:
 	TCPListener();
 	~TCPListener();
-	bool ListenOn(struct sockaddr_in &addr);
+	bool ListenOn(struct sockaddr_in &addr) {
+	    int fd = socket(PF_INET, SOCK_DATAGRAM, 0);
+	    if (fd < 0) {
+		return false;
+	    }
+	    set_fd(fd);
+	    if (bind(fd(), (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+		return false;
+	    }
+	    return true;
+	};
     public:
 	int OnAcceptable();
-    private:
-	int fd_;
     };
 
-    class UDPSocket {
+    class UDPSocket : public EventListener {
     public:
-	UDPSocket(struct sockaddr_in &addr);
+	struct UDPMessage {
+	    char *data;
+	    int size;
+	    struct sockaddr_in to;
+	};
+    public:
 	UDPSocket();
 	~UDPSocket();
-	int BindOn();
+	int BindOn(struct sockaddr_in &addr);
 	int AsyncSend(struct sockaddr_in &to, char *buf, int size);
+    public:
+	virtual int Handler() {
+	    
+	};
 	int OnReadable();
 	int OnWritable();
 	int OnError();
 	
     private:
-	int fd_;
-	std::list<char*> send_buf_list_;
-	std::list<struct sockaddr_in> send_addr_list_;
+	std::list<UDPMessage*> send_msg_list_;
     };
 };
 
