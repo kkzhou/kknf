@@ -49,7 +49,9 @@ namespace NF {
 	    int capacity;
 	};
     public:
-	TCPSocket(int fd);
+	TCPSocket(int fd) {
+	    set_fd(fd);
+	};
 	TCPSocket();
 	~TCPSocket();
 	void SetProcessor(Procesor *proc);

@@ -4,7 +4,7 @@
 #include "engine.hpp"
 
 namespace NF {
-    class ServerSkeleton {
+    class ServerSkeleton : public Processor {
     public:
 	ServerSkeleton();
 	void Init(int engine_num) {
