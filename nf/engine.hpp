@@ -6,10 +6,31 @@ namespace NF {
     class Timer {
     public:
 	typedef (void)(*TimerHandler)(void*);
-	Timer(int id, void *context， TimerHandler h, Time *fire_time);
-	void Fire() { handler_(context_);
-	bool operator< (Timer &t);
-	int id() { return id_; };
+	Timer(int id, void *context， TimerHandler h, Time &fire_time)
+	    : id_(id), fire_time_(fire_time), handler_(h), context_(context) {
+	};
+
+	void Fire() { 
+	    handler_(context_); 
+	};
+	
+	bool operator< (Timer &t) {
+	    if (fire_time().tv_sec > t->fire_time().tv_sec) {
+		return true;
+	    } else if (fire_time().tv_sec == t->fire_time().tv_sec) {
+		if (fire_time().tv_usec > t->fire_time().tv_usec) {
+		    return true;
+		}
+	    } else {
+		
+	    }
+	    return false;
+
+	};
+	
+	int id() { 
+	    return id_; 
+	};
     private:
 	int id_;
 	Time fire_time_;
@@ -19,15 +40,24 @@ namespace NF {
 
     class EventListener {
     public:
-	EventListener();
-	virtual ~EventListener();
+	EventListener() {
+	    
+	};
+
+	virtual ~EventListener() {
+	    
+	};
+	
 	virtual int Handle() = 0;
+
 	void set_context(void *ctx) {
 	    context_ = ctx;
 	};
+
 	void* context() {
 	    return context_;
 	};
+
 	void MakeNonBlock() {
 	    int flags; 
 	    if ((flags = fcntl(fd(), F_GETFL, 0)) < 0) { 
@@ -39,10 +69,22 @@ namespace NF {
 	    return 0;
 	};
 	
-	unsigned int events() { return events_; };
-	void set_events(unsigned int events) { events_ = events; };
-	int fd() { return fd_; };
-	void set_fd(int fd) { fd_ = fd; };
+	unsigned int events() { 
+	    return events_; 
+	};
+	
+	void set_events(unsigned int events) { 
+	    events_ = events; 
+	};
+
+	int fd() { 
+	    return fd_; 
+	};
+	
+	void set_fd(int fd) { 
+	    fd_ = fd; 
+	};
+	
     private:
 	unsigned int events_;
 	int fd_;
@@ -50,8 +92,12 @@ namespace NF {
     };
 
     class Engine {
-	Engine();
-	~Engine();
+	Engine() {
+	};
+
+	~Engine() {
+	};
+
     public:
 	bool InitEngine() {
 	    epoll_fd_ = epoll_create(kMaxEpoll);
@@ -60,6 +106,7 @@ namespace NF {
 	    }
 	    return true;
 	};
+
 	bool AddEvent(EventListener *l) {
 	    struct epoll_event e;
 	    memset(&e, sizeof(e), 0);
@@ -70,6 +117,7 @@ namespace NF {
 	    }
 	    return true;
 	};
+
 	bool DeleteEventListener(int fd) {
 	    if (epoll_ctl(epoll_fd_, EPOLL_DEL, fd, 0) < 0) {
 		return false;
@@ -80,6 +128,7 @@ namespace NF {
 	void AddTimer(Timer &timer) {
 	    timer_queue_.push(timer);
 	};
+
 	void DeleteTimer(int id) {
 	    bool id_equal(Timer &t) {
 		return t.id() == id;
@@ -87,6 +136,7 @@ namespace NF {
 	    timer_queue_.erase(remove_if(timer_queue_.begin(), timer_queue_.end(), id_equal), 
 			       timer_queue_.end());
 	};
+
 	void Start() {
 	    struct epoll_event e[kMaxEpoll];
 	    for (;;) {
@@ -127,7 +177,10 @@ namespace NF {
 		
 	    } // for (;;)	    
 	};
-	void Stop() { stop_ = true; };
+
+	void Stop() { 
+	    stop_ = true; 
+	};
 
     private:
 	int epoll_fd_;

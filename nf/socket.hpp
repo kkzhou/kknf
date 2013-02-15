@@ -12,17 +12,23 @@ namespace NF {
 
     class Messagizor {
     public:
-	Messagizizor(TCPSocket *sk) : socket_(sk) {};
+	Messagizizor(TCPSocket *sk) : socket_(sk) {
+	};
+	
 	virtual bool IsComplete() = 0;
 	virtual int MessageSize() = 0;
-	TCPSocket* socket() { return socket_; };
+	TCPSocket* socket() { 
+	    return socket_; 
+	};
     private:
 	TCPSocket *socket_;
     };
 
     class LVMessagizor : public Messagizor {
     public:
-	LVMessagizor(TCPSocket *sk) : Messagizor(sk) {};
+	LVMessagizor(TCPSocket *sk) : Messagizor(sk) {
+	};
+
 	virtual bool IsComplete() {
 	    return socket()->receive_msg_length_ == socket()->received_;	    
 	};
@@ -52,8 +58,13 @@ namespace NF {
 	TCPSocket(int fd) {
 	    set_fd(fd);
 	};
-	TCPSocket();
-	~TCPSocket();
+
+	TCPSocket() {
+	};
+
+	~TCPSocket() {
+	    Close();
+	};
 
 	void SetProcessor(Procesor *proc) { 
 	    processor_ = proc; 
@@ -149,6 +160,7 @@ namespace NF {
 	    delete[] v;
 	    return 0;
 	};
+
 	// return value:
 	// 0: OK and not complete
 	// 1: OK and complete
@@ -195,7 +207,6 @@ namespace NF {
 		    break;
 		}
 	    } // while
-
 	    return ret;
 	};
 
@@ -282,8 +293,12 @@ namespace NF {
 	    struct sockaddr_in addr;
 	};
     public:
-	UDPSocket() {	};
-	~UDPSocket() {};
+	UDPSocket() {	
+	};
+	
+	~UDPSocket() {
+	};
+	
 	int Close() { 
 	    close(fd());
 	    if (msg_) {

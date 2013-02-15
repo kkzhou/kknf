@@ -4,6 +4,7 @@
 #include "engine.hpp"
 
 namespace NF {
+
     class ServerSkeleton : public Processor {
     public:
 	ServerSkeleton() : all_sockets_(100000, -1){
@@ -15,6 +16,25 @@ namespace NF {
 
 	void AddEngine(Engine *engine) {
 	    engines_.push_back(engine);
+	};
+
+	void* GetContextByIndex(unsigned long long index) {
+	    void *ctx = context_by_index_[index];
+	    return ctx;
+	};
+
+	void SetContextByIndex(unsigned long long index, void *ctx) {
+	    context_by_index_.insert(pair<unsigned long long, void*>(index, ctx));
+	};
+	
+	void* GetContextByFD(int fd) {
+	    TCPSocket *sk = all_sockets_[fd];
+	    return sk->context();
+	};
+
+	void SetContextByFD(int fd, void *ctx) {
+	    TCPSocket *sk = all_sockets_[fd];
+	    sk->set_context(ctx);
 	};
 
     public:
@@ -29,27 +49,35 @@ namespace NF {
 
 	virtual int ProcessMessage(int fd, char *data, int size) {
 	    // example code
-	    MyContext *ctx = reinterpret_cast<MyContext*>(Context());
-	    if (ctx->state == S_INIT) {
-	        MyBackendRequest1 req1;
-		req1.field1 = 1;
-		req1.field2 = 2;
-		char *req1_buf = new char[req1.size()];
-		req1.Serialize(req1_buf);
-		TCPSocket *backend1 = ClientPool.GetClient(2);
-		backend1->AsyncSend(req1...);
-		MyBackendRequest2 req2;
-		//...
-		TCPSocket *backend2 = ClientPool.GetClient(4);
-		backend2->AsyncSend(req2...);
-		ctx->state = S_ALL_BACKEND_REQ_SENT;
+	    // TCPSocket *sk = all_sockets_[fd];
+	    // MyContext *ctx = GetContextByFD(sk->fd()); // or GetContextByFD()
+	    // if (!ctx) {
+	    // 	ctx = new MyContext;
+	    // 	SetContextByFD(sk->fd(), ctx);  // or use SetContextByIndex()
+	    // }
 
-	    } else if (ctx->state == S_ALL_BACKEND_REQ_SENT) {
+	    // if (ctx->state == S_INIT) {
+	    //     MyBackendRequest1 req1;
+	    // 	req1.field1 = 1;
+	    // 	req1.field2 = 2;
+	    // 	char *req1_buf = new char[req1.size()];
+	    // 	req1.Serialize(req1_buf);
+	    // 	TCPSocket *backend1 = ClientPool.GetClient(2);
+	    // 	backend1->set_context(ctx);		
+	    // 	backend1->AsyncSend(req1...);
+	    // 	MyBackendRequest2 req2;
+	    // 	//...
+	    // 	TCPSocket *backend2 = ClientPool.GetClient(4);
+	    // 	backend2->set_context(ctx);
+	    // 	backend2->AsyncSend(req2...);
+	    // 	ctx->state = S_ALL_BACKEND_REQ_SENT;
+
+	    // } else if (ctx->state == S_ALL_BACKEND_REQ_SENT) {
 		
-	    } else if (ctx->state == S_BACKEND_RSP1_RECVED) {
-	    } else if (ctx->state == S_BACKEND_RSP2_RECVED) {
-	    } else {
-	    }
+	    // } else if (ctx->state == S_BACKEND_RSP1_RECVED) {
+	    // } else if (ctx->state == S_BACKEND_RSP2_RECVED) {
+	    // } else {
+	    // }
 	    return 0;
 	};
 
@@ -100,6 +128,7 @@ namespace NF {
 	std::vector<int> all_sockets_;
 	TCPListener* listener_;
 	UDPSocket *udp_socket_;
+	std::unordered_map<unsigned long long, void*> context_by_index_;
     };
 };
 
