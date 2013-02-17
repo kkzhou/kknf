@@ -1,8 +1,11 @@
 
-class 
-int Init() {
-    TCPListener *listener = new TCPListener;
-    listener->ListenOn(...);
-    
-    listener = new TCPListener;
-}
+#include "skeleton.hpp"
+
+class ExampleBF : public Skeleton {
+public:
+    virtual void Init() {
+    };
+private:
+
+};
+
