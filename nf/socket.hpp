@@ -6,8 +6,9 @@ namespace NF {
     class Processor {
     public:
 	virtual int ProcessNewConnection(int fd) = 0;
-	virtual int ProcessMessage(int fd, char *data, int size) = 0;
-	virtual int ProcessMessage(int fd, char *data, int size, struct sockaddr_in from) = 0;
+	virtual int ProcessTCPMessage(int fd, char *data, int size) = 0;
+	virtual int ProcessUDPMessage(int fd, char *data, int size, 
+				      struct sockaddr_in from) = 0;
     };
 
     class Messagizor {
@@ -64,6 +65,11 @@ namespace NF {
 
 	~TCPSocket() {
 	    Close();
+	};
+	
+	void AttachEngine(Engine *e) {
+	    assert(engine_ == 0);
+	    engine_ = e;
 	};
 
 	void SetProcessor(Procesor *proc) { 
@@ -223,6 +229,8 @@ namespace NF {
 	int received_;
 	std::list<TCPMessage*> send_msg_list_;
 	int sent_;
+
+	Engine *engine_;
     };
 
     class TCPListener : public EventListener {
@@ -255,6 +263,15 @@ namespace NF {
 	    return true;
 	};
 
+	void set_engine(Engine *e) {
+	    assert(engine_ == 0);
+	    engine_ = e;
+	};
+
+	Engine* engine() {
+	    return engine_;
+	};
+
     public:
 	int Handle() {
 	    assert (events() & EPOLLIN);
@@ -282,6 +299,7 @@ namespace NF {
 
     private:
 	Processor *processor_;
+	Engine *engine_;
     };
 
     class UDPSocket : public EventListener {
@@ -311,6 +329,15 @@ namespace NF {
 		delete[] (*it)->data;
 		it = send_msg_list_.erase(it);
 	    }
+	};
+
+	Engine* engine() {
+	    return engine_;
+	};
+
+	void set_engine(Engine *e) {
+	    assert(engine_ == 0);
+	    engine_ = e;
 	};
 	
 	bool BindOn(struct sockaddr_in &addr) {
@@ -422,6 +449,7 @@ namespace NF {
     private:
 	std::list<UDPMessage*> send_msg_list_;
 	Processor *processor_;
+	Engine *engine_;
     };
 };
 

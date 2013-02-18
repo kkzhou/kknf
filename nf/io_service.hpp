@@ -1,5 +1,5 @@
-#ifndef __SKELETON_HPP__
-#define __SKELETON_HPP__
+#ifndef __IO_SERVICE_HPP__
+#define __IO_SERVICE_HPP__
 
 #include "engine.hpp"
 
@@ -12,152 +12,132 @@ namespace NF {
 	    ios_ = ios;
 	};
 
-	virtual int ProcessNewConnection(int fd) {
-	    TCPSocket *newsk = new TCPSocket(fd);
-	    ios_->AddTCPSocket(newsk);
-	    Engine *e = ios_->GetEngine(fd % ios_->GetEngineNum());	  
-	    e->AddEventListener(newsk, EPOLLIN);
-	    return 0;
-	};
-
-	virtual int ProcessMessage(int fd, char *data, int size) {	   
-	    return OnRequest(fd, data, size);
-	};
-
-	virtual int ProcessMessage(int fd, char *data, int size, struct sockaddr_in &from) {
-	    if (fd == command_socket_->fd()) {
-		return OnCommand(*(unsigned int*)data, data + 4, size - 4);
-	    }
-	    
-	    return OnRequest(fd, data, size, from);
-	};
-	
-	virtual int OnCommand(unsigned int cmd, char *data, int size) {
-	    switch (cmd) {
-	    case 0x01:
-		// quit
-		break;
-	    case 0x02:
-		// change listener's engine
-		int listener = *(int*)data;
-		int index = 0;
-		for (index = 0; index < kMaxListenerNum; index++) {
-		    if (listener_[index] == listener) {
-			break;
-		    }
-		}
-		listener_in_which_engine_[index] = 
-		    (listener_in_which_engine_[index] + 1) % listener_num_;
-
-		Engine *e = ios_->GetEngine(listener_in_which_engine_[index]);
-		e->AddEventListener(all_sockets_[listener], EPOLLIN);
-		break;
-	    case 0x03:
-		break;
-	    case 0x04:
-		break;
-	    default:
-		break;
-	    }
-	};
-
-	virtual int OnRequest(int fd, char *data, int size) {
-	    // example code
-	    // TCPSocket *sk = all_sockets_[fd];
-	    // MyContext *ctx = GetContextByFD(sk->fd()); // or GetContextByFD()
-	    // if (!ctx) {
-	    // 	ctx = new MyContext;
-	    // 	SetContextByFD(sk->fd(), ctx);  // or use SetContextByIndex()
-	    // }
-
-	    // if (ctx->state == S_INIT) {
-	    //     MyBackendRequest1 req1;
-	    // 	req1.field1 = 1;
-	    // 	req1.field2 = 2;
-	    // 	char *req1_buf = new char[req1.size()];
-	    // 	req1.Serialize(req1_buf);
-	    // 	TCPSocket *backend1 = ClientPool.GetClient(2); // or, just send throught udp
-	    // 	backend1->set_context(ctx);		
-	    // 	backend1->AsyncSend(req1...);
-	    // 	MyBackendRequest2 req2;
-	    // 	//...
-	    // 	TCPSocket *backend2 = ClientPool.GetClient(4);
-	    // 	backend2->set_context(ctx);
-	    // 	backend2->AsyncSend(req2...);
-	    // 	ctx->state = S_ALL_BACKEND_REQ_SENT;
-
-	    // } else if (ctx->state == S_ALL_BACKEND_REQ_SENT) {
-		
-	    // } else if (ctx->state == S_BACKEND_RSP1_RECVED) {
-	    // } else if (ctx->state == S_BACKEND_RSP2_RECVED) {
-	    // } else {
-	    // }
-  
-	};
-	virtual int OnRequest(int fd, char *data, int size, struct sockaddr_in &from) {
-	    // example code
-	    // TCPSocket *sk = all_sockets_[fd];
-	    // MyContext *ctx = GetContextByFD(sk->fd()); // or GetContextByFD()
-	    // if (!ctx) {
-	    // 	ctx = new MyContext;
-	    // 	SetContextByFD(sk->fd(), ctx);  // or use SetContextByIndex()
-	    // }
-
-	    // if (ctx->state == S_INIT) {
-	    //     MyBackendRequest1 req1;
-	    // 	req1.field1 = 1;
-	    // 	req1.field2 = 2;
-	    // 	char *req1_buf = new char[req1.size()];
-	    // 	req1.Serialize(req1_buf);
-	    // 	TCPSocket *backend1 = ClientPool.GetClient(2); // or, just send throught udp
-	    // 	backend1->set_context(ctx);		
-	    // 	backend1->AsyncSend(req1...);
-	    // 	MyBackendRequest2 req2;
-	    // 	//...
-	    // 	TCPSocket *backend2 = ClientPool.GetClient(4);
-	    // 	backend2->set_context(ctx);
-	    // 	backend2->AsyncSend(req2...);
-	    // 	ctx->state = S_ALL_BACKEND_REQ_SENT;
-
-	    // } else if (ctx->state == S_ALL_BACKEND_REQ_SENT) {
-		
-	    // } else if (ctx->state == S_BACKEND_RSP1_RECVED) {
-	    // } else if (ctx->state == S_BACKEND_RSP2_RECVED) {
-	    // } else {
-	    // }
-	};
-	
     private:
 	IOService *ios_;
     };
 
+    class TCPProcessor : public BasicProcessor {
+    public:
+	virtual int ProcessNewConnection(int listenfd, int newfd) {
+	    TCPSocket *newsk = new TCPSocket(newfd);
+	    TCPSocket *listensk = ios_->FindTCPSocket(listenfd);
+	    ios_->AddTCPSocket(newsk);
+	    Engine *e = listensk->engine();
+	    newsk->set_engine(e);
+	    e->AddEventListener(newsk, EPOLLIN);
+	    ios_->ShiftListener(listenfd);
+	    return 0;
+	};
+
+    };
+
+    class CommandProcessor : public BasicProcessor {
+    public:
+	virtual int ProcessUDPMessage(int fd, char *data, int size, 
+				  struct sockaddr_in &from) {
+	    unsigned int cmd = *(unsigned int*)data;
+
+	    switch (cmd) {
+	    case 0x01:
+	    	// quit
+	    	break;
+	    case 0x02:
+	    	// change listener's engine	    
+		int listenfd = *(int*)(data + 4);
+		ios_->ShiftListener(listenfd);
+		break;
+	    case 0x03:
+	    	break;
+	    case 0x04:
+	    	break;
+	    default:
+	    	break;
+	    }
+	};
+    };	
+    
     class IOService {
     public:
-	IOService() : all_sockets_(100000, -1){
+	IOService() : all_sockets_(100000, 0){
 	    
 	};
 
-	virtual void Init() = 0;
-	virtual void RunForever() {
+	virtual void Init() {};
+
+	static void ThreadProc(void *arg) {
+	    Engine *e = reinterpret_cast<Engine*>(arg);	    
+	    e->Start();
+	};
+
+	virtual void RunIOService() {
+	    Init();
+
+	    assert(engines_.size() == command_socket_num_);
+
+	    // tcp listener
+	    for (int i = 0; i < listener_num_; i++) {
+		engines_[0]->AddEventListener(listener_[i]);
+	    }
+
+	    // udp socket
+	    for (int i = 0; i < udp_socket_num_; i++) {
+		engines_[0]->AddEventListener(udp_socket_[i]);
+	    }
+
+	    // command socket(udp), one Engine(thread) one socket
+	    for (int i = 0; i < command_socket_; i++) {
+		engines_[i]->AddEventListener(command_socket_[i]);
+	    }
+
+	    int thread_num = engines_.size();
+	    pthread_t *pid = new pthread_t[thread_num];
+
+	    for (int i = 0; i < thread_num; i++) {
+		int ret = pthread_create(&pid[i], 0, ThreadProc, engines_[i]);
+	    }
+
+	    for (int i = 0; i < thread_num; i++) {
+		while(pthread_join(pid[i], 0) != 0) {
+		}
+	    }
+	};
+	
+	void StopIOService() {
+	    int thread_num = engines_.size();
+	    for (int i = 0; i < thread_num; i++) {
+		engines_[i]->Stop();
+	    }
+	};
+
+	int ShiftListener(int listenfd) {
+	    // shift this listener fd to another epoll(that is, another thread
+	    char *buf = new char[8]; // len(4) : fd(4)
+	    *(int*)buf = 8;
+	    *(int*)(buf + 4) = listenfd;
 	    
+	    command_socket_->AsyncSend(buf, 8);
+	    return 0;
 	};
 
 	int AddSocket(TCPSocket *sk) {
-	    assert(all_sockets_[sk->fd()] == -1);
+	    assert(all_sockets_[sk->fd()] == 0);
 	    all_sockets_[sk->fd()] = sk;
 	    return 0;
 	};
 
-	Engine* GetEngine(int index) {
-	    return engines_[index];
+	TCPSocket* FindTCPSocket(int fd) {
+	    return all_sockets_[fd];
 	};
-
-	int GetEngineNum() {
-	    return engines_.size();
-	};
-
-	void AddEngine(Engine *engine) {
+	
+	int AddEngine(Engine *engine) {
+	    int ret = engines_.size();
 	    engines_.push_back(engine);
+	    return ret;
+	};
+
+	Engine* FindEngine(int index) {
+	    Engine *e = engines_[index];
+	    return e;
 	};
 
 	void* GetContextByIndex(unsigned long long index) {
@@ -219,6 +199,7 @@ namespace NF {
 	    }
 	    return 0;
 	};
+
 	int AddCommandSocket(char *ipstr, unsigned short hport) {
 
 	    assert(command_socket_ == 0);
@@ -229,8 +210,10 @@ namespace NF {
 	    }
 	    addr.sin_port = htons(hport);
 	    addr.sin_family = AF_INET;
-	    command_socket_ = new UDPSocket;
-	    if (!command_socket_->BindOn(addr)) {
+	    int cur = command_socket_num_;
+	    command_socket_num_++;
+	    command_socket_[cur] = new UDPSocket;
+	    if (!command_socket_[cur]->BindOn(addr)) {
 		return -2;
 	    }
 	    return 0;
@@ -244,13 +227,17 @@ namespace NF {
 
     private:
 	std::vector<Engine*> engines_;
-	std::vector<int> all_sockets_;
+	std::vector<TCPSocket*> all_sockets_;
+
 	TCPListener* listener_[10];
-	int listener_in_which_engine_[10];
 	int listener_num_;
+
+	UDPSocket *command_socket_[10];
+	int command_socket_num_;
+
 	UDPSocket *udp_socket_[10];
 	int udp_socket_num_;
-	UDPSocket *command_socket_;
+
 
 	std::unordered_map<unsigned long long, void*> context_by_index_;
 	static const int kMaxUDPSocketNum = 10;
