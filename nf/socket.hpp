@@ -16,40 +16,54 @@ namespace NF {
 	    : messagizizor_(m),
 	      processor_(p) {
 
+	    ENTERING;
 	    set_fd(fd);
+	    LEAVING;
 	};
 
 	TCPSocket(Messagizor *m, TCPProcessor *p)
-	    : messagizizor_(m),
+	    : messagizizor_(m),	      
 	      processor_(p) {
+	    ENTERING;
+	    LEAVING;
 	};
 
 	~TCPSocket() {
+	    ENTERING;
 	    Close();
+	    LEAVING;
 	};
 
 	bool AsyncConnectTo(struct sockaddr_in &addr) {
+	    ENTERING;
 	    int ret = connect(fd(), (struct sockaddr*)&addr, sizeof(addr));
 	    if (ret < 0) {
+		LEAVING2;
 		return false;
 	    }
+	    LEAVING;
 	    return true;
 	};
 
 	bool AsyncSend(char *buf, int size, int capacity) {
+
+	    ENTERING;
 	    TCPMessage *msg = new TCPMessage;
 	    msg->data = buf;
 	    msg->size = size;
 	    msg->capacity = capacity;
 	    
 	    if (send_msg_list_.size() > kMaxSendList) {
+		LEAVING2;
 		return false;
 	    }
 	    send_msg_list_.push_back(msg);
+	    LEAVING;
 	    return true;
 	};
 
 	int Close() { 
+	    ENTERING;
 	    close(fd());
 	    if (msg_) {
 		delete[] msg_->data;
@@ -62,21 +76,35 @@ namespace NF {
 		delete[] (*it)->data;
 		it = send_msg_list_.erase(it);
 	    }
+	    LEAVING2;
+	    return 0;
 	};
 
 	TCPMessage* GetMessage() {
+
+	    ENTERING;
 	    if (messagizizor_->IsComplete()) {
 		TCPMessage *ret = msg_;
 		msg_ = 0;
 		received_ = 0;
+		LEAVING;
 		return ret;
 	    }
+	    LEAVING;
 	    return 0;
 	};
-
+	
+	void GetSendList(std::list<TCPMessage*> &msg_list) {
+	    ENTERING;
+	    send_msg_list_.swap(msg_list);
+	    LEAVING;
+	};
+	    
     public:
 	int OnWritable() {
+	    ENTERING;
 	    if (send_msg_list_.size() == 0) {
+		LEAVING2;
 		return -1;
 	    }
 	    struct iovec *v = new struct iovec[send_msg_list_.size()];
@@ -94,10 +122,12 @@ namespace NF {
 	    int ret = writv(fd(), v, i);
 	    if (ret < 0) {
 		delete[] v;
+		LEAVING2;
 		return -1;
 	    } 
 	    if (ret == 0) {
 		delete[] v;
+		LEAVING2;
 		return -2;
 	    }
 	    int left = ret;
@@ -117,6 +147,7 @@ namespace NF {
 	    }
 
 	    delete[] v;
+	    LEAVING;
 	    return 0;
 	};
 
@@ -126,6 +157,7 @@ namespace NF {
 	// <0: error
 	int OnReadable() {
 
+	    ENTERING;
 	    if (msg_ == 0) {
 		assert(received_ == 0);
 		msg_ = new TCPMessage;
@@ -166,11 +198,14 @@ namespace NF {
 		    break;
 		}
 	    } // while
+	    LEAVING;
 	    return ret;
 	};
 
 	int OnError() {
+	    ENTERING;
 	    Close();
+	    LEAVING;
 	    return 0;
 	};
 
@@ -189,31 +224,40 @@ namespace NF {
 	TCPListener(Messagizor *m, ListenerProcessor *p)
 	    :processor_(p),
 	     messagizizor_(m) {
+	    ENTERING;
+	    LEAVING;
 	};
 
 	~TCPListener(){
+	    ENTERING;
+	    LEAVING;
 	};
 		
 	bool ListenOn(struct sockaddr_in &addr) {
+	    ENTERING;
 	    int fd = socket(PF_INET, SOCK_DATAGRAM, 0);
 	    if (fd < 0) {
+		LEAVING2;
 		return false;
 	    }
 	    MakeNonBlock(fd);
 	    set_fd(fd);
 
 	    if (bind(fd(), (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+		LEAVING2;
 		return false;
 	    }
 	    if (listen(fd(), 1024) < 0) {
+		LEAVING2;
 		return false;
 	    }
-
+	    LEAVING;
 	    return true;
 	};
 
     public:
 	int Handle() {
+	    ENTERING;
 	    assert (events() & EPOLLIN);
 	    while (true) {
 		int newsk = OnAcceptable();
@@ -223,29 +267,39 @@ namespace NF {
 		assert(processor_);
 		int ret = processor_->ProcessNewConnection(newsk);
 		if (ret < 0) {
+		    LEAVING2;
 		    return -2;
 		}
 	    }
+	    LEAVING;
 	    return 1;
 	};
 
 	int OnAcceptable() {
+	    ENTERING;
 	    struct sockaddr_in addr;
 	    socklen_t len;
 	    int sk = accept(fd(), (struct sockaddr*)&addr, &len);
 	    if (sk < 0) {
 		if (errno == EAGAIN || errno == EINTR) {
+		    LEAVING2;
 		    return -1;
 		}
+		LEAVING2;
 		return -2;		
 	    }
+	    LEAVING;
 	    return sk;
 	};
 	Procesor* processor() { 
+	    ENTERING;
+	    LEAVING;
 	    return processor_;
 	};
 
 	Messagizor* messagizizor() {
+	    ENTERING;
+	    LEAVING;
 	    return messagizizor_;
 	};
     private:
@@ -264,42 +318,54 @@ namespace NF {
     public:
 	UDPSocket(UDPProcessor *p)
 	    : processor_(p) {	
+	    ENTERING;
+	    LEAVING;
 	};
 	
 	~UDPSocket() {
+	    ENTERING;
+	    LEAVING;
 	};
 	
 	int Close() { 
+	    ENTERING;
 	    close(fd());
 	    if (msg_) {
 		delete[] msg_->data;
 		delete msg_;
 	    }
-	    std::list<TCPMessage*>::iterator it = send_msg_list_.begin();
-	    std::list<TCPMessage*>::iterator endit = send_msg_list_.end();
+	    std::list<UDPMessage*>::iterator it = send_msg_list_.begin();
+	    std::list<UDPMessage*>::iterator endit = send_msg_list_.end();
 	    for (; it != endit;) {
 		delete[] (*it)->data;
 		it = send_msg_list_.erase(it);
 	    }
+	    LEAVING2;
 	};
 	
 	bool BindOn(struct sockaddr_in &addr) {
+	    ENTERING;
 	    if (bind(fd(), (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+		LEAVING2;
 		return false;
 	    }
+	    LEAVING;
 	    return true;
 	};
 
 	bool AsyncSend(struct sockaddr_in &to, char *buf, int size, int capacity) {
+	    ENTERING;
 	    UDPMessage *msg = new UDPMessage;
 	    msg->data = buf;
 	    msg->size = size;
 	    msg->capacity = capacity;
 	    send_msg_list_.push_back(msg);
+	    LEAVING;
 	    return true;
 	};
     public:
 	virtual int Handle() {
+	    ENTERING;
 	    int ret = 0;
 	    char *data;
 	    int size;
@@ -328,9 +394,11 @@ namespace NF {
 	    if (events() & EPOLLOUT) {
 		ret = OnWritable();
 		if (ret < 0) {
+		    LEAVING2;
 		    return -3;
 		}
 	    }
+	    LEAVING;
 	    return 0;
 	};
 
@@ -339,7 +407,7 @@ namespace NF {
 	// -1: error
 	// 1: success and continue read
 	int OnReadable() {
-
+	    ENTERING;
 	    char *data = malloc(1024);
 	    struct sockaddr_in addr;
 	    memset(&addr, 0, sizeof(addr));
@@ -347,8 +415,10 @@ namespace NF {
 	    int size = recvfrom(fd(), data, 1024, 0, (struct sockaddr*)&addr, &addrlen);
 	    if (size < 0) {
 		if (errno != EAGAIN && errno != EINTR) {
+		    LEAVING2;
 		    return -1;
 		}
+		LEAVING;
 		return 0;
 	    }
 	    UDPMessage *msg = new UDPMessage;
@@ -357,11 +427,14 @@ namespace NF {
 	    msg->capacity = 1024;
 	    msg->addr = addr;
 	    processor_->ProcessMessage(fd(), data, size, addr);
+	    LEAVING;
 	    return 1;
 	};
 
 	int OnWritable() {
+	    ENTERING;
 	    if (send_msg_list_.size() == 0) {
+		LEAVING2;
 		return -1;
 	    }
 	    struct iovec *v = new struct iovec[send_msg_list_.size()];
@@ -375,10 +448,12 @@ namespace NF {
 	    int ret = writv(fd(), v, i);
 	    if (ret < 0) {
 		delete[] v;
+		LEAVING2;
 		return -1;
 	    } 
 	    if (ret == 0) {
 		delete[] v;
+		LEAVING2;
 		return -2;
 	    }
 	    int left = ret;
@@ -397,11 +472,15 @@ namespace NF {
 		}
 	    }
 	    delete[] v;
+	    LEAVING;
 	    return 0;
 
 	};
 	int OnError() {
+	    ENTERING;
 	    Close();
+	    LEAVING;
+	    return 0;
 	};
 	
     private:

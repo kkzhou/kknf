@@ -5,7 +5,10 @@ namespace Nf {
 
     class TCPProcessor {
     public:
-	Processor(IOService *ios) : ios_(ios) {	};
+	Processor(IOService *ios) : ios_(ios) {	
+	    ENTERING;
+	    LEAVING;
+	};
 	virtual int ProcessMessage(int fd, char *data, int size) = 0;
     private:
 	IOService *ios_;
@@ -13,7 +16,10 @@ namespace Nf {
 
     class UDPProcessor {
     public:
-	UDPProcessor(IOService *ios) : ios_(ios) {	};
+	UDPProcessor(IOService *ios) : ios_(ios) {	
+	    ENTERING;
+	    LEAVING;
+	};
 	virtual int ProcessMessage(int fd, char *data, int size, 
 				   struct sockaddr_in &from) = 0;
     private:
@@ -22,12 +28,18 @@ namespace Nf {
 
     class ListenerProcessor {
     public:
-	ListenerProcessor(IOService *ios) : ios_(ios) {};
+	ListenerProcessor(IOService *ios) : ios_(ios) {
+	    ENTERING;
+	    LEAVING;
+	};
+
 	virtual int ProcessNewConnection(int listenfd, int newfd) {
+	    ENTERING;
 	    TCPListener *l = ios_->GetTCPSocket(listenfd);
 	    TCPSocket *newsk = new TCPSocket(l->messagizizor(), l->processor());
 	    ios_->AddTCPSocket(newsk);
 	    ios_->AddEventListener(newsk, EPOLLIN);
+	    LEAVING;
 	    return 0;
 	};
 
