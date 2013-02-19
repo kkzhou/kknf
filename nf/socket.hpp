@@ -3,14 +3,6 @@
 
 namespace NF {
 
-    class Processor {
-    public:
-	virtual int ProcessNewConnection(int fd) = 0;
-	virtual int ProcessTCPMessage(int fd, char *data, int size) = 0;
-	virtual int ProcessUDPMessage(int fd, char *data, int size, 
-				      struct sockaddr_in from) = 0;
-    };
-
     class Messagizor {
     public:
 	Messagizizor(TCPSocket *sk) : socket_(sk) {
@@ -275,15 +267,18 @@ namespace NF {
     public:
 	int Handle() {
 	    assert (events() & EPOLLIN);
-	    int newsk = OnAcceptable();
-	    if (newsk <= 0) {
-		return -1;
+	    while (true) {
+		int newsk = OnAcceptable();
+		if (newsk < -1) {
+		    break;
+		}
+		assert(processor_);
+		int ret = processor_->ProcessNewConnection(newsk);
+		if (ret < 0) {
+		    return -2;
+		}
 	    }
-	    assert(processor_);
-	    int ret = processor_->ProcessNewConnection(newsk);
-	    if (ret < 0) {
-		return -2;
-	    }
+	    engine_->DeleteEventListener(this);
 	    return 0;
 	};
 
@@ -292,7 +287,10 @@ namespace NF {
 	    socklen_t len;
 	    int sk = accept(fd(), (struct sockaddr*)&addr, &len);
 	    if (sk < 0) {
-		return -1;
+		if (errno == EAGAIN || errno == EINTR) {
+		    return -1;
+		}
+		return -2;		
 	    }
 	    return sk;
 	};
@@ -360,17 +358,28 @@ namespace NF {
 	    int ret = 0;
 	    char *data;
 	    int size;
+	    int error = 0;
 	    if (events() & EPOLLIN) {
-		ret = OnReadable(&data, &size);
-		if (ret < 0) {
-		    return -1;
+		while (true) {
+		    ret = OnReadable(&data, &size);
+		    if (ret == 0) {
+			continue;
+		    } else if (ret == -1) {
+			error = -1;
+			break;
+		    }
+		    assert(processor_);
+		    ret = processor_->ProcessMessage(data, size);
+		    if (ret < 0) {
+			error = -2;
+			break;
+		    }
 		}
-		assert(processor_);
-		ret = processor_->ProcessMessage(data, size);
-		if (ret < 0) {
-		    return -2;
+		if (error < 0) {
+		    Close();
 		}
 	    }
+
 	    if (events() & EPOLLOUT) {
 		ret = OnWritable();
 		if (ret < 0) {
@@ -380,6 +389,10 @@ namespace NF {
 	    return 0;
 	};
 
+	// return value:
+	// 0: error and continue read
+	// -1: error
+	// 1: success and continue read
 	int OnReadable() {
 
 	    char *data = malloc(1024);

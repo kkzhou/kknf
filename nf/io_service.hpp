@@ -1,68 +1,104 @@
 #ifndef __IO_SERVICE_HPP__
 #define __IO_SERVICE_HPP__
 
-#include "engine.hpp"
 
 namespace NF {
-
-    class BasicProcessor : public Processor {
-    public:
-	void AttachIOService(IOService *ios) {
-	    assert(ios_ == 0);
-	    ios_ = ios;
-	};
-
-    private:
-	IOService *ios_;
-    };
-
-    class TCPProcessor : public BasicProcessor {
-    public:
-	virtual int ProcessNewConnection(int listenfd, int newfd) {
-	    TCPSocket *newsk = new TCPSocket(newfd);
-	    TCPSocket *listensk = ios_->FindTCPSocket(listenfd);
-	    ios_->AddTCPSocket(newsk);
-	    Engine *e = listensk->engine();
-	    newsk->set_engine(e);
-	    e->AddEventListener(newsk, EPOLLIN);
-	    ios_->ShiftListener(listenfd);
-	    return 0;
-	};
-
-    };
-
-    class CommandProcessor : public BasicProcessor {
-    public:
-	virtual int ProcessUDPMessage(int fd, char *data, int size, 
-				  struct sockaddr_in &from) {
-	    unsigned int cmd = *(unsigned int*)data;
-
-	    switch (cmd) {
-	    case 0x01:
-	    	// quit
-	    	break;
-	    case 0x02:
-	    	// change listener's engine	    
-		int listenfd = *(int*)(data + 4);
-		ios_->ShiftListener(listenfd);
-		break;
-	    case 0x03:
-	    	break;
-	    case 0x04:
-	    	break;
-	    default:
-	    	break;
-	    }
-	};
-    };	
     
     class IOService {
     public:
-	IOService() : all_sockets_(100000, 0){
-	    
+	IOService() 
+	    :context_by_index_(10000) {
+	    all_tcp_sockets_.reserve(100000);
 	};
 
-	virtual void Init() {};
+	virtual int Init(int threadnum) {
+	    for (int i = 0; i < threadnum; i++) {
+		int fd = epoll_create(1024);
+		if (fd < 0) {
+		    return -1;
+		}
+		epoll_fd_.push_back(fd);
+	    }
+	    return 0;
+	};
+
+	bool AddEventListener(EventListener *l, unsigned int events, int which_epoll = 0) {
+
+	    assert(which_epoll < epoll_fd_.size());
+	    struct epoll_event e;
+	    memset(&e, sizeof(e), 0);
+	    e.events = events;
+	    e.data.ptr = l;
+	    if (epoll_ctl(epoll_fd_[which_epoll], EPOLL_ADD, l->fd(), &e) < 0) {
+		return false;
+	    }
+	    return true;
+	};
+
+	bool DeleteEventListener(int fd, int which_epoll) {
+	    assert(which_epoll < epoll_fd_.size());
+	    if (epoll_ctl(epoll_fd_[which_epoll], EPOLL_DEL, fd, 0) < 0) {
+		return false;
+	    }
+	    return true;
+	};
+
+	void AddTimer(Timer &timer) {
+	    timer_queue_.push(timer);
+	};
+
+	void DeleteTimer(int id) {
+	    bool id_equal(Timer &t) {
+		return t.id() == id;
+	    };
+	    timer_queue_.erase(remove_if(timer_queue_.begin(), timer_queue_.end(), id_equal), 
+			       timer_queue_.end());
+	};
+
+	void Start() {
+	    struct epoll_event e[kMaxEpoll];
+	    for (;;) {
+		// memset(&e, 0, sizeof(e[0]) * kMaxEpoll);
+		Timer const &t = timer_queue_.top();
+		int timeout = 0;
+		struct timeval now;
+		gettimeofdate(&now, 0);
+		timeout = (now.tv_sec - t.fire_time.tv_sec) * 1000;
+		timeout += (now.tv_usec - t.fire_time.tv_usec) / 1000;
+
+		int error = 0;
+
+		int ret = epoll_wait(epoll_fd_, e, kMaxEpoll, timeout);
+		if (ret < 0) {
+		    if (errno != EAGAIN && errno != EINTR) {
+			error = -1;
+			break;
+		    }
+		    continue;
+		} 
+		// timeout
+		timeout = 0;			
+		gettimeofdate(&now, 0);
+		timeout = (now.tv_sec - t.fire_time.tv_sec) * 1000;
+		timeout += (now.tv_usec - t.fire_time.tv_usec) / 1000;
+		if (timeout < 10) {
+		    t.Fire();
+		    timer_queue_.pop();
+		}
+		
+		for (int i = 0; i < ret; j++) { 
+		    EventListener *l = reinterpret_cast<EventListener*>(e[i].data.ptr);
+		    if (l->Handler() < 0) {
+			DeleteEventListener(l->fd());
+		    }
+		}     // for i
+		
+	    } // for (;;)	    
+	};
+
+	void Stop() { 
+	    stop_ = true; 
+	};
 
 	static void ThreadProc(void *arg) {
 	    Engine *e = reinterpret_cast<Engine*>(arg);	    
@@ -200,25 +236,6 @@ namespace NF {
 	    return 0;
 	};
 
-	int AddCommandSocket(char *ipstr, unsigned short hport) {
-
-	    assert(command_socket_ == 0);
-	    struct sockaddr_in addr;
-	    memset(&addr, sizeof(addr), 0);
-	    if (inet_aton(ipstr, &addr.sin_addr) < 0) {
-		return -1;
-	    }
-	    addr.sin_port = htons(hport);
-	    addr.sin_family = AF_INET;
-	    int cur = command_socket_num_;
-	    command_socket_num_++;
-	    command_socket_[cur] = new UDPSocket;
-	    if (!command_socket_[cur]->BindOn(addr)) {
-		return -2;
-	    }
-	    return 0;
-	};
-
 	static void BeepTimerHandler(void *arg) {
 	    ENTERING;
 	    LEAVING;
@@ -226,20 +243,17 @@ namespace NF {
 	};
 
     private:
-	std::vector<Engine*> engines_;
-	std::vector<TCPSocket*> all_sockets_;
+	std::vector<TCPSocket*> all_tcp_socket_;
+	std::vector<int> listener_;
+	std::vector<UDPSocket*> udp_socket_;
 
-	TCPListener* listener_[10];
-	int listener_num_;
-
-	UDPSocket *command_socket_[10];
-	int command_socket_num_;
-
-	UDPSocket *udp_socket_[10];
-	int udp_socket_num_;
-
+	std::vector<int> epoll_fd_;
+	bool stop_;
+	std::priority_queue<Timer> timer_queue_;
 
 	std::unordered_map<unsigned long long, void*> context_by_index_;
+
+	static const int kMaxEpoll = 1000000;
 	static const int kMaxUDPSocketNum = 10;
 	static const int kMaxListenerNum = 10;
     };
