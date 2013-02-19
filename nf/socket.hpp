@@ -3,43 +3,6 @@
 
 namespace NF {
 
-    class Messagizor {
-    public:
-	Messagizizor(TCPSocket *sk) : socket_(sk) {
-	};
-	
-	virtual bool IsComplete() = 0;
-	virtual int MessageSize() = 0;
-	TCPSocket* socket() { 
-	    return socket_; 
-	};
-    private:
-	TCPSocket *socket_;
-    };
-
-    class LVMessagizor : public Messagizor {
-    public:
-	LVMessagizor(TCPSocket *sk) : Messagizor(sk) {
-	};
-
-	virtual bool IsComplete() {
-	    return socket()->receive_msg_length_ == socket()->received_;	    
-	};
-
-	virtual int MessageSize() {
-	    if (socket()->received_ > 0) {
-		return socket()->received_;
-	    }
-
-	    assert(socket()->recveive_msg_->size > 4);
-	    if (received_ >= 4) {
-		return socket()->recveive_msg_length_ = 
-		    (*(int*)(socket()->recveive_msg_->data));		
-	    }
-	    return 0;
-	};
-    };
-
     class TCPSocket : public EventListener {
     public:
 	struct TCPMessage {
@@ -47,29 +10,22 @@ namespace NF {
 	    int size;
 	    int capacity;
 	};
+
     public:
-	TCPSocket(int fd) {
+	TCPSocket(int fd, Messagizor *m, TCPProcessor *p)
+	    : messagizizor_(m),
+	      processor_(p) {
+
 	    set_fd(fd);
 	};
 
-	TCPSocket() {
+	TCPSocket(Messagizor *m, TCPProcessor *p)
+	    : messagizizor_(m),
+	      processor_(p) {
 	};
 
 	~TCPSocket() {
 	    Close();
-	};
-	
-	void AttachEngine(Engine *e) {
-	    assert(engine_ == 0);
-	    engine_ = e;
-	};
-
-	void SetProcessor(Procesor *proc) { 
-	    processor_ = proc; 
-	};
-
-	void SetMessagizor(Messagizizor *m) { 
-	    messagizor_ = m; 
 	};
 
 	bool AsyncConnectTo(struct sockaddr_in &addr) {
@@ -80,13 +36,17 @@ namespace NF {
 	    return true;
 	};
 
-	int AsyncSend(char *buf, int size, int capacity) {
+	bool AsyncSend(char *buf, int size, int capacity) {
 	    TCPMessage *msg = new TCPMessage;
 	    msg->data = buf;
 	    msg->size = size;
 	    msg->capacity = capacity;
 	    
+	    if (send_msg_list_.size() > kMaxSendList) {
+		return false;
+	    }
 	    send_msg_list_.push_back(msg);
+	    return true;
 	};
 
 	int Close() { 
@@ -95,6 +55,7 @@ namespace NF {
 		delete[] msg_->data;
 		delete msg_;
 	    }
+
 	    std::list<TCPMessage*>::iterator it = send_msg_list_.begin();
 	    std::list<TCPMessage*>::iterator endit = send_msg_list_.end();
 	    for (; it != endit;) {
@@ -221,22 +182,18 @@ namespace NF {
 	int received_;
 	std::list<TCPMessage*> send_msg_list_;
 	int sent_;
-
-	Engine *engine_;
     };
 
     class TCPListener : public EventListener {
     public:
-	TCPListener(){
+	TCPListener(Messagizor *m, ListenerProcessor *p)
+	    :processor_(p),
+	     messagizizor_(m) {
 	};
 
 	~TCPListener(){
 	};
-	
-	void SetProcessor(Procesor *proc) { 
-	    processor_ = proc; 
-	};
-	
+		
 	bool ListenOn(struct sockaddr_in &addr) {
 	    int fd = socket(PF_INET, SOCK_DATAGRAM, 0);
 	    if (fd < 0) {
@@ -255,15 +212,6 @@ namespace NF {
 	    return true;
 	};
 
-	void set_engine(Engine *e) {
-	    assert(engine_ == 0);
-	    engine_ = e;
-	};
-
-	Engine* engine() {
-	    return engine_;
-	};
-
     public:
 	int Handle() {
 	    assert (events() & EPOLLIN);
@@ -278,8 +226,7 @@ namespace NF {
 		    return -2;
 		}
 	    }
-	    engine_->DeleteEventListener(this);
-	    return 0;
+	    return 1;
 	};
 
 	int OnAcceptable() {
@@ -294,10 +241,16 @@ namespace NF {
 	    }
 	    return sk;
 	};
+	Procesor* processor() { 
+	    return processor_;
+	};
 
+	Messagizor* messagizizor() {
+	    return messagizizor_;
+	};
     private:
 	Processor *processor_;
-	Engine *engine_;
+	Messagizor *messagizor_;
     };
 
     class UDPSocket : public EventListener {
@@ -309,7 +262,8 @@ namespace NF {
 	    struct sockaddr_in addr;
 	};
     public:
-	UDPSocket() {	
+	UDPSocket(UDPProcessor *p)
+	    : processor_(p) {	
 	};
 	
 	~UDPSocket() {
@@ -327,15 +281,6 @@ namespace NF {
 		delete[] (*it)->data;
 		it = send_msg_list_.erase(it);
 	    }
-	};
-
-	Engine* engine() {
-	    return engine_;
-	};
-
-	void set_engine(Engine *e) {
-	    assert(engine_ == 0);
-	    engine_ = e;
 	};
 	
 	bool BindOn(struct sockaddr_in &addr) {
@@ -462,7 +407,6 @@ namespace NF {
     private:
 	std::list<UDPMessage*> send_msg_list_;
 	Processor *processor_;
-	Engine *engine_;
     };
 };
 

@@ -11,8 +11,8 @@ namespace NF {
 	    all_tcp_sockets_.reserve(100000);
 	};
 
-	virtual int Init(int threadnum) {
-	    for (int i = 0; i < threadnum; i++) {
+	virtual int Init(int epollnum) {
+	    for (int i = 0; i < epollnum; i++) {
 		int fd = epoll_create(1024);
 		if (fd < 0) {
 		    return -1;
@@ -55,9 +55,31 @@ namespace NF {
 			       timer_queue_.end());
 	};
 
-	void Start() {
+	void HandleTimer(Timer &t, int which_engine) {
+	    t.Fire();
+	};
+
+	void HandleEvent(EventListener *l, int which_engine) {
+	    int ret = l->Handle();
+	    if (ret < 0) {
+		// delete
+	    } else if (ret == 1) {
+		// shift engine
+		ShiftEngine(l, which_engine);
+	    } else {
+	    } 
+	};
+
+	void HandleError(EventListener *l) {
+	};
+
+	void EngineStart(int which_epoll) {
+
+	    assert(which_epoll < epoll_fd_.size());
 	    struct epoll_event e[kMaxEpoll];
-	    for (;;) {
+	    epoll_fd = epoll_fd_[which_epoll];
+
+	    while (!stop_) {
 		// memset(&e, 0, sizeof(e[0]) * kMaxEpoll);
 		Timer const &t = timer_queue_.top();
 		int timeout = 0;
@@ -68,7 +90,7 @@ namespace NF {
 
 		int error = 0;
 
-		int ret = epoll_wait(epoll_fd_, e, kMaxEpoll, timeout);
+		int ret = epoll_wait(epoll_fd, e, kMaxEpoll, timeout);
 		if (ret < 0) {
 		    if (errno != EAGAIN && errno != EINTR) {
 			error = -1;
@@ -77,59 +99,59 @@ namespace NF {
 		    continue;
 		} 
 		// timeout
-		timeout = 0;			
+		timeout = 0;	
 		gettimeofdate(&now, 0);
 		timeout = (now.tv_sec - t.fire_time.tv_sec) * 1000;
 		timeout += (now.tv_usec - t.fire_time.tv_usec) / 1000;
 		if (timeout < 10) {
-		    t.Fire();
+		    HandleTimer(t, which_epoll);
 		    timer_queue_.pop();
 		}
 		
 		for (int i = 0; i < ret; j++) { 
 		    EventListener *l = reinterpret_cast<EventListener*>(e[i].data.ptr);
-		    if (l->Handler() < 0) {
-			DeleteEventListener(l->fd());
-		    }
+		    HandleEvent(l, which_epoll);
 		}     // for i
 		
 	    } // for (;;)	    
 	};
 
-	void Stop() { 
+	void EngineStop() { 
 	    stop_ = true; 
 	};
 
+	struct ThreadArg {
+	    int which_engine;
+	    IOService *ios;
+	};
 	static void ThreadProc(void *arg) {
-	    Engine *e = reinterpret_cast<Engine*>(arg);	    
-	    e->Start();
+	    ThreadArg *a = reinterpret_cast<ThreadArg*>(arg);
+	    int which_engine = a->which_engine;
+	    IOService *ios = a->ios;
+	    ios->EngineStart(which_engine);
 	};
 
 	virtual void RunIOService() {
 	    Init();
 
-	    assert(engines_.size() == command_socket_num_);
-
 	    // tcp listener
-	    for (int i = 0; i < listener_num_; i++) {
+	    for (int i = 0; i < listener_.size(); i++) {
 		engines_[0]->AddEventListener(listener_[i]);
 	    }
 
 	    // udp socket
-	    for (int i = 0; i < udp_socket_num_; i++) {
+	    for (int i = 0; i < udp_socket_.size(); i++) {
 		engines_[0]->AddEventListener(udp_socket_[i]);
 	    }
 
-	    // command socket(udp), one Engine(thread) one socket
-	    for (int i = 0; i < command_socket_; i++) {
-		engines_[i]->AddEventListener(command_socket_[i]);
-	    }
-
-	    int thread_num = engines_.size();
+	    int thread_num = epoll_fd_.size();
 	    pthread_t *pid = new pthread_t[thread_num];
 
 	    for (int i = 0; i < thread_num; i++) {
-		int ret = pthread_create(&pid[i], 0, ThreadProc, engines_[i]);
+		ThreadArg *arg = new ThreadArg;
+		arg->which_engine = i;
+		arg->ios = this;
+		int ret = pthread_create(&pid[i], 0, ThreadProc, arg);
 	    }
 
 	    for (int i = 0; i < thread_num; i++) {
@@ -138,44 +160,16 @@ namespace NF {
 	    }
 	};
 	
-	void StopIOService() {
-	    int thread_num = engines_.size();
-	    for (int i = 0; i < thread_num; i++) {
-		engines_[i]->Stop();
-	    }
-	};
-
-	int ShiftListener(int listenfd) {
-	    // shift this listener fd to another epoll(that is, another thread
-	    char *buf = new char[8]; // len(4) : fd(4)
-	    *(int*)buf = 8;
-	    *(int*)(buf + 4) = listenfd;
-	    
-	    command_socket_->AsyncSend(buf, 8);
+	int AddTCPSocket(TCPSocket *sk) {
+	    assert(all_tcp_sockets_[sk->fd()] == 0);
+	    all_tcp_socket_[sk->fd()] = sk;
 	    return 0;
 	};
 
-	int AddSocket(TCPSocket *sk) {
-	    assert(all_sockets_[sk->fd()] == 0);
-	    all_sockets_[sk->fd()] = sk;
-	    return 0;
-	};
-
-	TCPSocket* FindTCPSocket(int fd) {
-	    return all_sockets_[fd];
+	TCPSocket* GetTCPSocket(int fd) {
+	    return all_tcp_socket_[fd];
 	};
 	
-	int AddEngine(Engine *engine) {
-	    int ret = engines_.size();
-	    engines_.push_back(engine);
-	    return ret;
-	};
-
-	Engine* FindEngine(int index) {
-	    Engine *e = engines_[index];
-	    return e;
-	};
-
 	void* GetContextByIndex(unsigned long long index) {
 	    void *ctx = context_by_index_[index];
 	    return ctx;
@@ -196,8 +190,10 @@ namespace NF {
 	};
 
     public:
-	int AddTCPListener(char *ipstr, unsigned short hport, Messagizor *messagizor) {
-	    assert(listener_num_ < kMaxListenerNum);
+	int AddTCPListener(char *ipstr, unsigned short hport, Messagizor *m,
+			   ListenerProcessor *p) {
+
+	    assert(listener_.size() < kMaxListenerNum);
 	    struct sockaddr_in addr;
 	    memset(&addr, 0, sizeof(addr0));
 	    if (inet_aton(ipstr, &addr.sin_addr) < 0) {
@@ -205,18 +201,15 @@ namespace NF {
 	    }
 	    addr.sin_family = AF_INET;
 	    addr.sin_port = htons(hport);
-	    int cur = listener_num_;
-	    listener_num_++;
-	    listener_[cur] = new TCPListener;
-	    listener_[cur]->SetProcessor(this);
-	    listener_[cur]->ListenOn(addr);
-	    listener_[cur]->SetMessagizor(new LVMessagizor(listener_[cur]);
+
+	    TCPListener *listener = new TCPListener(m, p);
+	    listener->ListenOn(addr);
 	    return 0;
 	};
 
-	int AddUDPSocket(char *ipstr, unsigned short hport) {
+	int AddUDPSocket(char *ipstr, unsigned short hport, UDPProcessor *p) {
 
-	    if (udp_socket_num_ == kMaxUDPSocketNum) {
+	    if (udp_socket_.size() == kMaxUDPSocketNum) {
 		return -1;
 	    }
 
@@ -227,13 +220,19 @@ namespace NF {
 	    }
 	    addr.sin_port = htons(hport);
 	    addr.sin_family = AF_INET;
-	    int cur = udp_socket_num_;
-	    udp_socket_num_++;
-	    udp_socket_[cur] = new UDPSocket;
-	    if (!udp_socket_[cur]->BindOn(addr)) {
+	    udp_socket = new UDPSocket(p);
+	    
+	    if (!udp_socket->BindOn(addr)) {
 		return -2;
 	    }
+	    udp_socket_.push_back(udp_socket);
 	    return 0;
+	};
+	
+	void ShiftEngine(TCPListener *l, int cur_engine) {
+	    int which = cur_engine++;
+	    which = which % epoll_fd_.size();
+	    AddEventListener(l, EPOLLIN, which);
 	};
 
 	static void BeepTimerHandler(void *arg) {
@@ -252,6 +251,8 @@ namespace NF {
 	std::priority_queue<Timer> timer_queue_;
 
 	std::unordered_map<unsigned long long, void*> context_by_index_;
+
+	
 
 	static const int kMaxEpoll = 1000000;
 	static const int kMaxUDPSocketNum = 10;

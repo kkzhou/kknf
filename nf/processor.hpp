@@ -3,65 +3,32 @@
 
 namespace Nf {
 
-    class Processor {
+    class TCPProcessor {
     public:
 	Processor(IOService *ios) : ios_(ios) {	};
-	virtual int ProcessMessage(int fd, char *data, int size, 
-				      struct sockaddr_in &from) = 0;
 	virtual int ProcessMessage(int fd, char *data, int size) = 0;
-	virtual int ProcessNewConnection(int listenfd, int newfd) = 0;
     private:
 	IOService *ios_;
     };
 
-    class TCPProcessor {
+    class UDPProcessor {
     public:
-
-	virtual int ProcessMessage(int fd, char *data, int size) = 0;
+	UDPProcessor(IOService *ios) : ios_(ios) {	};
 	virtual int ProcessMessage(int fd, char *data, int size, 
-				   struct sockaddr_in &from) { 
-	    assert(false);
-	};
-	virtual int ProcessNewConnection(int listenfd, int newfd) {
-	    TCPSocket *newsk = new TCPSocket(newfd);
-	    TCPSocket *listensk = ios_->FindTCPSocket(listenfd);
-	    ios_->AddTCPSocket(newsk);
-	    Engine *e = listensk->engine();
-	    newsk->set_engine(e);
-	    e->AddEventListener(newsk, EPOLLIN);
-	    return 0;
-	};
-				      
-    public:
-	void AttachIOService(IOService *ios) {
-	    assert(ios_ == 0);
-	    ios_ = ios;
-	};
-
+				   struct sockaddr_in &from) = 0;
     private:
 	IOService *ios_;
     };
 
-    class TCPProcessor {
+    class ListenerProcessor {
     public:
-
-	virtual int ProcessTCPMessage(int fd, char *data, int size) = 0;
-	virtual int ProcessUDPMessage(int fd, char *data, int size, 
-				      struct sockaddr_in &from) = 0;
+	ListenerProcessor(IOService *ios) : ios_(ios) {};
 	virtual int ProcessNewConnection(int listenfd, int newfd) {
-	    TCPSocket *newsk = new TCPSocket(newfd);
-	    TCPSocket *listensk = ios_->FindTCPSocket(listenfd);
+	    TCPListener *l = ios_->GetTCPSocket(listenfd);
+	    TCPSocket *newsk = new TCPSocket(l->messagizizor(), l->processor());
 	    ios_->AddTCPSocket(newsk);
-	    Engine *e = listensk->engine();
-	    newsk->set_engine(e);
-	    e->AddEventListener(newsk, EPOLLIN);
+	    ios_->AddEventListener(newsk, EPOLLIN);
 	    return 0;
-	};
-				      
-    public:
-	void AttachIOService(IOService *ios) {
-	    assert(ios_ == 0);
-	    ios_ = ios;
 	};
 
     private:

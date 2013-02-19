@@ -5,8 +5,12 @@ namespace NF {
     class Timer {
     public:
 	typedef (void)(*TimerHandler)(void*);
+
 	Timer(int id, void *context， TimerHandler h, Time &fire_time)
-	    : id_(id), fire_time_(fire_time), handler_(h), context_(context) {
+	    : id_(id), 
+	      fire_time_(fire_time), 
+	      handler_(h), 
+	      context_(context) {
 	};
 
 	void Fire() { 
