@@ -1,21 +1,28 @@
 
-#include "skeleton.hpp"
+#include "io_service.hpp"
+#include "example_message.hpp"
 
-class TestProcessor : public TCPProcessor {
+struct BFContext {
+    int user_id;
+    int user_salary;
+    int user_age;
+    int sid;
+};
+
+class BFProcessor : public TCPProcessor {
 public:
-    virtual int ProcessTCPMessage(int fd, char *data, int size) {	   
-    };
-    virtual int ProcessUDPMessage(int fd, char *data, int size, 
-				  struct sockaddr_in &from) {
+    virtual int ProcessMessage(int fd, char *data, int size) {	   
 
-	// example code
-	// TCPSocket *sk = all_sockets_[fd];
-	// MyContext *ctx = GetContextByFD(sk->fd()); // or GetContextByFD()
-	// if (!ctx) {
-	// 	ctx = new MyContext;
-	// 	SetContextByFD(sk->fd(), ctx);  // or use SetContextByIndex()
-	// }
+	TCPSocket *sk = ios()->FindTCPSocket(fd);
+	BFContext *ctx = new BFContext;
 
+	ios()->SetContextByFD(sk->fd(), ctx);
+	BFReq *req = data + 4;
+	int userid = req->user_id;
+
+	BBReq1 *r1 = new BBReq1;
+	r1->user_id = userid;
+	TCPSocket *bb1 = ios()->GetClient(2);
 	// if (ctx->state == S_INIT) {
 	//     MyBackendRequest1 req1;
 	// 	req1.field1 = 1;
@@ -43,10 +50,9 @@ public:
 
 };
 
-class ExampleBF : public Skeleton {
+class BF {
 public:
-    virtual void Init() {
-    };
+
 private:
 
 };

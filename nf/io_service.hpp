@@ -13,7 +13,7 @@ namespace NF {
 	    LEAVING;
 	};
 
-	virtual int Init(int epollnum) {
+	int Init(int epollnum) {
 	    ENTERING;
 	    for (int i = 0; i < epollnum; i++) {
 		int fd = epoll_create(1024);
@@ -158,7 +158,7 @@ namespace NF {
 	    LEAVING;
 	};
 
-	virtual void RunIOService() {
+	void RunIOService() {
 	    ENTERING;
 	    Init();
 

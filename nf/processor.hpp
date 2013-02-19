@@ -10,6 +10,11 @@ namespace Nf {
 	    LEAVING;
 	};
 	virtual int ProcessMessage(int fd, char *data, int size) = 0;
+	IOService* ios() {
+	    ENTERING;
+	    LEAVING;
+	    return ios_;
+	};
     private:
 	IOService *ios_;
     };
@@ -22,6 +27,11 @@ namespace Nf {
 	};
 	virtual int ProcessMessage(int fd, char *data, int size, 
 				   struct sockaddr_in &from) = 0;
+	IOService* ios() {
+	    ENTERING;
+	    LEAVING;
+	    return ios_;
+	};
     private:
 	IOService *ios_;
     };
@@ -42,7 +52,11 @@ namespace Nf {
 	    LEAVING;
 	    return 0;
 	};
-
+	IOService* ios() {
+	    ENTERING;
+	    LEAVING;
+	    return ios_;
+	};
     private:
 	IOService *ios_;
     };

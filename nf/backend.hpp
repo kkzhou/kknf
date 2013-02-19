@@ -1,21 +1,21 @@
-#ifndef __CLIENT_HPP__
-#define __CLIENT_HPP__
+#ifndef __BACKEND_HPP__
+#define __BACKEND_HPP__
 
 namespace NF {
 
-    class Client {
+    class Backend {
     public:
-	Client(int id) : id_(id) {
+	Backend(int id) : id_(id) {
 	    
 	};
 
-	TCPSocket* GetClient() {
+	TCPSocket* Get() {
 	    TCPSocket *ret = client_idle_list_.top();
 	    client_idle_list_.pop();
 	    return ret;
 	};
 
-	void AddClient(TCPSocket *socket) {
+	void Add(TCPSocket *socket) {
 	    client_idle_list_.push_back(socket);
 	};
 
@@ -27,16 +27,16 @@ namespace NF {
 	std::list<TCPSocket*> client_idle_list_;
     };
 
-    class ClientPool {
+    class BackendPool {
     public:
-	TCPSocket* GetClient(int id) {
-	    Cient *c = pool_[id];
-	    return c->GetClient();
+	TCPSocket* GetBackend(int id) {
+	    Backend *b = pool_[id];
+	    return b->Get();
 	};
 
-	void AddClient(int id, TCPSocket *sk) {
-	    Cient *c = pool_[id];
-	    return c->AddClient(sk);
+	void AddBackend(int id, TCPSocket *sk) {
+	    Backend *b = pool_[id];
+	    return b->Add(sk);
 	};
     private:
 	std::map<int, Client*> pool_;
