@@ -15,6 +15,10 @@ public:
 
 	TCPSocket *sk = ios()->FindTCPSocket(fd);
 	BFContext *ctx = new BFContext;
+	ctx->user_id = -1;
+	ctx->user_salary = -1;
+	ctx->user_age = -1;
+	ctx->sid = 100;
 
 	ios()->SetContextByFD(sk->fd(), ctx);
 	BFReq *req = data + 4;
@@ -22,7 +26,9 @@ public:
 
 	BBReq1 *r1 = new BBReq1;
 	r1->user_id = userid;
-	TCPSocket *bb1 = ios()->GetClient(2);
+	BackendPool *pool = ios()->backendpool();
+	TCPSocket *bb1 = pool->GetClient(0);
+	bb1->AsyncSend();
 	// if (ctx->state == S_INIT) {
 	//     MyBackendRequest1 req1;
 	// 	req1.field1 = 1;

@@ -101,54 +101,72 @@ namespace NF {
 	};
 	    
     public:
+	// return value:
+	// 0: OK, and this run ends
+	// 1: empty
+	// -1: error
 	int OnWritable() {
 	    ENTERING;
-	    if (send_msg_list_.size() == 0) {
-		LEAVING2;
-		return -1;
-	    }
-	    struct iovec *v = new struct iovec[send_msg_list_.size()];
-	    std::list<TCPMessage*>::iterator it = send_msg_list_.begin();
-	    std::list<TCPMessage*>::iterator endit = send_msg_list_.end();
-	    for (int i = 0; it != endit; it++, i++) {
-		if (i > 0) {
-		    v[i].iov_base = (*it)->data;
-		} else {
-		    v[i].iov_base = (*it)->data + sent_;
-		}
-		v[i].iov_len = (*it)->size;
-	    }
-	    assert(i == send_msg_list_.size());
-	    int ret = writv(fd(), v, i);
-	    if (ret < 0) {
-		delete[] v;
-		LEAVING2;
-		return -1;
-	    } 
-	    if (ret == 0) {
-		delete[] v;
-		LEAVING2;
-		return -2;
-	    }
-	    int left = ret;
-	    it = send_msg_list_.begin();
-	    endit = send_msg_list_.end();
-	    for (; it != endit, left > 0;) {
 
-		int len = (*it)->size;
-		if (len <= left) {
-		    delete[] = (*it)->data;
-		    it = send_msg_list_.erase(it);
-		    left -= len;
-		} else {
-		    sent_ = left;
+	    assert(send_msg_list_.size());
+
+	    struct iovec *v = new struct iovec[send_msg_list_.size()];
+	    int error = 0;
+
+	    while (true) {
+		std::list<TCPMessage*>::iterator it = send_msg_list_.begin();
+		std::list<TCPMessage*>::iterator endit = send_msg_list_.end();
+		for (int i = 0; it != endit; it++, i++) {
+		    if (i > 0) {
+			v[i].iov_base = (*it)->data;
+		    } else {
+			v[i].iov_base = (*it)->data + sent_;
+		    }
+		    v[i].iov_len = (*it)->size;
+		}
+
+		assert(i == send_msg_list_.size());
+		int ret = writv(fd(), v, i);
+		if (ret < 0) {
+		    if (errno == EINTR) {
+			continue;
+		    } else if (errno == EAGAIN) {
+			error = 0;
+			break;
+		    } else {
+			error = -1;
+			break;
+		    }
+		}
+		if (ret == 0) {
+		    assert(false);
+		}
+
+		int left = ret;
+		it = send_msg_list_.begin();
+		endit = send_msg_list_.end();
+		for (; it != endit, left > 0;) {
+
+		    int len = (*it)->size;
+		    if (len <= left) {
+			delete[] = (*it)->data;
+			it = send_msg_list_.erase(it);
+			left -= len;
+		    } else {
+			sent_ = left;
+			break;
+		    }
+		} // for
+
+		if (send_msg_list_.size() == 0) {
+		    error = 1;
 		    break;
 		}
-	    }
-
+		
+	    } // while
 	    delete[] v;
 	    LEAVING;
-	    return 0;
+	    return error;
 	};
 
 	// return value:

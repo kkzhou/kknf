@@ -290,6 +290,14 @@ namespace NF {
 	    LEAVING;
 	    return;
 	};
+	// setter&getter
+	void set_backendpool(BackendPool *p) {
+	    backendpool_ = p;
+	};
+
+	BackendPool* backendpool() {
+	    return backendpool_;
+	};
 
     private:
 	std::vector<TCPSocket*> all_tcp_socket_;
@@ -302,7 +310,7 @@ namespace NF {
 
 	std::unordered_map<unsigned long long, void*> context_by_index_;
 
-	
+	BackendPool *backendpool_;
 
 	static const int kMaxEpoll = 1000000;
 	static const int kMaxUDPSocketNum = 10;
