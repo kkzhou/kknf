@@ -27,13 +27,13 @@ namespace NF {
 	    return 0;
 	};
 
-	bool AddEventListener(EventListener *l, unsigned int events, int which_epoll = 0) {
+	bool AddReadListener(EventListener *l, int which_epoll = 0) {
 
 	    ENTERING;
-	    assert(which_epoll < epoll_fd_.size());
+	    assert(which_epoll < epoll_fd_.size());	    
 	    struct epoll_event e;
 	    memset(&e, sizeof(e), 0);
-	    e.events = events;
+	    e.events = EPOLLIN;
 	    e.data.ptr = l;
 	    if (epoll_ctl(epoll_fd_[which_epoll], EPOLL_ADD, l->fd(), &e) < 0) {
 		LEAVING2;
@@ -42,6 +42,39 @@ namespace NF {
 	    LEAVING;
 	    return true;
 	};
+
+	bool AddWriteListener(EventListener *l, int which_epoll = 0) {
+
+	    ENTERING;
+	    assert(which_epoll < epoll_fd_.size());	    
+	    struct epoll_event e;
+	    memset(&e, sizeof(e), 0);
+	    e.events = EPOLLOUT;
+	    e.data.ptr = l;
+	    if (epoll_ctl(epoll_fd_[which_epoll], EPOLL_ADD, l->fd(), &e) < 0) {
+		LEAVING2;
+		return false;
+	    }
+	    LEAVING;
+	    return true;
+	};
+
+	bool AddReadWriteListener(EventListener *l, int which_epoll = 0) {
+
+	    ENTERING;
+	    assert(which_epoll < epoll_fd_.size());	    
+	    struct epoll_event e;
+	    memset(&e, sizeof(e), 0);
+	    e.events = EPOLLOUT | EPOLLIN;
+	    e.data.ptr = l;
+	    if (epoll_ctl(epoll_fd_[which_epoll], EPOLL_ADD, l->fd(), &e) < 0) {
+		LEAVING2;
+		return false;
+	    }
+	    LEAVING;
+	    return true;
+	};
+
 
 	bool DeleteEventListener(int fd, int which_epoll) {
 	    ENTERING;
@@ -149,6 +182,7 @@ namespace NF {
 	    int which_engine;
 	    IOService *ios;
 	};
+
 	static void ThreadProc(void *arg) {
 	    ENTERING;
 	    ThreadArg *a = reinterpret_cast<ThreadArg*>(arg);
@@ -164,12 +198,12 @@ namespace NF {
 
 	    // tcp listener
 	    for (int i = 0; i < listener_.size(); i++) {
-		engines_[0]->AddEventListener(listener_[i]);
+		AddReadListener(listener_[i], 0);
 	    }
 
 	    // udp socket
 	    for (int i = 0; i < udp_socket_.size(); i++) {
-		engines_[0]->AddEventListener(udp_socket_[i]);
+		AddReadListener(udp_socket_[i], 0);
 	    }
 
 	    int thread_num = epoll_fd_.size();
@@ -246,6 +280,7 @@ namespace NF {
 
 	    TCPListener *listener = new TCPListener(m, p);
 	    listener->ListenOn(addr);
+	    listener_.push_back(listener);
 	    LEAVING;
 	    return 0;
 	};
@@ -277,11 +312,11 @@ namespace NF {
 	    return 0;
 	};
 	
-	void ShiftEngine(TCPListener *l, int cur_engine) {
+	void ShiftEngine(EventListener *l, int cur_engine) {
 	    ENTERING;
 	    int which = cur_engine++;
 	    which = which % epoll_fd_.size();
-	    AddEventListener(l, EPOLLIN, which);
+	    AddReadListener(l, which);
 	    LEAVING;
 	};
 
